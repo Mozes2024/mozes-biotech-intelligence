@@ -230,6 +230,24 @@ def cmd_serve_v2(args):
 
 
 
+def cmd_export_v3(args):
+    from .payload_v3 import build
+    from .radar import bootstrap_database
+    conn = db.connect(DB_PATH)
+    bootstrap_database(conn)
+    WEB_DIR.mkdir(parents=True, exist_ok=True)
+    out = WEB_DIR / "data.json"
+    out.write_text(json.dumps(build(conn, _today(args)), ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    print(f"wrote {out}")
+    return 0
+
+
+def cmd_app_v3(args):
+    from .app_server import serve
+    serve(port=args.port, host=args.host, db_path=DB_PATH)
+    return 0
+
+
 def cmd_prices_v2(args):
     from .ingest.prices import fetch_tiingo, load_csv
     conn = db.connect(DB_PATH)
@@ -305,6 +323,10 @@ def main(argv=None):
     sp("export-v2", cmd_export_v2, "export database-driven v0.2 UI payload")
     s = sp("serve-v2", cmd_serve_v2, "serve the Hebrew v0.2 UI")
     s.add_argument("--port", type=int, default=8000)
+    sp("export-v3", cmd_export_v3, "export the v0.3 product payload for static hosting")
+    s = sp("app", cmd_app_v3, "run the v0.3 Hebrew product UI + JSON API")
+    s.add_argument("--port", type=int, default=8000)
+    s.add_argument("--host", default="127.0.0.1")
     s = sp("prices-v2", cmd_prices_v2, "ingest verified daily prices into the v0.2 database")
     s.add_argument("--ticker", required=True)
     s.add_argument("--provider", choices=["csv", "tiingo"], default="csv")

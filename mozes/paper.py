@@ -12,12 +12,15 @@ class PaperBook:
         now = now or datetime.now(timezone.utc).isoformat(timespec="seconds")
         sid = f"{analysis['id']}__{now}"
         w = (analysis.get("date") or {}).get("window") or {}
+        classification = analysis.get("classification") or {}
+        class_name = classification.get("class") or classification.get("cls") or "WATCH"
+        versions = analysis.get("versions") or {"product": "0.3.0", "evidence_engine": (analysis.get("evidence") or {}).get("engine")}
         with self.conn:
             self.conn.execute(
                 "INSERT INTO paper_signals (signal_id, event_id, created_at, as_of, window_start, window_end, "
                 "price, classification, versions, payload) VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (sid, analysis["id"], now, analysis.get("as_of", ""), w.get("start"), w.get("end"), price,
-                 analysis["classification"]["cls"], json.dumps(analysis.get("versions", {})),
+                 class_name, json.dumps(versions),
                  json.dumps(analysis, ensure_ascii=False, default=str)))
         return sid
 

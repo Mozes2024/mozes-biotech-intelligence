@@ -208,8 +208,12 @@ def score_event(conn, event: dict, today: str) -> dict:
     if di.get("window") and di["window"].get("start"):
         days_to = days_between(today, di["window"]["start"])
     return {
-        "id": event["id"], "ticker": event.get("ticker"), "program": event.get("program"), "type": event.get("type"),
-        "today": today, "state": state, "date": di, "days_to": days_to, "impact": impact, "evidence": evidence,
-        "market": market, "risk_flags": flags, "classification": classification, "gates": gates,
-        "sources": db.load_event_sources(conn, event["id"]),
+        "id": event["id"], "ticker": event.get("ticker"), "company": event.get("company"),
+        "program": event.get("program"), "indication": event.get("indication"), "ta": event.get("ta"),
+        "type": event.get("type"), "phase": event.get("phase"), "dependency": event.get("dependency"),
+        "commercial": bool(event.get("commercial")), "pivotal": bool(event.get("pivotal")),
+        "today": today, "as_of": today, "state": state, "date": di, "days_to": days_to,
+        "impact": impact, "evidence": evidence, "market": market, "risk_flags": flags,
+        "classification": classification, "gates": gates, "sources": db.load_event_sources(conn, event["id"]),
+        "features": event.get("features") or {},
     }

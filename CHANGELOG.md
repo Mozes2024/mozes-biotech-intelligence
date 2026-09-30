@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — product layer
+
+- Added a local stdlib JSON API and `mozes app` command.
+- Rebuilt the Hebrew RTL interface as a daily-use SPA with dashboard, Radar filters, event detail drawer, candidates, resolved events, paper signals, validation and system status.
+- Added Paper Signal creation from v0.2/v0.3 analyses and fixed the legacy `classification.cls`/`classification.class` mismatch.
+- Enriched live event payloads with company, indication, phase, features and as-of metadata.
+- Added v0.3 product payload/summary and static export via `mozes export-v3`.
+- Added automated GitHub Pages deployment with optional live SEC refresh.
+- CI now validates v0.3 assets and product export.
+- Test suite: 81 passing tests at release build time.
+
+
 ## 0.2.0 - 2026-09-30
 
 ### Added

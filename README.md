@@ -1,10 +1,41 @@
-# MOZES Biotech Catalyst Intelligence v0.2
+# MOZES Biotech Catalyst Intelligence v0.3
 
 A skeptical, point-in-time research system for discovering, verifying, scoring and forward-testing biotech catalysts.
 
 The project is designed around one rule: **an upcoming catalyst is not a bullish signal**. The system separates event importance, clinical/regulatory evidence, market setup, provenance and lifecycle state. It does not unlock RUN-UP or HOLD-through classifications until an out-of-sample validation gate is satisfied.
 
 The user interface is Hebrew RTL. Code and engineering documentation are English.
+
+## v0.3 product layer
+
+v0.3 adds the daily-use product surface on top of the v0.2 research engine:
+
+- `mozes app` runs a local UI + JSON API on `127.0.0.1`.
+- The dashboard includes a filterable Radar, event detail drawer, provenance, risks, evidence explanations, CT.gov candidates, resolved events, Paper Signals, validation and system status.
+- `mozes export-v3` creates `web/data.json` for static/cloud hosting.
+- The SPA works in both modes: live API when `mozes app` is running, or a read-only static snapshot on GitHub Pages.
+- GitHub Pages deployment is included in `.github/workflows/pages.yml`.
+
+### Recommended start
+
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+pip install -e ".[dev]"
+pytest -q
+mozes bootstrap-v2
+mozes app --port 8000
+# open http://127.0.0.1:8000
+```
+
+For a static snapshot:
+
+```bash
+mozes export-v3
+```
+
+See `docs/PRODUCT_V03.md` for the product/API surface.
 
 ## What changed in v0.2
 
