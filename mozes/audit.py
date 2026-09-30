@@ -29,9 +29,12 @@ def audit_event(conn, event: dict, outcome: dict | None = None) -> dict:
 def audit_catalog(conn):
     outcomes = db.load_outcomes(conn)
     rows = [audit_event(conn, e, outcomes.get(e["id"])) for e in db.load_events(conn, "historical")]
-    return {
+    legacy = {
         "n": len(rows),
         "eligible": sum(r["eligible_for_validation"] for r in rows),
         "ineligible": sum(not r["eligible_for_validation"] for r in rows),
         "rows": rows,
     }
+    from .historical import readiness_summary
+    pipeline = readiness_summary(conn)
+    return {**legacy, "total": len(rows), "pipeline": pipeline}

@@ -89,6 +89,15 @@ def bootstrap_database(conn):
         if event.get("ticker"):
             db.upsert_watch(conn, event["ticker"], event.get("company"), source="curated-catalog")
 
+    # The original catalog is useful as a migration source, never as validation
+    # evidence.  It is represented explicitly and remains quarantined until a
+    # blinded snapshot and source-provenanced outcome are supplied.
+    for event in db.load_events(conn, "historical"):
+        db.upsert_historical_case(
+            conn, event["id"], event.get("ticker") or "UNKNOWN", event.get("type") or "UNKNOWN", event["date"],
+            legacy_event_id=event["id"], announcement_session="unknown", legacy_post_hoc=True,
+        )
+
     if not db.validation_row(conn, "runup"):
         db.set_validation(conn, "runup", False, 0, 150, note="locked until stable positive out-of-sample evidence")
     if not db.validation_row(conn, "hold_through"):

@@ -194,6 +194,26 @@ def classify_v2(event, state, impact, evidence, flags, market, date_conf, gates,
     return {"class": "REVIEW", "actionable": True, "reasons": ["research-worthy; trading gates remain locked"]}
 
 
+def recommendation_status(state, impact, evidence, flags, market, classification, gates) -> dict:
+    """Human-readable research recommendation; never a calibrated probability or gate override."""
+    blocked = {"RESOLVED", "QUARANTINED", "STALE_UNRESOLVED"}
+    cls = classification["class"]
+    verified = state.get("verification_state") == "VERIFIED"
+    severe = any(f.get("sev") in {"high", "critical"} for f in flags)
+    base = {"experimental": True, "validation_gates_separate": True}
+    if cls in blocked or not verified:
+        return {**base, "status": "INSUFFICIENT_INFORMATION", "label_he": "חסר מידע", "why_he": "האירוע אינו מאומת מספיק מול מקור ראשוני.", "missing_he": "אימות מועד ואירוע מול מקור ראשוני."}
+    if cls == "AVOID_BINARY" or severe:
+        return {**base, "status": "NOT_NOW", "label_he": "לא כרגע", "why_he": "דגל סיכון מהותי או ראיות חלשות מגבילים את ההתקדמות.", "missing_he": "שינוי מהותי בפרופיל הסיכון או ראיות חדשות."}
+    if evidence.get("score") is not None and impact["score"] >= 70 and evidence["score"] >= 75 and market.get("available"):
+        return {**base, "status": "INVESTMENT_CANDIDATE", "label_he": "מועמדת להשקעה", "why_he": "אירוע משמעותי, ראיות חזקות, אימות ראשוני ותמונת שוק זמינה.", "missing_he": "אימות אמפירי מתקדם עדיין נדרש לפני החלטת run-up או החזקה דרך אירוע."}
+    if evidence.get("score") is not None and impact["score"] >= 65 and evidence["score"] >= 65:
+        return {**base, "status": "APPROACHING_CANDIDATE", "label_he": "מתקרבת למועמדות", "why_he": "השילוב של חשיבות, ראיות ואימות נראה מבטיח.", "missing_he": "תמונת שוק מלאה או חיזוק נוסף של הראיות."}
+    if cls == "WATCH":
+        return {**base, "status": "WATCH", "label_he": "מעקב", "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.", "missing_he": "טריגר מהותי יותר או נתונים חדשים."}
+    return {**base, "status": "RESEARCH_WORTHY", "label_he": "שווה מחקר", "why_he": "האירוע מאומת וראוי לבדיקת עומק, אך אינו עומד בכל תנאי המועמדות.", "missing_he": "חיזוק של חשיבות האירוע, ראיות או תמונת שוק."}
+
+
 def score_event(conn, event: dict, today: str) -> dict:
     sources = load_sources()
     di = date_info(event.get("chronology", []), sources)
@@ -204,6 +224,7 @@ def score_event(conn, event: dict, today: str) -> dict:
     market = market_setup_from_db(conn, event.get("ticker"), (date.fromisoformat(today) + timedelta(days=1)).isoformat()) if event.get("ticker") else {"available": False}
     gates = __import__('mozes.radar', fromlist=['validation_status']).validation_status(conn)
     classification = classify_v2(event, state, impact, evidence, flags, market, state.get("verification_confidence", di.get("confidence", 0)), gates, today, di.get("window"))
+    recommendation = recommendation_status(state, impact, evidence, flags, market, classification, gates)
     days_to = None
     if di.get("window") and di["window"].get("start"):
         days_to = days_between(today, di["window"]["start"])
@@ -214,6 +235,6 @@ def score_event(conn, event: dict, today: str) -> dict:
         "commercial": bool(event.get("commercial")), "pivotal": bool(event.get("pivotal")),
         "today": today, "as_of": today, "state": state, "date": di, "days_to": days_to,
         "impact": impact, "evidence": evidence, "market": market, "risk_flags": flags,
-        "classification": classification, "gates": gates, "sources": db.load_event_sources(conn, event["id"]),
+        "classification": classification, "recommendation": recommendation, "gates": gates, "sources": db.load_event_sources(conn, event["id"]),
         "features": event.get("features") or {},
     }

@@ -123,3 +123,37 @@ CREATE TABLE IF NOT EXISTS watch_universe (
   active INTEGER NOT NULL DEFAULT 1,
   updated_at TEXT NOT NULL
 );
+
+-- Historical Intelligence Pipeline.  The case, its point-in-time feature snapshot,
+-- and its outcome label are deliberately separate so labels cannot leak into inputs.
+CREATE TABLE IF NOT EXISTS historical_cases (
+  case_id TEXT PRIMARY KEY,
+  legacy_event_id TEXT UNIQUE REFERENCES events(id),
+  ticker TEXT NOT NULL,
+  catalyst_type TEXT NOT NULL,
+  event_at TEXT NOT NULL,
+  announcement_session TEXT NOT NULL DEFAULT 'unknown',
+  provenance_json TEXT NOT NULL DEFAULT '[]',
+  legacy_post_hoc INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS feature_snapshots (
+  snapshot_id TEXT PRIMARY KEY,
+  case_id TEXT NOT NULL REFERENCES historical_cases(case_id),
+  as_of TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  provenance_json TEXT NOT NULL DEFAULT '[]',
+  blinded INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  UNIQUE(case_id, as_of)
+);
+CREATE TABLE IF NOT EXISTS outcome_labels (
+  label_id TEXT PRIMARY KEY,
+  case_id TEXT NOT NULL REFERENCES historical_cases(case_id),
+  labeled_at TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  provenance_json TEXT NOT NULL DEFAULT '[]',
+  verified INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  UNIQUE(case_id, labeled_at)
+);

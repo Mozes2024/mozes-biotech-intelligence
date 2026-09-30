@@ -1,6 +1,6 @@
 {
   "version": "0.3.0",
-  "generated_at": "2026-09-30T19:23:37+00:00",
+  "generated_at": "2026-09-30T20:30:40+00:00",
   "today": "2026-09-30",
   "summary": {
     "live_events": 9,
@@ -61,7 +61,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T19:23:37+00:00",
+        "updated_at": "2026-09-30T20:30:40+00:00",
         "note": "primary source: sec"
       },
       "date": {
@@ -154,6 +154,14 @@
           "informational catalyst, not modeled as primary binary"
         ]
       },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
       "gates": {
         "runup": {
           "enabled": false,
@@ -179,7 +187,7 @@
           "published_at": "2026-08-05",
           "statement": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:40+00:00"
         }
       ],
       "features": {}
@@ -206,7 +214,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T19:23:37+00:00",
+        "updated_at": "2026-09-30T20:30:39+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -290,6 +298,14 @@
           "informational catalyst, not modeled as primary binary"
         ]
       },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
       "gates": {
         "runup": {
           "enabled": false,
@@ -315,7 +331,7 @@
           "published_at": "2026-09-28",
           "statement": "החברה מתכננת להגיש BLA ברבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:39+00:00"
         }
       ],
       "features": {}
@@ -342,7 +358,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T19:23:37+00:00",
+        "updated_at": "2026-09-30T20:30:40+00:00",
         "note": "Secondary calendar only; no matching primary-source PDUFA confirmation was verified in the 2026-09-30 review."
       },
       "date": {
@@ -441,6 +457,14 @@
           "primary-source verification missing or conflicting"
         ]
       },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "האירוע אינו מאומת מספיק מול מקור ראשוני.",
+        "missing_he": "אימות מועד ואירוע מול מקור ראשוני."
+      },
       "gates": {
         "runup": {
           "enabled": false,
@@ -466,7 +490,7 @@
           "published_at": "2026-09",
           "statement": "תאריך PDUFA לפי לוח משני",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:40+00:00"
         }
       ],
       "features": {}
@@ -493,7 +517,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T19:23:37+00:00",
+        "updated_at": "2026-09-30T20:30:40+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -620,6 +644,14 @@
           "critical risk flag"
         ]
       },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "NOT_NOW",
+        "label_he": "לא כרגע",
+        "why_he": "דגל סיכון מהותי או ראיות חלשות מגבילים את ההתקדמות.",
+        "missing_he": "שינוי מהותי בפרופיל הסיכון או ראיות חדשות."
+      },
       "gates": {
         "runup": {
           "enabled": false,
@@ -645,7 +677,7 @@
           "published_at": "2026-01-29",
           "statement": "ה-FDA קיבל את ה-BLA; נקבע תאריך PDUFA",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:40+00:00"
         },
         {
           "event_id": "SMMT-PDUFA",
@@ -655,7 +687,7 @@
           "published_at": "2026-07-23",
           "statement": "ההנחיה חוזרת: החלטת FDA עד 14 בנובמבר",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:40+00:00"
         }
       ],
       "features": {
@@ -687,7 +719,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T19:23:37+00:00",
+        "updated_at": "2026-09-30T20:30:39+00:00",
         "note": "Company IR confirms supplemental NDA accepted with a November 14, 2026 PDUFA date."
       },
       "date": {
@@ -786,6 +818,14 @@
           "research-worthy; trading gates remain locked"
         ]
       },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "RESEARCH_WORTHY",
+        "label_he": "שווה מחקר",
+        "why_he": "האירוע מאומת וראוי לבדיקת עומק, אך אינו עומד בכל תנאי המועמדות.",
+        "missing_he": "חיזוק של חשיבות האירוע, ראיות או תמונת שוק."
+      },
       "gates": {
         "runup": {
           "enabled": false,
@@ -811,7 +851,7 @@
           "published_at": "2026-05-05",
           "statement": "Supplemental NDA for MAPLE-HCM accepted with PDUFA date November 14, 2026.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:39+00:00"
         },
         {
           "event_id": "CYTK-SNDA",
@@ -821,7 +861,7 @@
           "published_at": "2026-09",
           "statement": "תאריך PDUFA להתוויה המשלימה",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:39+00:00"
         }
       ],
       "features": {}
@@ -848,7 +888,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T19:23:37+00:00",
+        "updated_at": "2026-09-30T20:30:39+00:00",
         "note": "primary source: sec"
       },
       "date": {
@@ -1022,6 +1062,14 @@
           "critical risk flag"
         ]
       },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "NOT_NOW",
+        "label_he": "לא כרגע",
+        "why_he": "דגל סיכון מהותי או ראיות חלשות מגבילים את ההתקדמות.",
+        "missing_he": "שינוי מהותי בפרופיל הסיכון או ראיות חדשות."
+      },
       "gates": {
         "runup": {
           "enabled": false,
@@ -1047,7 +1095,7 @@
           "published_at": "2026-08-24",
           "statement": "יעד PDUFA הקודם (כפי שמצוטט ב-8-K; ההודעה המקורית טרם נקלטה)",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:39+00:00"
         },
         {
           "event_id": "CAPR-PDUFA",
@@ -1057,7 +1105,7 @@
           "published_at": "2026-08-25",
           "statement": "CRL על ה-BLA המקורי (PDUFA מקורי 31/08/2025)",
           "supports_date": 0,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:39+00:00"
         }
       ],
       "features": {
@@ -1095,7 +1143,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T19:23:37+00:00",
+        "updated_at": "2026-09-30T20:30:40+00:00",
         "note": "primary source: company_ir"
       },
       "date": {
@@ -1258,6 +1306,14 @@
           "research-worthy; trading gates remain locked"
         ]
       },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "RESEARCH_WORTHY",
+        "label_he": "שווה מחקר",
+        "why_he": "האירוע מאומת וראוי לבדיקת עומק, אך אינו עומד בכל תנאי המועמדות.",
+        "missing_he": "חיזוק של חשיבות האירוע, ראיות או תמונת שוק."
+      },
       "gates": {
         "runup": {
           "enabled": false,
@@ -1283,7 +1339,7 @@
           "published_at": "2025-11",
           "statement": "PEAK — topline צפוי ברבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:39+00:00"
         },
         {
           "event_id": "KOD-PEAK-PA1",
@@ -1293,7 +1349,7 @@
           "published_at": "2026-05",
           "statement": "ההנחיה חוזרת: רבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:39+00:00"
         },
         {
           "event_id": "KOD-PEAK-PA1",
@@ -1303,7 +1359,7 @@
           "published_at": "2026-08",
           "statement": "Pivotal Analysis 1 (עוקבה ראשונה, 300 מטופלים) — topline צפוי בדצמבר 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:39+00:00"
         }
       ],
       "features": {
@@ -1335,7 +1391,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T19:23:37+00:00",
+        "updated_at": "2026-09-30T20:30:39+00:00",
         "note": "Primary SEC exhibit confirms FDA accepted the BLA with a December 23, 2026 PDUFA date."
       },
       "date": {
@@ -1456,6 +1512,14 @@
           "research-worthy; trading gates remain locked"
         ]
       },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "APPROACHING_CANDIDATE",
+        "label_he": "מתקרבת למועמדות",
+        "why_he": "השילוב של חשיבות, ראיות ואימות נראה מבטיח.",
+        "missing_he": "תמונת שוק מלאה או חיזוק נוסף של הראיות."
+      },
       "gates": {
         "runup": {
           "enabled": false,
@@ -1481,7 +1545,7 @@
           "published_at": "2026-02-01",
           "statement": "BLA accepted with anticipated PDUFA action date December 23, 2026.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:39+00:00"
         },
         {
           "event_id": "ACLX-ANITO",
@@ -1491,7 +1555,7 @@
           "published_at": "2026-09-30",
           "statement": "תאריך PDUFA לפי לוח קטליזטורים משני",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:39+00:00"
         }
       ],
       "features": {
@@ -1522,7 +1586,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T19:23:37+00:00",
+        "updated_at": "2026-09-30T20:30:40+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -1612,6 +1676,14 @@
           "research-worthy; trading gates remain locked"
         ]
       },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "RESEARCH_WORTHY",
+        "label_he": "שווה מחקר",
+        "why_he": "האירוע מאומת וראוי לבדיקת עומק, אך אינו עומד בכל תנאי המועמדות.",
+        "missing_he": "חיזוק של חשיבות האירוע, ראיות או תמונת שוק."
+      },
       "gates": {
         "runup": {
           "enabled": false,
@@ -1637,7 +1709,7 @@
           "published_at": "2026-09-25",
           "statement": "FDA accepted the supplemental NDA for Priority Review with a PDUFA target action date of January 30, 2027.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:40+00:00"
         }
       ],
       "features": {}
@@ -1699,7 +1771,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": "2026-09-11",
-        "updated_at": "2026-09-30T19:23:37+00:00",
+        "updated_at": "2026-09-30T20:30:40+00:00",
         "note": "Resolved early: FDA approved the pediatric Joenja label expansion before the prior PDUFA date."
       },
       "sources_v2": [
@@ -1711,7 +1783,7 @@
           "published_at": "2026-09-07",
           "statement": "CRL על ההגשה",
           "supports_date": 0,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:40+00:00"
         },
         {
           "event_id": "PHAR-SNDA",
@@ -1721,7 +1793,7 @@
           "published_at": "2026-09-11",
           "statement": "FDA approved Joenja for children aged 4-11 years weighing at least 27 kg.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T19:23:37+00:00"
+          "retrieved_at": "2026-09-30T20:30:40+00:00"
         }
       ]
     }
@@ -1735,7 +1807,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "AKRO",
@@ -1743,7 +1815,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "ALNY",
@@ -1751,7 +1823,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "ALT",
@@ -1759,7 +1831,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "AMLX",
@@ -1767,7 +1839,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "CAPR",
@@ -1775,7 +1847,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "CYTK",
@@ -1783,7 +1855,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "INSM",
@@ -1791,7 +1863,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "KOD",
@@ -1799,7 +1871,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "KRTX",
@@ -1807,7 +1879,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "MDGL",
@@ -1815,7 +1887,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "PHAR",
@@ -1823,7 +1895,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "QTTB",
@@ -1831,7 +1903,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "QURE",
@@ -1839,7 +1911,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "REGN",
@@ -1847,7 +1919,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "RPTX",
@@ -1855,7 +1927,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "SAGE",
@@ -1863,7 +1935,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "SAVA",
@@ -1871,7 +1943,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "SLRN",
@@ -1879,7 +1951,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "SMMT",
@@ -1887,7 +1959,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "SRPT",
@@ -1895,7 +1967,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "SRRK",
@@ -1903,7 +1975,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     },
     {
       "ticker": "VKTX",
@@ -1911,7 +1983,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T19:23:37+00:00"
+      "updated_at": "2026-09-30T20:30:40+00:00"
     }
   ],
   "refresh": null,
@@ -2608,7 +2680,268 @@
           "announcement session unknown"
         ]
       }
-    ]
+    ],
+    "total": 21,
+    "pipeline": {
+      "cases": 21,
+      "research_ready": 0,
+      "runup_ready": 0,
+      "hold_ready": 0,
+      "rows": [
+        {
+          "case_id": "KRTX-2022-08",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "MDGL-2022-12",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "SAGE-2023-08",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "SLRN-2023-09",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "AKRO-2023-10",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "SRPT-2023-10",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "CYTK-2023-12",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "VKTX-2024-02",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "AMLX-2024-03",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "MDGL-2024-03",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "INSM-2024-05",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "SRPT-2024-06",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "ALNY-2024-06",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "SRRK-2024-10",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "SAVA-2024-11",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "ALT-2025-06",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "RPTX-2025-07",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "VKTX-2025-08",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "QURE-2025-09",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "KOD-2026-03",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        },
+        {
+          "case_id": "KOD-2026-09",
+          "research_ready": false,
+          "runup_ready": false,
+          "hold_ready": false,
+          "reasons": [
+            "legacy post-hoc case is quarantined",
+            "missing point-in-time feature snapshot",
+            "missing outcome label",
+            "announcement session unknown"
+          ]
+        }
+      ]
+    }
   },
   "principles": {
     "ctgov_is_discovery_only": true,

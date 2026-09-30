@@ -147,3 +147,41 @@ def upsert_watch(conn, ticker, company=None, cik=None, source="manual", active=T
 
 def watch_rows(conn):
     return [dict(r) for r in conn.execute("SELECT * FROM watch_universe WHERE active=1 ORDER BY ticker").fetchall()]
+
+
+def upsert_historical_case(conn, case_id, ticker, catalyst_type, event_at, *, legacy_event_id=None,
+                           announcement_session="unknown", provenance=None, legacy_post_hoc=False):
+    with conn:
+        conn.execute(
+            "INSERT INTO historical_cases(case_id,legacy_event_id,ticker,catalyst_type,event_at,announcement_session,provenance_json,legacy_post_hoc,created_at) "
+            "VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(case_id) DO UPDATE SET ticker=excluded.ticker,catalyst_type=excluded.catalyst_type,event_at=excluded.event_at,announcement_session=excluded.announcement_session,provenance_json=excluded.provenance_json,legacy_post_hoc=excluded.legacy_post_hoc",
+            (case_id, legacy_event_id, ticker, catalyst_type, event_at, announcement_session, json.dumps(provenance or [], ensure_ascii=False), int(bool(legacy_post_hoc)), utcnow()),
+        )
+
+
+def store_feature_snapshot(conn, snapshot_id, case_id, as_of, payload, *, provenance=None, blinded=False):
+    with conn:
+        conn.execute(
+            "INSERT INTO feature_snapshots(snapshot_id,case_id,as_of,payload,provenance_json,blinded,created_at) VALUES(?,?,?,?,?,?,?)",
+            (snapshot_id, case_id, as_of, json.dumps(payload, ensure_ascii=False), json.dumps(provenance or [], ensure_ascii=False), int(bool(blinded)), utcnow()),
+        )
+
+
+def store_outcome_label(conn, label_id, case_id, labeled_at, payload, *, provenance=None, verified=False):
+    with conn:
+        conn.execute(
+            "INSERT INTO outcome_labels(label_id,case_id,labeled_at,payload,provenance_json,verified,created_at) VALUES(?,?,?,?,?,?,?)",
+            (label_id, case_id, labeled_at, json.dumps(payload, ensure_ascii=False), json.dumps(provenance or [], ensure_ascii=False), int(bool(verified)), utcnow()),
+        )
+
+
+def historical_case_rows(conn):
+    return [dict(r) for r in conn.execute("SELECT * FROM historical_cases ORDER BY event_at,case_id").fetchall()]
+
+
+def feature_snapshot_rows(conn, case_id):
+    return [dict(r) for r in conn.execute("SELECT * FROM feature_snapshots WHERE case_id=? ORDER BY as_of", (case_id,)).fetchall()]
+
+
+def outcome_label_rows(conn, case_id):
+    return [dict(r) for r in conn.execute("SELECT * FROM outcome_labels WHERE case_id=? ORDER BY labeled_at", (case_id,)).fetchall()]

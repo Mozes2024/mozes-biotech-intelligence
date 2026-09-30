@@ -14,6 +14,9 @@ def test_v3_payload_has_product_sections(tmp_path):
     assert p["version"] == "0.3.0"
     assert "summary" in p and "watch_universe" in p and "paper" in p
     assert p["summary"]["live_events"] == len(p["live"])
+    assert all("recommendation" in row for row in p["live"])
+    assert {"status", "why_he", "missing_he"} <= set(p["live"][0]["recommendation"])
+    assert "pipeline" in p["historical_audit"]
 
 
 def test_v2_analysis_can_be_recorded_in_paper_book(tmp_path):
