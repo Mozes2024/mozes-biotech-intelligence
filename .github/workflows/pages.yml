@@ -1,0 +1,51 @@
+name: deploy-pages
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "45 5 * * 1-5"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
+      MOZES_DB_PATH: /tmp/mozes-pages.db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
+      - run: mozes bootstrap-v2
+      - name: Refresh public snapshot
+        shell: bash
+        run: |
+          if [ -n "$SEC_USER_AGENT" ]; then
+            mozes refresh-v2 --months 9 || echo "Live refresh failed; deploying the verified local snapshot."
+          else
+            mozes discover-v2 --months 9 || echo "CT.gov discovery failed; deploying the verified local snapshot."
+          fi
+      - run: mozes export-v3
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

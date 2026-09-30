@@ -1,0 +1,39 @@
+name: nightly-radar-v3
+on:
+  schedule:
+    - cron: "15 5 * * 1-5"
+  workflow_dispatch: {}
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    env:
+      SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
+      MOZES_DB_PATH: mozes-nightly.db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
+      - name: Initialize radar
+        run: mozes bootstrap-v2
+      - name: Discovery and verification
+        shell: bash
+        run: |
+          if [ -n "$SEC_USER_AGENT" ]; then
+            mozes refresh-v2 --months 9
+          else
+            echo "SEC_USER_AGENT is not configured; running CT.gov discovery only."
+            mozes discover-v2 --months 9
+          fi
+      - name: Score and export product payload
+        run: |
+          mozes radar-v2
+          mozes export-v3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mozes-biotech-radar-v3
+          path: |
+            web/data.json
+            mozes-nightly.db
