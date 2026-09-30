@@ -61,6 +61,27 @@ This is a strong research foundation, **not yet a validated trading system**.
 
 The included historical seed remains intentionally ineligible for model validation because it was reconstructed post hoc and lacks fully verified price/timestamp coverage. v0.2 will not treat that seed as evidence of economic edge.
 
+## Historical Intelligence Dataset backfill
+
+`historical-import` accepts a versioned JSON bundle containing immutable source archives, clean cases, frozen pre-event feature snapshots, and separately provenanced outcome labels. A source must have a canonical URL, source type, publication/retrieval timestamps, and archived content (hashed at import). A snapshot is rejected if either it or a cited source postdates the event cutoff. ClinicalTrials.gov may be used for discovery/structure only; its primary-completion date is never a readout date.
+
+```bash
+# archive source content supplied in the bundle, then import safely (repeatable)
+mozes historical-import --file path/to/bundle.json
+# or fetch source bodies explicitly when the bundle intentionally omits them
+mozes historical-import --file path/to/bundle.json --fetch-sources
+
+# attach T-120..T+30-ish (calendar-bounded) ticker and XBI history with provenance
+mozes historical-prices --case CASE_ID --provider csv --stock-file ticker.csv --benchmark-file xbi.csv
+# keyless best-effort alternative; no paid key is required
+mozes historical-prices --case CASE_ID --provider yahoo
+
+mozes historical-readiness
+mozes historical-export --file historical-status.json
+```
+
+`research-ready` requires a non-legacy blinded snapshot and source-provenanced verified outcome. `run-up-ready` additionally requires a known announcement session and both ticker/XBI price coverage; `hold-ready` additionally requires a measurable event return. These dataset flags never open the independent RUN-UP/HOLD OOS validation gates.
+
 ## Quick start
 
 ```bash

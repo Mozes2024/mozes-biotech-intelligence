@@ -157,3 +157,36 @@ CREATE TABLE IF NOT EXISTS outcome_labels (
   created_at TEXT NOT NULL,
   UNIQUE(case_id, labeled_at)
 );
+-- Immutable evidence captured during a historical backfill.  The payload is
+-- deliberately stored separately from the case/snapshot/label records.
+CREATE TABLE IF NOT EXISTS source_archive (
+  source_id TEXT PRIMARY KEY,
+  canonical_url TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  published_at TEXT,
+  retrieved_at TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  content TEXT NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE IF NOT EXISTS price_ingestion_runs (
+  run_id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  requested_at TEXT NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE IF NOT EXISTS historical_price_attachments (
+  case_id TEXT NOT NULL REFERENCES historical_cases(case_id),
+  ticker TEXT NOT NULL,
+  benchmark TEXT NOT NULL DEFAULT 'XBI',
+  start_date TEXT NOT NULL,
+  end_date TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  run_id TEXT REFERENCES price_ingestion_runs(run_id),
+  attached_at TEXT NOT NULL,
+  PRIMARY KEY(case_id, ticker, benchmark)
+);
+CREATE TRIGGER IF NOT EXISTS trg_source_archive_no_update BEFORE UPDATE ON source_archive
+BEGIN SELECT RAISE(ABORT, 'source archive is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_source_archive_no_delete BEFORE DELETE ON source_archive
+BEGIN SELECT RAISE(ABORT, 'source archive is immutable'); END;

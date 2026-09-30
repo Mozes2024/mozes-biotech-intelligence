@@ -249,20 +249,65 @@ def cmd_app_v3(args):
 
 
 def cmd_prices_v2(args):
-    from .ingest.prices import fetch_tiingo, load_csv
+    from .ingest.prices import fetch_tiingo, fetch_yahoo_chart, load_csv
     conn = db.connect(DB_PATH)
     if args.provider == "csv":
         if not args.file:
             raise SystemExit("--file is required for provider=csv")
         rows = load_csv(args.file)
         source = args.source or "csv"
-    else:
+    elif args.provider == "tiingo":
         if not args.start or not args.end:
             raise SystemExit("--start and --end are required for provider=tiingo")
         rows = fetch_tiingo(args.ticker, args.start, args.end)
         source = "tiingo"
+    else:
+        if not args.start or not args.end:
+            raise SystemExit("--start and --end are required for provider=yahoo")
+        rows = fetch_yahoo_chart(args.ticker, args.start, args.end)
+        source = "yahoo-chart-keyless"
     db.store_prices(conn, args.ticker.upper(), rows, source)
     print(json.dumps({"ticker": args.ticker.upper(), "rows": len(rows), "source": source}, indent=2))
+    return 0
+
+
+def cmd_historical_import(args):
+    from .historical import import_bundle
+    from .radar import bootstrap_database
+    conn = db.connect(DB_PATH)
+    bootstrap_database(conn)
+    print(json.dumps(import_bundle(conn, args.file, fetch_sources=args.fetch_sources), indent=2))
+    return 0
+
+
+def cmd_historical_readiness(args):
+    from .historical import readiness_summary
+    from .radar import bootstrap_database
+    conn = db.connect(DB_PATH)
+    bootstrap_database(conn)
+    print(json.dumps(readiness_summary(conn), indent=2))
+    return 0
+
+
+def cmd_historical_export(args):
+    from .historical import readiness_summary
+    from .radar import bootstrap_database
+    conn = db.connect(DB_PATH)
+    bootstrap_database(conn)
+    payload = readiness_summary(conn)
+    if args.file:
+        Path(args.file).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    else:
+        print(json.dumps(payload, indent=2))
+    return 0
+
+
+def cmd_historical_prices(args):
+    from .historical import backfill_prices
+    from .radar import bootstrap_database
+    conn = db.connect(DB_PATH)
+    bootstrap_database(conn)
+    print(json.dumps(backfill_prices(conn, args.case, args.provider, stock_file=args.stock_file, benchmark_file=args.benchmark_file), indent=2))
     return 0
 
 
@@ -329,11 +374,22 @@ def main(argv=None):
     s.add_argument("--host", default="127.0.0.1")
     s = sp("prices-v2", cmd_prices_v2, "ingest verified daily prices into the v0.2 database")
     s.add_argument("--ticker", required=True)
-    s.add_argument("--provider", choices=["csv", "tiingo"], default="csv")
+    s.add_argument("--provider", choices=["csv", "tiingo", "yahoo"], default="csv")
     s.add_argument("--file", default=None)
     s.add_argument("--start", default=None)
     s.add_argument("--end", default=None)
     s.add_argument("--source", default=None)
+    s = sp("historical-import", cmd_historical_import, "import a source-archived point-in-time historical bundle")
+    s.add_argument("--file", required=True)
+    s.add_argument("--fetch-sources", action="store_true", help="archive source URLs when bundle content is absent")
+    sp("historical-readiness", cmd_historical_readiness, "inspect historical research/run-up/hold readiness")
+    s = sp("historical-export", cmd_historical_export, "export historical dataset status JSON")
+    s.add_argument("--file", default=None)
+    s = sp("historical-prices", cmd_historical_prices, "backfill ticker and XBI prices for one historical case")
+    s.add_argument("--case", required=True)
+    s.add_argument("--provider", choices=["csv", "yahoo"], default="csv")
+    s.add_argument("--stock-file", default=None)
+    s.add_argument("--benchmark-file", default=None)
     args = p.parse_args(argv)
     return args.func(args) or 0
 

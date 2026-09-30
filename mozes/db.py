@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -108,6 +109,43 @@ def store_prices(conn, ticker, rows, source):
         )
 
 
+def archive_source(conn, source_id, canonical_url, source_type, published_at, retrieved_at, content, metadata=None):
+    """Store immutable source bytes; an idempotent re-import must be identical."""
+    digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    existing = conn.execute("SELECT content_hash FROM source_archive WHERE source_id=?", (source_id,)).fetchone()
+    if existing:
+        if existing["content_hash"] != digest:
+            raise ValueError(f"source_id {source_id} was already archived with different content")
+        return digest
+    with conn:
+        conn.execute("INSERT INTO source_archive(source_id,canonical_url,source_type,published_at,retrieved_at,content_hash,content,metadata_json) VALUES(?,?,?,?,?,?,?,?)",
+                     (source_id, canonical_url, source_type, published_at, retrieved_at, digest, content,
+                      json.dumps(metadata or {}, ensure_ascii=False, sort_keys=True)))
+    return digest
+
+
+def source_archive_row(conn, source_id):
+    row = conn.execute("SELECT * FROM source_archive WHERE source_id=?", (source_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def store_price_ingestion_run(conn, run_id, provider, metadata=None):
+    existing = conn.execute("SELECT provider,metadata_json FROM price_ingestion_runs WHERE run_id=?", (run_id,)).fetchone()
+    payload = json.dumps(metadata or {}, sort_keys=True)
+    if existing:
+        if existing["provider"] != provider or existing["metadata_json"] != payload:
+            raise ValueError(f"price run {run_id} already exists with different provenance")
+        return
+    with conn:
+        conn.execute("INSERT INTO price_ingestion_runs(run_id,provider,requested_at,metadata_json) VALUES(?,?,?,?)", (run_id, provider, utcnow(), payload))
+
+
+def attach_historical_prices(conn, case_id, ticker, start_date, end_date, provider, run_id=None, benchmark="XBI"):
+    with conn:
+        conn.execute("INSERT INTO historical_price_attachments(case_id,ticker,benchmark,start_date,end_date,provider,run_id,attached_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(case_id,ticker,benchmark) DO UPDATE SET start_date=excluded.start_date,end_date=excluded.end_date,provider=excluded.provider,run_id=excluded.run_id,attached_at=excluded.attached_at",
+                     (case_id, ticker, benchmark, start_date, end_date, provider, run_id, utcnow()))
+
+
 def load_prices(conn, ticker, before=None, after=None):
     sql = "SELECT date,close,volume,source FROM prices WHERE ticker=?"
     args = [ticker]
@@ -160,18 +198,32 @@ def upsert_historical_case(conn, case_id, ticker, catalyst_type, event_at, *, le
 
 
 def store_feature_snapshot(conn, snapshot_id, case_id, as_of, payload, *, provenance=None, blinded=False):
+    existing = conn.execute("SELECT case_id,as_of,payload,provenance_json,blinded FROM feature_snapshots WHERE snapshot_id=?", (snapshot_id,)).fetchone()
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    prov = json.dumps(provenance or [], ensure_ascii=False, sort_keys=True)
+    if existing:
+        if (existing["case_id"], existing["as_of"], existing["payload"], existing["provenance_json"], existing["blinded"]) != (case_id, as_of, encoded, prov, int(bool(blinded))):
+            raise ValueError(f"snapshot {snapshot_id} already exists with different contents")
+        return
     with conn:
         conn.execute(
             "INSERT INTO feature_snapshots(snapshot_id,case_id,as_of,payload,provenance_json,blinded,created_at) VALUES(?,?,?,?,?,?,?)",
-            (snapshot_id, case_id, as_of, json.dumps(payload, ensure_ascii=False), json.dumps(provenance or [], ensure_ascii=False), int(bool(blinded)), utcnow()),
+            (snapshot_id, case_id, as_of, encoded, prov, int(bool(blinded)), utcnow()),
         )
 
 
 def store_outcome_label(conn, label_id, case_id, labeled_at, payload, *, provenance=None, verified=False):
+    existing = conn.execute("SELECT case_id,labeled_at,payload,provenance_json,verified FROM outcome_labels WHERE label_id=?", (label_id,)).fetchone()
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    prov = json.dumps(provenance or [], ensure_ascii=False, sort_keys=True)
+    if existing:
+        if (existing["case_id"], existing["labeled_at"], existing["payload"], existing["provenance_json"], existing["verified"]) != (case_id, labeled_at, encoded, prov, int(bool(verified))):
+            raise ValueError(f"outcome label {label_id} already exists with different contents")
+        return
     with conn:
         conn.execute(
             "INSERT INTO outcome_labels(label_id,case_id,labeled_at,payload,provenance_json,verified,created_at) VALUES(?,?,?,?,?,?,?)",
-            (label_id, case_id, labeled_at, json.dumps(payload, ensure_ascii=False), json.dumps(provenance or [], ensure_ascii=False), int(bool(verified)), utcnow()),
+            (label_id, case_id, labeled_at, encoded, prov, int(bool(verified)), utcnow()),
         )
 
 

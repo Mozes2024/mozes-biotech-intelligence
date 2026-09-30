@@ -1,48 +1,146 @@
-"""Point-in-time Historical Intelligence Pipeline and readiness gates."""
+"""Point-in-time historical dataset import, evidence controls, and readiness."""
 from __future__ import annotations
 
 import json
+import hashlib
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from urllib.request import Request, urlopen
 
 from . import db
+
+HORIZONS = ("T-60", "T-30", "T-14", "T-7", "T-3", "T-1")
+
+
+def _timestamp(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return parsed.replace(tzinfo=parsed.tzinfo or timezone.utc)
+
+
+def _archive_sources(conn, rows, fetch: bool) -> None:
+    for source in rows:
+        content = source.get("content")
+        if content is None and fetch:
+            request = Request(source["canonical_url"], headers={"User-Agent": "MOZES historical research archive/0.3"})
+            with urlopen(request, timeout=30) as response:
+                content = response.read().decode("utf-8", errors="replace")
+        if content is None:
+            raise ValueError(f"source {source['source_id']} needs archived content (or --fetch-sources)")
+        db.archive_source(conn, source["source_id"], source["canonical_url"], source["source_type"], source.get("published_at"),
+                          source.get("retrieved_at") or db.utcnow(), content, source.get("metadata"))
+
+
+def _prove_pre_event(conn, source_ids: list[str], cutoff: str) -> None:
+    for source_id in source_ids:
+        source = db.source_archive_row(conn, source_id)
+        if not source or not source["published_at"]:
+            raise ValueError(f"source {source_id} cannot prove point-in-time availability")
+        if _timestamp(source["published_at"]) > _timestamp(cutoff):
+            raise ValueError(f"source {source_id} was published after snapshot cutoff")
+
+
+def import_bundle(conn, path: str | Path, *, fetch_sources: bool = False) -> dict:
+    """Import a declarative, idempotent historical bundle without hindsight leakage."""
+    bundle = json.loads(Path(path).read_text(encoding="utf-8"))
+    _archive_sources(conn, bundle.get("sources", []), fetch_sources)
+    for case in bundle.get("cases", []):
+        if "T" not in case["event_at"]:
+            raise ValueError(f"case {case['case_id']} needs an announcement timestamp, not only a date")
+        event_at, event_time = case["event_at"], _timestamp(case["event_at"])
+        case_sources = list(case.get("source_ids", []))
+        if not case_sources or any(not db.source_archive_row(conn, s) for s in case_sources):
+            raise ValueError(f"case {case['case_id']} has unarchived source provenance")
+        db.upsert_historical_case(conn, case["case_id"], case["ticker"], case["catalyst_type"], event_at,
+                                  announcement_session=case.get("announcement_session", "unknown"), provenance=case_sources)
+        for snap in case.get("feature_snapshots", []):
+            if _timestamp(snap["as_of"]) >= event_time:
+                raise ValueError(f"snapshot {snap['snapshot_id']} is not strictly before event")
+            sources = list(snap.get("source_ids", []))
+            _prove_pre_event(conn, sources, snap["as_of"])
+            if not sources:
+                raise ValueError(f"snapshot {snap['snapshot_id']} has no source provenance")
+            payload = {**snap.get("features", {}), "horizon": snap.get("horizon")}
+            db.store_feature_snapshot(conn, snap["snapshot_id"], case["case_id"], snap["as_of"], payload, provenance=sources, blinded=True)
+        outcome = case.get("outcome_label")
+        if outcome:
+            if _timestamp(outcome["labeled_at"]) < event_time:
+                raise ValueError(f"outcome {outcome['label_id']} predates event")
+            sources = list(outcome.get("source_ids", []))
+            if not sources or any(not db.source_archive_row(conn, s) for s in sources):
+                raise ValueError(f"outcome {outcome['label_id']} has unarchived source provenance")
+            db.store_outcome_label(conn, outcome["label_id"], case["case_id"], outcome["labeled_at"], outcome.get("label", {}), provenance=sources, verified=True)
+    return {"cases": len(bundle.get("cases", [])), "sources": len(bundle.get("sources", []))}
+
+
+def event_price_window(event_at: str) -> tuple[str, str]:
+    day = _timestamp(event_at).date()
+    return ((day - timedelta(days=180)).isoformat(), (day + timedelta(days=45)).isoformat())
+
+
+def attach_price_coverage(conn, case_id: str, provider: str, run_id: str | None = None, benchmark: str = "XBI") -> dict:
+    case = next(row for row in db.historical_case_rows(conn) if row["case_id"] == case_id)
+    start, end = event_price_window(case["event_at"])
+    db.attach_historical_prices(conn, case_id, case["ticker"], start, end, provider, run_id, benchmark)
+    return {"case_id": case_id, "ticker": case["ticker"], "benchmark": benchmark, "start": start, "end": end}
+
+
+def backfill_prices(conn, case_id: str, provider: str, *, stock_file: str | None = None, benchmark_file: str | None = None) -> dict:
+    """Fetch or load ticker and XBI prices and bind their provenance to one case."""
+    case = next(row for row in db.historical_case_rows(conn) if row["case_id"] == case_id)
+    start, end = event_price_window(case["event_at"])
+    if provider == "csv":
+        if not stock_file or not benchmark_file:
+            raise ValueError("csv backfill requires --stock-file and --benchmark-file")
+        from .ingest.prices import load_csv
+        stock, benchmark = load_csv(stock_file), load_csv(benchmark_file)
+        metadata = {"stock_file": Path(stock_file).name, "benchmark_file": Path(benchmark_file).name}
+    elif provider == "yahoo":
+        from .ingest.prices import fetch_yahoo_chart
+        stock, benchmark = fetch_yahoo_chart(case["ticker"], start, end), fetch_yahoo_chart("XBI", start, end)
+        metadata = {"adapter": "yahoo-chart-keyless", "start": start, "end": end}
+    else:
+        raise ValueError(f"unsupported historical price provider: {provider}")
+    run_id = "price-" + hashlib.sha256(f"{case_id}|{provider}|{start}|{end}".encode()).hexdigest()[:16]
+    db.store_price_ingestion_run(conn, run_id, provider, metadata)
+    db.store_prices(conn, case["ticker"], stock, provider)
+    db.store_prices(conn, "XBI", benchmark, provider)
+    attached = attach_price_coverage(conn, case_id, provider, run_id)
+    return {**attached, "stock_rows": len(stock), "benchmark_rows": len(benchmark), "run_id": run_id}
+
+
+def _price_status(conn, case: dict) -> tuple[bool, str | None]:
+    a = conn.execute("SELECT * FROM historical_price_attachments WHERE case_id=? AND ticker=?", (case["case_id"], case["ticker"])).fetchone()
+    if not a:
+        return False, "missing price attachment"
+    stock = conn.execute("SELECT COUNT(*) AS n FROM prices WHERE ticker=? AND date BETWEEN ? AND ?", (case["ticker"], a["start_date"], a["end_date"])).fetchone()["n"]
+    bench = conn.execute("SELECT COUNT(*) AS n FROM prices WHERE ticker=? AND date BETWEEN ? AND ?", (a["benchmark"], a["start_date"], a["end_date"])).fetchone()["n"]
+    return (stock >= 100 and bench >= 100, None if stock >= 100 and bench >= 100 else "missing price coverage")
 
 
 def readiness_for_case(conn, case_id: str) -> dict:
     case = next((row for row in db.historical_case_rows(conn) if row["case_id"] == case_id), None)
     if not case:
         raise KeyError(case_id)
-    snapshots = db.feature_snapshot_rows(conn, case_id)
-    labels = db.outcome_label_rows(conn, case_id)
-    reasons = []
-    if case["legacy_post_hoc"]:
-        reasons.append("legacy post-hoc case is quarantined")
-    if not snapshots:
-        reasons.append("missing point-in-time feature snapshot")
-    else:
-        snap = snapshots[-1]
-        if snap["as_of"] >= case["event_at"]:
-            reasons.append("feature snapshot is not strictly before event")
-        if not snap["blinded"]:
-            reasons.append("feature snapshot was not blinded")
-        if not json.loads(snap["provenance_json"] or "[]"):
-            reasons.append("feature provenance missing")
-    if not labels:
-        reasons.append("missing outcome label")
-    else:
-        label = labels[-1]
-        if not label["verified"]:
-            reasons.append("outcome label is not verified")
-        if not json.loads(label["provenance_json"] or "[]"):
-            reasons.append("outcome provenance missing")
-    if case["announcement_session"] == "unknown":
-        reasons.append("announcement session unknown")
-    research_ready = not reasons
-    runup_ready = research_ready and case["announcement_session"] != "unknown"
+    snapshots, labels, reasons = db.feature_snapshot_rows(conn, case_id), db.outcome_label_rows(conn, case_id), []
+    if case["legacy_post_hoc"]: reasons.append("legacy post-hoc case is quarantined")
+    if not json.loads(case["provenance_json"] or "[]"): reasons.append("case provenance missing")
+    if not snapshots: reasons.append("missing point-in-time feature snapshot")
+    for snap in snapshots:
+        if snap["as_of"] >= case["event_at"]: reasons.append("feature snapshot is not strictly before event")
+        if not snap["blinded"]: reasons.append("feature snapshot was not blinded")
+        if not json.loads(snap["provenance_json"] or "[]"): reasons.append("feature provenance missing")
+    if not labels: reasons.append("missing outcome label")
+    elif not labels[-1]["verified"]: reasons.append("outcome label is not verified")
+    elif not json.loads(labels[-1]["provenance_json"] or "[]"): reasons.append("outcome provenance missing")
+    prices_ok, price_reason = _price_status(conn, case)
+    if price_reason: reasons.append(price_reason)
+    if case["announcement_session"] == "unknown": reasons.append("announcement session unknown")
+    research_ready = not any(x in " ".join(reasons) for x in ("legacy", "snapshot", "provenance", "outcome"))
+    runup_ready = research_ready and prices_ok and case["announcement_session"] != "unknown"
     hold_ready = runup_ready and bool(labels and json.loads(labels[-1]["payload"]).get("event_return") is not None)
-    return {"case_id": case_id, "research_ready": research_ready, "runup_ready": runup_ready,
-            "hold_ready": hold_ready, "reasons": reasons}
+    return {"case_id": case_id, "research_ready": research_ready, "runup_ready": runup_ready, "hold_ready": hold_ready, "prices_ok": prices_ok, "reasons": sorted(set(reasons))}
 
 
 def readiness_summary(conn) -> dict:
-    rows = [readiness_for_case(conn, row["case_id"]) for row in db.historical_case_rows(conn)]
-    return {"cases": len(rows), "research_ready": sum(r["research_ready"] for r in rows),
-            "runup_ready": sum(r["runup_ready"] for r in rows), "hold_ready": sum(r["hold_ready"] for r in rows), "rows": rows}
+    rows, cases = [readiness_for_case(conn, c["case_id"]) for c in db.historical_case_rows(conn)], db.historical_case_rows(conn)
+    return {"cases": len(rows), "research_ready": sum(r["research_ready"] for r in rows), "runup_ready": sum(r["runup_ready"] for r in rows), "hold_ready": sum(r["hold_ready"] for r in rows), "missing_prices": sum(not r["prices_ok"] for r in rows), "missing_provenance": sum(any("provenance" in x for x in r["reasons"]) for r in rows), "unknown_session": sum(c["announcement_session"] == "unknown" for c in cases), "legacy_quarantined": sum(bool(c["legacy_post_hoc"]) for c in cases), "rows": rows}

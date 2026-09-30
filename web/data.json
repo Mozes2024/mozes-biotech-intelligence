@@ -1,6 +1,6 @@
 {
   "version": "0.3.0",
-  "generated_at": "2026-09-30T20:30:40+00:00",
+  "generated_at": "2026-09-30T20:44:36+00:00",
   "today": "2026-09-30",
   "summary": {
     "live_events": 9,
@@ -61,7 +61,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:30:40+00:00",
+        "updated_at": "2026-09-30T20:44:35+00:00",
         "note": "primary source: sec"
       },
       "date": {
@@ -187,7 +187,7 @@
           "published_at": "2026-08-05",
           "statement": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:40+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         }
       ],
       "features": {}
@@ -214,7 +214,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:30:39+00:00",
+        "updated_at": "2026-09-30T20:44:35+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -331,7 +331,7 @@
           "published_at": "2026-09-28",
           "statement": "החברה מתכננת להגיש BLA ברבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:39+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         }
       ],
       "features": {}
@@ -358,7 +358,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:30:40+00:00",
+        "updated_at": "2026-09-30T20:44:35+00:00",
         "note": "Secondary calendar only; no matching primary-source PDUFA confirmation was verified in the 2026-09-30 review."
       },
       "date": {
@@ -490,7 +490,7 @@
           "published_at": "2026-09",
           "statement": "תאריך PDUFA לפי לוח משני",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:40+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         }
       ],
       "features": {}
@@ -517,7 +517,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:30:40+00:00",
+        "updated_at": "2026-09-30T20:44:35+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -677,7 +677,7 @@
           "published_at": "2026-01-29",
           "statement": "ה-FDA קיבל את ה-BLA; נקבע תאריך PDUFA",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:40+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         },
         {
           "event_id": "SMMT-PDUFA",
@@ -687,7 +687,7 @@
           "published_at": "2026-07-23",
           "statement": "ההנחיה חוזרת: החלטת FDA עד 14 בנובמבר",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:40+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         }
       ],
       "features": {
@@ -719,7 +719,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:30:39+00:00",
+        "updated_at": "2026-09-30T20:44:35+00:00",
         "note": "Company IR confirms supplemental NDA accepted with a November 14, 2026 PDUFA date."
       },
       "date": {
@@ -851,7 +851,7 @@
           "published_at": "2026-05-05",
           "statement": "Supplemental NDA for MAPLE-HCM accepted with PDUFA date November 14, 2026.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:39+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         },
         {
           "event_id": "CYTK-SNDA",
@@ -861,7 +861,7 @@
           "published_at": "2026-09",
           "statement": "תאריך PDUFA להתוויה המשלימה",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:39+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         }
       ],
       "features": {}
@@ -888,7 +888,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:30:39+00:00",
+        "updated_at": "2026-09-30T20:44:35+00:00",
         "note": "primary source: sec"
       },
       "date": {
@@ -1095,7 +1095,7 @@
           "published_at": "2026-08-24",
           "statement": "יעד PDUFA הקודם (כפי שמצוטט ב-8-K; ההודעה המקורית טרם נקלטה)",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:39+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         },
         {
           "event_id": "CAPR-PDUFA",
@@ -1105,7 +1105,7 @@
           "published_at": "2026-08-25",
           "statement": "CRL על ה-BLA המקורי (PDUFA מקורי 31/08/2025)",
           "supports_date": 0,
-          "retrieved_at": "2026-09-30T20:30:39+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         }
       ],
       "features": {
@@ -1143,7 +1143,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:30:40+00:00",
+        "updated_at": "2026-09-30T20:44:35+00:00",
         "note": "primary source: company_ir"
       },
       "date": {
@@ -1339,7 +1339,7 @@
           "published_at": "2025-11",
           "statement": "PEAK — topline צפוי ברבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:39+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         },
         {
           "event_id": "KOD-PEAK-PA1",
@@ -1349,7 +1349,7 @@
           "published_at": "2026-05",
           "statement": "ההנחיה חוזרת: רבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:39+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         },
         {
           "event_id": "KOD-PEAK-PA1",
@@ -1359,7 +1359,7 @@
           "published_at": "2026-08",
           "statement": "Pivotal Analysis 1 (עוקבה ראשונה, 300 מטופלים) — topline צפוי בדצמבר 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:39+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         }
       ],
       "features": {
@@ -1391,7 +1391,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:30:39+00:00",
+        "updated_at": "2026-09-30T20:44:35+00:00",
         "note": "Primary SEC exhibit confirms FDA accepted the BLA with a December 23, 2026 PDUFA date."
       },
       "date": {
@@ -1545,7 +1545,7 @@
           "published_at": "2026-02-01",
           "statement": "BLA accepted with anticipated PDUFA action date December 23, 2026.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:39+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         },
         {
           "event_id": "ACLX-ANITO",
@@ -1555,7 +1555,7 @@
           "published_at": "2026-09-30",
           "statement": "תאריך PDUFA לפי לוח קטליזטורים משני",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:39+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         }
       ],
       "features": {
@@ -1586,7 +1586,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:30:40+00:00",
+        "updated_at": "2026-09-30T20:44:35+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -1709,7 +1709,7 @@
           "published_at": "2026-09-25",
           "statement": "FDA accepted the supplemental NDA for Priority Review with a PDUFA target action date of January 30, 2027.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:40+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         }
       ],
       "features": {}
@@ -1771,7 +1771,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": "2026-09-11",
-        "updated_at": "2026-09-30T20:30:40+00:00",
+        "updated_at": "2026-09-30T20:44:35+00:00",
         "note": "Resolved early: FDA approved the pediatric Joenja label expansion before the prior PDUFA date."
       },
       "sources_v2": [
@@ -1783,7 +1783,7 @@
           "published_at": "2026-09-07",
           "statement": "CRL על ההגשה",
           "supports_date": 0,
-          "retrieved_at": "2026-09-30T20:30:40+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         },
         {
           "event_id": "PHAR-SNDA",
@@ -1793,7 +1793,7 @@
           "published_at": "2026-09-11",
           "statement": "FDA approved Joenja for children aged 4-11 years weighing at least 27 kg.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:30:40+00:00"
+          "retrieved_at": "2026-09-30T20:44:35+00:00"
         }
       ]
     }
@@ -1807,7 +1807,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "AKRO",
@@ -1815,7 +1815,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "ALNY",
@@ -1823,7 +1823,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "ALT",
@@ -1831,7 +1831,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "AMLX",
@@ -1839,7 +1839,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "CAPR",
@@ -1847,7 +1847,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "CYTK",
@@ -1855,7 +1855,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "INSM",
@@ -1863,7 +1863,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "KOD",
@@ -1871,7 +1871,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "KRTX",
@@ -1879,7 +1879,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "MDGL",
@@ -1887,7 +1887,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "PHAR",
@@ -1895,7 +1895,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "QTTB",
@@ -1903,7 +1903,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "QURE",
@@ -1911,7 +1911,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "REGN",
@@ -1919,7 +1919,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "RPTX",
@@ -1927,7 +1927,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "SAGE",
@@ -1935,7 +1935,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "SAVA",
@@ -1943,7 +1943,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "SLRN",
@@ -1951,7 +1951,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "SMMT",
@@ -1959,7 +1959,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "SRPT",
@@ -1967,7 +1967,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "SRRK",
@@ -1975,7 +1975,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     },
     {
       "ticker": "VKTX",
@@ -1983,7 +1983,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:30:40+00:00"
+      "updated_at": "2026-09-30T20:44:36+00:00"
     }
   ],
   "refresh": null,
@@ -2687,17 +2687,24 @@
       "research_ready": 0,
       "runup_ready": 0,
       "hold_ready": 0,
+      "missing_prices": 21,
+      "missing_provenance": 21,
+      "unknown_session": 21,
+      "legacy_quarantined": 21,
       "rows": [
         {
           "case_id": "KRTX-2022-08",
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2705,11 +2712,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2717,11 +2727,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2729,11 +2742,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2741,11 +2757,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2753,11 +2772,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2765,11 +2787,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2777,11 +2802,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2789,11 +2817,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2801,11 +2832,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2813,11 +2847,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2825,11 +2862,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2837,11 +2877,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2849,11 +2892,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2861,11 +2907,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2873,11 +2922,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2885,11 +2937,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2897,11 +2952,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2909,11 +2967,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2921,11 +2982,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         },
         {
@@ -2933,11 +2997,14 @@
           "research_ready": false,
           "runup_ready": false,
           "hold_ready": false,
+          "prices_ok": false,
           "reasons": [
+            "announcement session unknown",
+            "case provenance missing",
             "legacy post-hoc case is quarantined",
-            "missing point-in-time feature snapshot",
             "missing outcome label",
-            "announcement session unknown"
+            "missing point-in-time feature snapshot",
+            "missing price attachment"
           ]
         }
       ]
