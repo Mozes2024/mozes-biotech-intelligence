@@ -1,0 +1,3 @@
+{
+  "ACLX": {"company":"Arcellx, Inc.","status":"ACQUIRED","effective_from":"2026-04-28","effective_to":"2026-04-28","acquirer_ticker":"GILD","reason":"Gilead completed the acquisition; ACLX shares ceased trading before Nasdaq opened.","source_url":"https://www.sec.gov/Archives/edgar/data/882095/000110465926049902/xslSCHEDULE_13D_X02/primary_doc.xml","source_type":"sec_schedule_13d","published_at":"2026-04-28T00:00:00Z","asset":{"asset_id":"anito-cel","owner_ticker":"GILD","relationship":"acquired_full_control"}}
+}

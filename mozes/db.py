@@ -187,6 +187,29 @@ def watch_rows(conn):
     return [dict(r) for r in conn.execute("SELECT * FROM watch_universe WHERE active=1 ORDER BY ticker").fetchall()]
 
 
+def upsert_security_lifecycle(conn, ticker, *, company=None, status="UNKNOWN", effective_from=None, effective_to=None,
+                              successor_ticker=None, acquirer_ticker=None, reason=None, source_url=None, source_type=None,
+                              published_at=None, verified_at=None):
+    ticker = ticker.upper()
+    row = conn.execute("SELECT * FROM security_lifecycle WHERE ticker=?", (ticker,)).fetchone()
+    values = (ticker, company, status, effective_from, effective_to, successor_ticker, acquirer_ticker, reason, source_url, source_type, published_at, verified_at or utcnow())
+    if row:
+        old = tuple(row[k] for k in ("ticker","company","status","effective_from","effective_to","successor_ticker","acquirer_ticker","reason","source_url","source_type","published_at"))
+        if old == values[:-1]: return
+    with conn:
+        conn.execute("INSERT INTO security_lifecycle(ticker,company,status,effective_from,effective_to,successor_ticker,acquirer_ticker,reason,source_url,source_type,published_at,verified_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(ticker) DO UPDATE SET company=excluded.company,status=excluded.status,effective_from=excluded.effective_from,effective_to=excluded.effective_to,successor_ticker=excluded.successor_ticker,acquirer_ticker=excluded.acquirer_ticker,reason=excluded.reason,source_url=excluded.source_url,source_type=excluded.source_type,published_at=excluded.published_at,verified_at=excluded.verified_at", values)
+
+
+def security_lifecycle_row(conn, ticker):
+    row = conn.execute("SELECT * FROM security_lifecycle WHERE ticker=?", ((ticker or "").upper(),)).fetchone()
+    return dict(row) if row else None
+
+
+def upsert_asset_ownership(conn, asset_id, owner_ticker, effective_from, *, relationship, source_url, source_type, published_at=None, effective_to=None):
+    with conn:
+        conn.execute("INSERT INTO asset_ownership(asset_id,owner_ticker,effective_from,effective_to,relationship,source_url,source_type,published_at,verified_at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(asset_id,owner_ticker,effective_from) DO UPDATE SET effective_to=excluded.effective_to,relationship=excluded.relationship,source_url=excluded.source_url,source_type=excluded.source_type,published_at=excluded.published_at,verified_at=excluded.verified_at", (asset_id, owner_ticker.upper(), effective_from, effective_to, relationship, source_url, source_type, published_at, utcnow()))
+
+
 def upsert_historical_case(conn, case_id, ticker, catalyst_type, event_at, *, legacy_event_id=None,
                            announcement_session="unknown", provenance=None, legacy_post_hoc=False):
     with conn:

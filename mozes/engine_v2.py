@@ -194,13 +194,16 @@ def classify_v2(event, state, impact, evidence, flags, market, date_conf, gates,
     return {"class": "REVIEW", "actionable": True, "reasons": ["research-worthy; trading gates remain locked"]}
 
 
-def recommendation_status(state, impact, evidence, flags, market, classification, gates) -> dict:
+def recommendation_status(state, impact, evidence, flags, market, classification, gates, security=None) -> dict:
     """Human-readable research recommendation; never a calibrated probability or gate override."""
     blocked = {"RESOLVED", "QUARANTINED", "STALE_UNRESOLVED"}
     cls = classification["class"]
     verified = state.get("verification_state") == "VERIFIED"
     severe = any(f.get("sev") in {"high", "critical"} for f in flags)
     base = {"experimental": True, "validation_gates_separate": True}
+    if security is not None and not security.get("tradable"):
+        why = "הטיקר אינו נסחר עוד." if (security or {}).get("status") in {"ACQUIRED","DELISTED","SUSPENDED","BANKRUPT"} else "לא נמצא אימות עדכני שהטיקר נסחר בציבור."
+        return {**base, "status": "INSUFFICIENT_INFORMATION", "label_he": "חסר מידע", "why_he": why, "missing_he": "אימות מצב מסחר ממקור רשמי."}
     if cls in blocked or not verified:
         return {**base, "status": "INSUFFICIENT_INFORMATION", "label_he": "חסר מידע", "why_he": "האירוע אינו מאומת מספיק מול מקור ראשוני.", "missing_he": "אימות מועד ואירוע מול מקור ראשוני."}
     if cls == "AVOID_BINARY" or severe:
@@ -218,13 +221,14 @@ def score_event(conn, event: dict, today: str) -> dict:
     sources = load_sources()
     di = date_info(event.get("chronology", []), sources)
     state = db.event_state(conn, event["id"]) or {}
+    security = __import__('mozes.security', fromlist=['tradability']).tradability(conn, event.get("ticker"))
     impact = catalyst_impact(event)
     evidence = evidence_for(event)
     flags = risk_flags(event)
     market = market_setup_from_db(conn, event.get("ticker"), (date.fromisoformat(today) + timedelta(days=1)).isoformat()) if event.get("ticker") else {"available": False}
     gates = __import__('mozes.radar', fromlist=['validation_status']).validation_status(conn)
     classification = classify_v2(event, state, impact, evidence, flags, market, state.get("verification_confidence", di.get("confidence", 0)), gates, today, di.get("window"))
-    recommendation = recommendation_status(state, impact, evidence, flags, market, classification, gates)
+    recommendation = recommendation_status(state, impact, evidence, flags, market, classification, gates, security)
     days_to = None
     if di.get("window") and di["window"].get("start"):
         days_to = days_between(today, di["window"]["start"])
@@ -236,5 +240,5 @@ def score_event(conn, event: dict, today: str) -> dict:
         "today": today, "as_of": today, "state": state, "date": di, "days_to": days_to,
         "impact": impact, "evidence": evidence, "market": market, "risk_flags": flags,
         "classification": classification, "recommendation": recommendation, "gates": gates, "sources": db.load_event_sources(conn, event["id"]),
-        "features": event.get("features") or {},
+        "features": event.get("features") or {}, "security": security,
     }

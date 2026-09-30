@@ -1,14 +1,14 @@
 {
   "version": "0.3.0",
-  "generated_at": "2026-09-30T20:44:36+00:00",
+  "generated_at": "2026-09-30T20:58:32+00:00",
   "today": "2026-09-30",
   "summary": {
-    "live_events": 9,
-    "verified": 8,
+    "live_events": 8,
+    "verified": 7,
     "quarantined": 1,
-    "high_impact": 3,
+    "high_impact": 2,
     "next_30_days": 2,
-    "resolved_events": 1,
+    "resolved_events": 2,
     "candidates": 0,
     "mapped_candidates": 0,
     "paper_signals": 0,
@@ -16,12 +16,12 @@
       "WATCH": 2,
       "QUARANTINED": 1,
       "AVOID_BINARY": 2,
-      "REVIEW": 4
+      "REVIEW": 3
     },
     "state_counts": {
       "VERIFIED": 3,
       "QUARANTINED": 1,
-      "SCHEDULED": 5
+      "SCHEDULED": 4
     },
     "runup_gate": {
       "enabled": false,
@@ -61,7 +61,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:44:35+00:00",
+        "updated_at": "2026-09-30T20:58:32+00:00",
         "note": "primary source: sec"
       },
       "date": {
@@ -157,10 +157,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "WATCH",
-        "label_he": "מעקב",
-        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
-        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
+        "missing_he": "אימות מצב מסחר ממקור רשמי."
       },
       "gates": {
         "runup": {
@@ -187,10 +187,16 @@
           "published_at": "2026-08-05",
           "statement": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         }
       ],
-      "features": {}
+      "features": {},
+      "security": {
+        "status": "UNKNOWN",
+        "tradable": false,
+        "verified": false,
+        "reason": "no current security lifecycle verification"
+      }
     },
     {
       "id": "KOD-BLA",
@@ -214,7 +220,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:44:35+00:00",
+        "updated_at": "2026-09-30T20:58:32+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -301,10 +307,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "WATCH",
-        "label_he": "מעקב",
-        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
-        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
+        "missing_he": "אימות מצב מסחר ממקור רשמי."
       },
       "gates": {
         "runup": {
@@ -331,10 +337,16 @@
           "published_at": "2026-09-28",
           "statement": "החברה מתכננת להגיש BLA ברבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         }
       ],
-      "features": {}
+      "features": {},
+      "security": {
+        "status": "UNKNOWN",
+        "tradable": false,
+        "verified": false,
+        "reason": "no current security lifecycle verification"
+      }
     },
     {
       "id": "REGN-POZELIMAB",
@@ -358,7 +370,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:44:35+00:00",
+        "updated_at": "2026-09-30T20:58:32+00:00",
         "note": "Secondary calendar only; no matching primary-source PDUFA confirmation was verified in the 2026-09-30 review."
       },
       "date": {
@@ -462,8 +474,8 @@
         "validation_gates_separate": true,
         "status": "INSUFFICIENT_INFORMATION",
         "label_he": "חסר מידע",
-        "why_he": "האירוע אינו מאומת מספיק מול מקור ראשוני.",
-        "missing_he": "אימות מועד ואירוע מול מקור ראשוני."
+        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
+        "missing_he": "אימות מצב מסחר ממקור רשמי."
       },
       "gates": {
         "runup": {
@@ -490,10 +502,16 @@
           "published_at": "2026-09",
           "statement": "תאריך PDUFA לפי לוח משני",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         }
       ],
-      "features": {}
+      "features": {},
+      "security": {
+        "status": "UNKNOWN",
+        "tradable": false,
+        "verified": false,
+        "reason": "no current security lifecycle verification"
+      }
     },
     {
       "id": "SMMT-PDUFA",
@@ -517,7 +535,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:44:35+00:00",
+        "updated_at": "2026-09-30T20:58:32+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -647,10 +665,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "NOT_NOW",
-        "label_he": "לא כרגע",
-        "why_he": "דגל סיכון מהותי או ראיות חלשות מגבילים את ההתקדמות.",
-        "missing_he": "שינוי מהותי בפרופיל הסיכון או ראיות חדשות."
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
+        "missing_he": "אימות מצב מסחר ממקור רשמי."
       },
       "gates": {
         "runup": {
@@ -677,7 +695,7 @@
           "published_at": "2026-01-29",
           "statement": "ה-FDA קיבל את ה-BLA; נקבע תאריך PDUFA",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         },
         {
           "event_id": "SMMT-PDUFA",
@@ -687,7 +705,7 @@
           "published_at": "2026-07-23",
           "statement": "ההנחיה חוזרת: החלטת FDA עד 14 בנובמבר",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         }
       ],
       "features": {
@@ -695,6 +713,12 @@
         "design": "rct_placebo",
         "objective": true,
         "fda_requirement_at_risk": true
+      },
+      "security": {
+        "status": "UNKNOWN",
+        "tradable": false,
+        "verified": false,
+        "reason": "no current security lifecycle verification"
       }
     },
     {
@@ -719,7 +743,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:44:35+00:00",
+        "updated_at": "2026-09-30T20:58:32+00:00",
         "note": "Company IR confirms supplemental NDA accepted with a November 14, 2026 PDUFA date."
       },
       "date": {
@@ -821,10 +845,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "RESEARCH_WORTHY",
-        "label_he": "שווה מחקר",
-        "why_he": "האירוע מאומת וראוי לבדיקת עומק, אך אינו עומד בכל תנאי המועמדות.",
-        "missing_he": "חיזוק של חשיבות האירוע, ראיות או תמונת שוק."
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
+        "missing_he": "אימות מצב מסחר ממקור רשמי."
       },
       "gates": {
         "runup": {
@@ -851,7 +875,7 @@
           "published_at": "2026-05-05",
           "statement": "Supplemental NDA for MAPLE-HCM accepted with PDUFA date November 14, 2026.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         },
         {
           "event_id": "CYTK-SNDA",
@@ -861,10 +885,16 @@
           "published_at": "2026-09",
           "statement": "תאריך PDUFA להתוויה המשלימה",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         }
       ],
-      "features": {}
+      "features": {},
+      "security": {
+        "status": "UNKNOWN",
+        "tradable": false,
+        "verified": false,
+        "reason": "no current security lifecycle verification"
+      }
     },
     {
       "id": "CAPR-PDUFA",
@@ -888,7 +918,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:44:35+00:00",
+        "updated_at": "2026-09-30T20:58:32+00:00",
         "note": "primary source: sec"
       },
       "date": {
@@ -1065,10 +1095,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "NOT_NOW",
-        "label_he": "לא כרגע",
-        "why_he": "דגל סיכון מהותי או ראיות חלשות מגבילים את ההתקדמות.",
-        "missing_he": "שינוי מהותי בפרופיל הסיכון או ראיות חדשות."
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
+        "missing_he": "אימות מצב מסחר ממקור רשמי."
       },
       "gates": {
         "runup": {
@@ -1095,7 +1125,7 @@
           "published_at": "2026-08-24",
           "statement": "יעד PDUFA הקודם (כפי שמצוטט ב-8-K; ההודעה המקורית טרם נקלטה)",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         },
         {
           "event_id": "CAPR-PDUFA",
@@ -1105,7 +1135,7 @@
           "published_at": "2026-08-25",
           "statement": "CRL על ה-BLA המקורי (PDUFA מקורי 31/08/2025)",
           "supports_date": 0,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         }
       ],
       "features": {
@@ -1119,6 +1149,12 @@
         "reg": [
           "RMAT"
         ]
+      },
+      "security": {
+        "status": "UNKNOWN",
+        "tradable": false,
+        "verified": false,
+        "reason": "no current security lifecycle verification"
       }
     },
     {
@@ -1143,7 +1179,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:44:35+00:00",
+        "updated_at": "2026-09-30T20:58:32+00:00",
         "note": "primary source: company_ir"
       },
       "date": {
@@ -1309,10 +1345,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "RESEARCH_WORTHY",
-        "label_he": "שווה מחקר",
-        "why_he": "האירוע מאומת וראוי לבדיקת עומק, אך אינו עומד בכל תנאי המועמדות.",
-        "missing_he": "חיזוק של חשיבות האירוע, ראיות או תמונת שוק."
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
+        "missing_he": "אימות מצב מסחר ממקור רשמי."
       },
       "gates": {
         "runup": {
@@ -1339,7 +1375,7 @@
           "published_at": "2025-11",
           "statement": "PEAK — topline צפוי ברבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         },
         {
           "event_id": "KOD-PEAK-PA1",
@@ -1349,7 +1385,7 @@
           "published_at": "2026-05",
           "statement": "ההנחיה חוזרת: רבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         },
         {
           "event_id": "KOD-PEAK-PA1",
@@ -1359,7 +1395,7 @@
           "published_at": "2026-08",
           "statement": "Pivotal Analysis 1 (עוקבה ראשונה, 300 מטופלים) — topline צפוי בדצמבר 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         }
       ],
       "features": {
@@ -1367,201 +1403,12 @@
         "endpoint_consistent": "partial",
         "objective": true,
         "n": 300
-      }
-    },
-    {
-      "id": "ACLX-ANITO",
-      "ticker": "ACLX",
-      "company": "Arcellx (שותפה: Gilead/Kite)",
-      "program": "anito-cel — iMMagine-1",
-      "indication": "מיאלומה נפוצה חוזרת/עמידה (קו 4+)",
-      "ta": "oncology",
-      "type": "PDUFA_NME",
-      "phase": "BLA (עדיפות)",
-      "dependency": "lead",
-      "commercial": false,
-      "pivotal": false,
-      "today": "2026-09-30",
-      "as_of": "2026-09-30",
-      "state": {
-        "event_id": "ACLX-ANITO",
-        "status": "SCHEDULED",
-        "verification_state": "VERIFIED",
-        "verification_confidence": 100,
-        "event_timestamp": null,
-        "event_session": "unknown",
-        "resolved_at": null,
-        "updated_at": "2026-09-30T20:44:35+00:00",
-        "note": "Primary SEC exhibit confirms FDA accepted the BLA with a December 23, 2026 PDUFA date."
       },
-      "date": {
-        "window": {
-          "start": "2026-12-23",
-          "end": "2026-12-23"
-        },
-        "precision": "exact",
-        "confidence": 80,
-        "original": "Dec 23, 2026",
-        "changes": [],
-        "timeline": [
-          {
-            "date": "2026-09-30",
-            "text": "תאריך PDUFA לפי לוח קטליזטורים משני",
-            "src": "cal-nova",
-            "date_text": "Dec 23, 2026",
-            "superseded": null,
-            "norm": {
-              "original": "Dec 23, 2026",
-              "precision": "exact",
-              "start": "2026-12-23",
-              "end": "2026-12-23",
-              "confidence": 80,
-              "inferred_year": false
-            }
-          }
-        ]
-      },
-      "days_to": 84,
-      "impact": {
-        "score": 72,
-        "contributions": [
-          {
-            "code": "type",
-            "points": 26,
-            "why": "סוג אירוע: PDUFA — מוצר חדש"
-          },
-          {
-            "code": "dependency",
-            "points": 18,
-            "why": "תלות החברה בתוכנית: נכס מוביל"
-          },
-          {
-            "code": "mcap",
-            "points": 8,
-            "why": "שווי שוק לפני האירוע: לא ידוע"
-          },
-          {
-            "code": "stage",
-            "points": 10,
-            "why": "חברה טרום-מסחרית"
-          },
-          {
-            "code": "filing",
-            "points": 10,
-            "why": "הצלחה מאפשרת הגשה/אישור ישירות"
-          }
-        ],
-        "version": "0.2.0"
-      },
-      "evidence": {
-        "engine": "regulatory_v0.2",
-        "score": 91,
-        "category": "Very Strong",
-        "context_prior": 0.906,
-        "reasons": [
-          {
-            "code": "base_rate",
-            "delta": 0,
-            "text": "historical application-transition context 90.6%"
-          }
-        ],
-        "probability_label": "UNCALIBRATED; do not interpret score as probability"
-      },
-      "market": {
-        "available": false,
-        "n_prices": 0,
-        "benchmark": "XBI",
-        "reason": "fewer than 31 pre-event closes in DB"
-      },
-      "risk_flags": [
-        {
-          "sev": "medium",
-          "code": "secondary_date",
-          "known_from": "2026-09-30",
-          "src": "cal-nova",
-          "text": "התאריך ממקור משני בלבד — נדרש אימות מול הודעת החברה/8-K",
-          "origin": "source"
-        },
-        {
-          "sev": "medium",
-          "code": "partnered",
-          "known_from": "2026-09-30",
-          "src": null,
-          "text": "מוצר בשותפות — כלכלת ההצלחה ל-ACLX תלויה בתנאי ההסכם (טרם נקלטו)",
-          "origin": "source"
-        },
-        {
-          "sev": "medium",
-          "code": "evidence_missing",
-          "known_from": "2026-09-30",
-          "src": null,
-          "text": "נתוני היעילות והבטיחות של iMMagine-1 טרם נקלטו למערכת",
-          "origin": "source"
-        },
-        {
-          "sev": "medium",
-          "code": "uncontrolled",
-          "text": "ללא ביקורת אקראית",
-          "origin": "computed"
-        }
-      ],
-      "classification": {
-        "class": "REVIEW",
-        "actionable": true,
-        "reasons": [
-          "research-worthy; trading gates remain locked"
-        ]
-      },
-      "recommendation": {
-        "experimental": true,
-        "validation_gates_separate": true,
-        "status": "APPROACHING_CANDIDATE",
-        "label_he": "מתקרבת למועמדות",
-        "why_he": "השילוב של חשיבות, ראיות ואימות נראה מבטיח.",
-        "missing_he": "תמונת שוק מלאה או חיזוק נוסף של הראיות."
-      },
-      "gates": {
-        "runup": {
-          "enabled": false,
-          "satisfied": false,
-          "n": 0,
-          "min_n": 150,
-          "note": "locked until stable positive out-of-sample evidence"
-        },
-        "hold_through": {
-          "enabled": false,
-          "satisfied": false,
-          "n": 0,
-          "min_n": 200,
-          "note": "locked until calibrated out-of-sample binary model"
-        }
-      },
-      "sources": [
-        {
-          "event_id": "ACLX-ANITO",
-          "source_id": "aclx-sec-pdufa-2026",
-          "source_type": "sec",
-          "url": "https://www.sec.gov/Archives/edgar/data/882095/000110465926018316/tm267044d1_ex99-1.htm",
-          "published_at": "2026-02-01",
-          "statement": "BLA accepted with anticipated PDUFA action date December 23, 2026.",
-          "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
-        },
-        {
-          "event_id": "ACLX-ANITO",
-          "source_id": "cal-nova",
-          "source_type": "aggregator",
-          "url": "https://novapharmanews.com/regulatory/pdufa-calendar",
-          "published_at": "2026-09-30",
-          "statement": "תאריך PDUFA לפי לוח קטליזטורים משני",
-          "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
-        }
-      ],
-      "features": {
-        "design": "single_arm",
-        "objective": true,
-        "mechanism_validated": true
+      "security": {
+        "status": "UNKNOWN",
+        "tradable": false,
+        "verified": false,
+        "reason": "no current security lifecycle verification"
       }
     },
     {
@@ -1586,7 +1433,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:44:35+00:00",
+        "updated_at": "2026-09-30T20:58:32+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -1679,10 +1526,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "RESEARCH_WORTHY",
-        "label_he": "שווה מחקר",
-        "why_he": "האירוע מאומת וראוי לבדיקת עומק, אך אינו עומד בכל תנאי המועמדות.",
-        "missing_he": "חיזוק של חשיבות האירוע, ראיות או תמונת שוק."
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
+        "missing_he": "אימות מצב מסחר ממקור רשמי."
       },
       "gates": {
         "runup": {
@@ -1709,10 +1556,16 @@
           "published_at": "2026-09-25",
           "statement": "FDA accepted the supplemental NDA for Priority Review with a PDUFA target action date of January 30, 2027.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         }
       ],
-      "features": {}
+      "features": {},
+      "security": {
+        "status": "UNKNOWN",
+        "tradable": false,
+        "verified": false,
+        "reason": "no current security lifecycle verification"
+      }
     }
   ],
   "resolved": [
@@ -1771,8 +1624,14 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": "2026-09-11",
-        "updated_at": "2026-09-30T20:44:35+00:00",
+        "updated_at": "2026-09-30T20:58:32+00:00",
         "note": "Resolved early: FDA approved the pediatric Joenja label expansion before the prior PDUFA date."
+      },
+      "security": {
+        "status": "UNKNOWN",
+        "tradable": false,
+        "verified": false,
+        "reason": "no current security lifecycle verification"
       },
       "sources_v2": [
         {
@@ -1783,7 +1642,7 @@
           "published_at": "2026-09-07",
           "statement": "CRL על ההגשה",
           "supports_date": 0,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         },
         {
           "event_id": "PHAR-SNDA",
@@ -1793,7 +1652,110 @@
           "published_at": "2026-09-11",
           "statement": "FDA approved Joenja for children aged 4-11 years weighing at least 27 kg.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:44:35+00:00"
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
+        }
+      ]
+    },
+    {
+      "documents": [],
+      "flags": [
+        {
+          "sev": "medium",
+          "code": "secondary_date",
+          "known_from": "2026-09-30",
+          "src": "cal-nova",
+          "text": "התאריך ממקור משני בלבד — נדרש אימות מול הודעת החברה/8-K"
+        },
+        {
+          "sev": "medium",
+          "code": "partnered",
+          "known_from": "2026-09-30",
+          "src": null,
+          "text": "מוצר בשותפות — כלכלת ההצלחה ל-ACLX תלויה בתנאי ההסכם (טרם נקלטו)"
+        },
+        {
+          "sev": "medium",
+          "code": "evidence_missing",
+          "known_from": "2026-09-30",
+          "src": null,
+          "text": "נתוני היעילות והבטיחות של iMMagine-1 טרם נקלטו למערכת"
+        }
+      ],
+      "chronology": [
+        {
+          "date": "2026-09-30",
+          "date_text": "Dec 23, 2026",
+          "src": "cal-nova",
+          "text": "תאריך PDUFA לפי לוח קטליזטורים משני"
+        }
+      ],
+      "prices": [],
+      "features": {
+        "design": "single_arm",
+        "objective": true,
+        "mechanism_validated": true
+      },
+      "features_as_of": "2026-09",
+      "pivotal": false,
+      "id": "ACLX-ANITO",
+      "ticker": "ACLX",
+      "company": "Arcellx (שותפה: Gilead/Kite)",
+      "program": "anito-cel — iMMagine-1",
+      "indication": "מיאלומה נפוצה חוזרת/עמידה (קו 4+)",
+      "ta": "oncology",
+      "type": "PDUFA_NME",
+      "phase": "BLA (עדיפות)",
+      "mcap": "unknown",
+      "dependency": "lead",
+      "commercial": false,
+      "enables_filing": true,
+      "state": {
+        "event_id": "ACLX-ANITO",
+        "status": "SCHEDULED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 100,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-09-30T20:58:32+00:00",
+        "note": "Primary SEC exhibit confirms FDA accepted the BLA with a December 23, 2026 PDUFA date."
+      },
+      "security": {
+        "ticker": "ACLX",
+        "company": "Arcellx, Inc.",
+        "status": "ACQUIRED",
+        "effective_from": "2026-04-28",
+        "effective_to": "2026-04-28",
+        "successor_ticker": null,
+        "acquirer_ticker": "GILD",
+        "reason": "Gilead completed the acquisition; ACLX shares ceased trading before Nasdaq opened.",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/882095/000110465926049902/xslSCHEDULE_13D_X02/primary_doc.xml",
+        "source_type": "sec_schedule_13d",
+        "published_at": "2026-04-28T00:00:00Z",
+        "verified_at": "2026-09-30T20:58:32+00:00",
+        "tradable": false,
+        "verified": false
+      },
+      "sources_v2": [
+        {
+          "event_id": "ACLX-ANITO",
+          "source_id": "aclx-sec-pdufa-2026",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/882095/000110465926018316/tm267044d1_ex99-1.htm",
+          "published_at": "2026-02-01",
+          "statement": "BLA accepted with anticipated PDUFA action date December 23, 2026.",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
+        },
+        {
+          "event_id": "ACLX-ANITO",
+          "source_id": "cal-nova",
+          "source_type": "aggregator",
+          "url": "https://novapharmanews.com/regulatory/pdufa-calendar",
+          "published_at": "2026-09-30",
+          "statement": "תאריך PDUFA לפי לוח קטליזטורים משני",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T20:58:32+00:00"
         }
       ]
     }
@@ -1807,7 +1769,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "AKRO",
@@ -1815,7 +1777,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "ALNY",
@@ -1823,7 +1785,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "ALT",
@@ -1831,7 +1793,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "AMLX",
@@ -1839,7 +1801,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "CAPR",
@@ -1847,7 +1809,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "CYTK",
@@ -1855,7 +1817,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "INSM",
@@ -1863,7 +1825,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "KOD",
@@ -1871,7 +1833,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "KRTX",
@@ -1879,7 +1841,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "MDGL",
@@ -1887,7 +1849,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "PHAR",
@@ -1895,7 +1857,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "QTTB",
@@ -1903,7 +1865,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "QURE",
@@ -1911,7 +1873,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "REGN",
@@ -1919,7 +1881,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "RPTX",
@@ -1927,7 +1889,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "SAGE",
@@ -1935,7 +1897,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "SAVA",
@@ -1943,7 +1905,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "SLRN",
@@ -1951,7 +1913,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "SMMT",
@@ -1959,7 +1921,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "SRPT",
@@ -1967,7 +1929,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "SRRK",
@@ -1975,7 +1937,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     },
     {
       "ticker": "VKTX",
@@ -1983,7 +1945,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:44:36+00:00"
+      "updated_at": "2026-09-30T20:58:32+00:00"
     }
   ],
   "refresh": null,

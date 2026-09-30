@@ -311,6 +311,16 @@ def cmd_historical_prices(args):
     return 0
 
 
+def cmd_audit_securities(args):
+    from .ingest.edgar import fetch_company_ticker_map
+    from .radar import bootstrap_database
+    from .security import audit_watch_universe
+    conn = db.connect(DB_PATH); bootstrap_database(conn)
+    rows = audit_watch_universe(conn, fetch_company_ticker_map())
+    print(json.dumps({"audited": len(rows), "active": sum(x["status"] == "ACTIVE" for x in rows), "unknown": sum(x["status"] == "UNKNOWN" for x in rows)}, indent=2))
+    return 0
+
+
 def main(argv=None):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -390,6 +400,7 @@ def main(argv=None):
     s.add_argument("--provider", choices=["csv", "yahoo"], default="csv")
     s.add_argument("--stock-file", default=None)
     s.add_argument("--benchmark-file", default=None)
+    sp("audit-securities", cmd_audit_securities, "audit every watch-universe ticker against the current SEC universe")
     args = p.parse_args(argv)
     return args.func(args) or 0
 

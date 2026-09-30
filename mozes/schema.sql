@@ -157,6 +157,16 @@ CREATE TABLE IF NOT EXISTS outcome_labels (
   created_at TEXT NOT NULL,
   UNIQUE(case_id, labeled_at)
 );
+CREATE TABLE IF NOT EXISTS security_lifecycle (
+  ticker TEXT PRIMARY KEY, company TEXT, status TEXT NOT NULL CHECK(status IN ('ACTIVE','ACQUIRED','DELISTED','RENAMED','BANKRUPT','SUSPENDED','UNKNOWN')),
+  effective_from TEXT, effective_to TEXT, successor_ticker TEXT, acquirer_ticker TEXT, reason TEXT,
+  source_url TEXT, source_type TEXT, published_at TEXT, verified_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS asset_ownership (
+  asset_id TEXT NOT NULL, owner_ticker TEXT NOT NULL, effective_from TEXT NOT NULL, effective_to TEXT,
+  relationship TEXT NOT NULL, source_url TEXT NOT NULL, source_type TEXT NOT NULL, published_at TEXT, verified_at TEXT NOT NULL,
+  PRIMARY KEY(asset_id, owner_ticker, effective_from)
+);
 -- Immutable evidence captured during a historical backfill.  The payload is
 -- deliberately stored separately from the case/snapshot/label records.
 CREATE TABLE IF NOT EXISTS source_archive (

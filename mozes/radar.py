@@ -39,6 +39,11 @@ def _load_overrides():
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
+def _load_security_overrides():
+    p = DATA_DIR / "security_overrides.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
 def bootstrap_database(conn):
     """Seed once, then attach event state/provenance and current corrections."""
     if db.count_events(conn) == 0:
@@ -88,6 +93,11 @@ def bootstrap_database(conn):
     for event in db.load_events(conn):
         if event.get("ticker"):
             db.upsert_watch(conn, event["ticker"], event.get("company"), source="curated-catalog")
+    for ticker, rec in _load_security_overrides().items():
+        db.upsert_security_lifecycle(conn, ticker, **{k: v for k, v in rec.items() if k != "asset"})
+        if rec.get("asset"):
+            asset = rec["asset"]
+            db.upsert_asset_ownership(conn, asset["asset_id"], asset["owner_ticker"], rec["effective_from"], relationship=asset["relationship"], source_url=rec["source_url"], source_type=rec["source_type"], published_at=rec.get("published_at"))
 
     # The original catalog is useful as a migration source, never as validation
     # evidence.  It is represented explicitly and remains quarantined until a
@@ -108,6 +118,9 @@ def live_event_records(conn, include_quarantined=True):
     events = db.load_events(conn, "live")
     out = []
     for e in events:
+        security = __import__('mozes.security', fromlist=['tradability']).tradability(conn, e.get("ticker"))
+        if security["status"] in {"ACQUIRED", "DELISTED", "SUSPENDED", "BANKRUPT"}:
+            continue
         s = db.event_state(conn, e["id"]) or {}
         if is_resolved(s.get("status", "")):
             continue
@@ -117,6 +130,7 @@ def live_event_records(conn, include_quarantined=True):
         row["state"] = s
         row["sources_v2"] = db.load_event_sources(conn, e["id"])
         row["prices_db"] = db.load_prices(conn, e.get("ticker")) if e.get("ticker") else []
+        row["security"] = security
         out.append(row)
     return out
 
@@ -125,8 +139,9 @@ def current_resolved_records(conn):
     out = []
     for e in db.load_events(conn, "live"):
         s = db.event_state(conn, e["id"]) or {}
-        if is_resolved(s.get("status", "")):
-            out.append({**e, "state": s, "sources_v2": db.load_event_sources(conn, e["id"])})
+        security = __import__('mozes.security', fromlist=['tradability']).tradability(conn, e.get("ticker"))
+        if is_resolved(s.get("status", "")) or security["status"] in {"ACQUIRED", "DELISTED", "SUSPENDED", "BANKRUPT"}:
+            out.append({**e, "state": s, "security": security, "sources_v2": db.load_event_sources(conn, e["id"])})
     return out
 
 
