@@ -1,0 +1,481 @@
+[
+  {
+    "documents": [],
+    "flags": [
+      {
+        "sev": "medium",
+        "code": "financing",
+        "known_from": "2026-09-28",
+        "src": "kod-context",
+        "text": "מזומן ~$126M לסוף Q2 2026, 'לתוך 2027' לפי החברה; גיוס הון לאחר זינוק DAYBREAK הוא תרחיש סביר"
+      },
+      {
+        "sev": "medium",
+        "code": "uncontrolled_prior",
+        "known_from": "2026-02-07",
+        "src": "kod-q1-26",
+        "text": "הראיות הקודמות (APEX שלב 1b) ללא זרוע ביקורת"
+      },
+      {
+        "sev": "medium",
+        "code": "partial_pivotal",
+        "known_from": "2026-08",
+        "src": "kod-q2-26",
+        "text": "ניתוח פיבוטלי 1 מתוך 2 — הגשת BLA תלויה גם בניתוח 2 (צפוי 2Q 2027)"
+      }
+    ],
+    "chronology": [
+      {
+        "date": "2025-11",
+        "date_text": "4Q 2026",
+        "src": "kod-q3-25",
+        "text": "PEAK — topline צפוי ברבעון 4 2026"
+      },
+      {
+        "date": "2026-05",
+        "date_text": "4Q 2026",
+        "src": "kod-q1-26",
+        "text": "ההנחיה חוזרת: רבעון 4 2026"
+      },
+      {
+        "date": "2026-08",
+        "date_text": "December 2026",
+        "src": "kod-q2-26",
+        "text": "Pivotal Analysis 1 (עוקבה ראשונה, 300 מטופלים) — topline צפוי בדצמבר 2026"
+      }
+    ],
+    "prices": [],
+    "features": {
+      "prior": "moderate",
+      "endpoint_consistent": "partial",
+      "objective": true,
+      "n": 300
+    },
+    "features_as_of": "2026-08",
+    "pivotal": true,
+    "id": "KOD-PEAK-PA1",
+    "ticker": "KOD",
+    "company": "Kodiak Sciences",
+    "program": "KSI-101 — PEAK, Pivotal Analysis 1",
+    "indication": "בצקת מקולרית משנית לדלקת (MESI)",
+    "ta": "ophthalmology",
+    "type": "P3_TOPLINE",
+    "phase": "3",
+    "mcap": "large",
+    "mcap_note": "הערכה לאחר זינוק DAYBREAK — לא אומת",
+    "dependency": "one_of_few",
+    "commercial": false,
+    "enables_filing": false
+  },
+  {
+    "documents": [],
+    "flags": [
+      {
+        "sev": "critical",
+        "code": "fda_requirement",
+        "known_from": "2026-02-23",
+        "src": "smmt-fda-os",
+        "text": "ה-FDA הבהיר שנדרש יתרון OS מובהק סטטיסטית; החברה נשענת על ניתוח תת-קבוצה מערבית עם p נומינלי 0.033 — לא מבחן ראשי"
+      },
+      {
+        "sev": "high",
+        "code": "financing",
+        "known_from": "2026-07-23",
+        "src": "smmt-q2",
+        "text": "נדרש גיוס הון — סיכון דילול סביב האירוע"
+      }
+    ],
+    "chronology": [
+      {
+        "date": "2026-01-29",
+        "date_text": "November 14, 2026",
+        "src": "smmt-bla",
+        "text": "ה-FDA קיבל את ה-BLA; נקבע תאריך PDUFA"
+      },
+      {
+        "date": "2026-07-23",
+        "date_text": "November 14, 2026",
+        "src": "smmt-q2",
+        "text": "ההנחיה חוזרת: החלטת FDA עד 14 בנובמבר"
+      }
+    ],
+    "prices": [],
+    "features": {
+      "prior": "moderate",
+      "design": "rct_placebo",
+      "objective": true,
+      "fda_requirement_at_risk": true
+    },
+    "features_as_of": "2026-02-23",
+    "pivotal": false,
+    "id": "SMMT-PDUFA",
+    "ticker": "SMMT",
+    "company": "Summit Therapeutics",
+    "program": "ivonescimab + כימותרפיה — HARMONi",
+    "indication": "NSCLC לא-קשקשי עם מוטציית EGFR לאחר TKI",
+    "ta": "oncology",
+    "type": "PDUFA_NME",
+    "phase": "BLA",
+    "mcap": "mega",
+    "mcap_note": "הערכה — לא אומת נקודתית",
+    "dependency": "single",
+    "commercial": false,
+    "enables_filing": true,
+    "runway": {
+      "months": 11,
+      "known_from": "2026-07-23",
+      "note": "לפי סיכום Q2: ייתכן שהמזומנים לא יספיקו ל-12 חודשים"
+    }
+  },
+  {
+    "documents": [],
+    "flags": [
+      {
+        "sev": "high",
+        "code": "sap_change",
+        "known_from": "2026-07-29",
+        "src": "capr-adcom",
+        "text": "חברי הוועדה העלו חשש משינויים בתוכנית הניתוח הסטטיסטי לאחר הרנדומיזציה"
+      },
+      {
+        "sev": "medium",
+        "code": "narrowed_indication",
+        "known_from": "2026-08-24",
+        "src": "capr-8k",
+        "text": "ההתוויה המבוקשת צומצמה לתפקוד גפה עליונה"
+      },
+      {
+        "sev": "medium",
+        "code": "date_delay",
+        "known_from": "2026-08-24",
+        "src": "capr-8k",
+        "text": "תאריך ההחלטה נדחה ב-3 חודשים"
+      }
+    ],
+    "chronology": [
+      {
+        "date": "2025-07",
+        "src": "capr-adcom",
+        "text": "CRL על ה-BLA המקורי (PDUFA מקורי 31/08/2025)"
+      },
+      {
+        "date": "2026-07-29",
+        "src": "capr-adcom",
+        "text": "ועדה מייעצת: 9 נגד 3 נגד המלצה על אישור"
+      },
+      {
+        "date": "2026-08-24",
+        "date_text": "August 22, 2026",
+        "superseded": true,
+        "src": "capr-8k",
+        "text": "יעד PDUFA הקודם (כפי שמצוטט ב-8-K; ההודעה המקורית טרם נקלטה)"
+      },
+      {
+        "date": "2026-08-24",
+        "date_text": "November 22, 2026",
+        "src": "capr-8k",
+        "text": "ה-FDA האריך את ה-PDUFA ב-3 חודשים — תיקון מהותי (נתוני 24 חודשים + התוויה מצומצמת)"
+      }
+    ],
+    "prices": [],
+    "features": {
+      "prior": "moderate",
+      "design": "rct_placebo",
+      "objective": false,
+      "n": 106,
+      "prior_crl": true,
+      "negative_adcom": true,
+      "mechanism_validated": false,
+      "reg": [
+        "RMAT"
+      ]
+    },
+    "features_as_of": "2026-08-24",
+    "pivotal": false,
+    "id": "CAPR-PDUFA",
+    "ticker": "CAPR",
+    "company": "Capricor Therapeutics",
+    "program": "deramiocel — HOPE-3",
+    "indication": "דושן (DMD) — תפקוד גפה עליונה",
+    "ta": "neuromuscular",
+    "type": "PDUFA_NME",
+    "phase": "BLA (הגשה חוזרת)",
+    "mcap": "mid",
+    "mcap_note": "~$558M לפי מקור משני",
+    "dependency": "single",
+    "commercial": false,
+    "enables_filing": true,
+    "runway": {
+      "months": 21,
+      "known_from": "2026-03-12",
+      "note": "'עד סוף 2027' לפי דוח Q4 2025"
+    }
+  },
+  {
+    "documents": [],
+    "flags": [
+      {
+        "sev": "medium",
+        "code": "secondary_date",
+        "known_from": "2026-09-30",
+        "src": "cal-nova",
+        "text": "התאריך ממקור משני בלבד — נדרש אימות מול הודעת החברה/8-K"
+      },
+      {
+        "sev": "medium",
+        "code": "partnered",
+        "known_from": "2026-09-30",
+        "src": null,
+        "text": "מוצר בשותפות — כלכלת ההצלחה ל-ACLX תלויה בתנאי ההסכם (טרם נקלטו)"
+      },
+      {
+        "sev": "medium",
+        "code": "evidence_missing",
+        "known_from": "2026-09-30",
+        "src": null,
+        "text": "נתוני היעילות והבטיחות של iMMagine-1 טרם נקלטו למערכת"
+      }
+    ],
+    "chronology": [
+      {
+        "date": "2026-09-30",
+        "date_text": "Dec 23, 2026",
+        "src": "cal-nova",
+        "text": "תאריך PDUFA לפי לוח קטליזטורים משני"
+      }
+    ],
+    "prices": [],
+    "features": {
+      "design": "single_arm",
+      "objective": true,
+      "mechanism_validated": true
+    },
+    "features_as_of": "2026-09",
+    "pivotal": false,
+    "id": "ACLX-ANITO",
+    "ticker": "ACLX",
+    "company": "Arcellx (שותפה: Gilead/Kite)",
+    "program": "anito-cel — iMMagine-1",
+    "indication": "מיאלומה נפוצה חוזרת/עמידה (קו 4+)",
+    "ta": "oncology",
+    "type": "PDUFA_NME",
+    "phase": "BLA (עדיפות)",
+    "mcap": "unknown",
+    "dependency": "lead",
+    "commercial": false,
+    "enables_filing": true
+  },
+  {
+    "documents": [],
+    "flags": [
+      {
+        "sev": "low",
+        "code": "secondary_date",
+        "known_from": "2026-09",
+        "src": "cal-dansfera",
+        "text": "תאריך ממקור משני; השפעה צפויה נמוכה על מניית ענק"
+      }
+    ],
+    "chronology": [
+      {
+        "date": "2026-09",
+        "date_text": "2026-10-20",
+        "src": "cal-dansfera",
+        "text": "תאריך PDUFA לפי לוח משני"
+      }
+    ],
+    "prices": [],
+    "features": {},
+    "features_as_of": null,
+    "pivotal": false,
+    "id": "REGN-POZELIMAB",
+    "ticker": "REGN",
+    "company": "Regeneron",
+    "program": "pozelimab",
+    "indication": "תסמונת VEXAS",
+    "ta": "hematology",
+    "type": "PDUFA_NME",
+    "phase": "BLA",
+    "mcap": "mega",
+    "dependency": "one_of_many",
+    "commercial": true,
+    "enables_filing": true
+  },
+  {
+    "documents": [],
+    "flags": [
+      {
+        "sev": "low",
+        "code": "secondary_date",
+        "known_from": "2026-09",
+        "src": "cal-dansfera",
+        "text": "תאריך ממקור משני"
+      }
+    ],
+    "chronology": [
+      {
+        "date": "2026-09",
+        "date_text": "2026-11-14",
+        "src": "cal-dansfera",
+        "text": "תאריך PDUFA להתוויה המשלימה"
+      }
+    ],
+    "prices": [],
+    "features": {},
+    "features_as_of": null,
+    "pivotal": false,
+    "id": "CYTK-SNDA",
+    "ticker": "CYTK",
+    "company": "Cytokinetics",
+    "program": "MYQORZO (aficamten) — sNDA",
+    "indication": "HCM חסימתי — מונותרפיה כחלופה לחוסמי בטא",
+    "ta": "cardiovascular",
+    "type": "PDUFA_SUPP",
+    "phase": "sNDA",
+    "mcap": "large",
+    "mcap_note": "הערכה",
+    "dependency": "lead",
+    "commercial": true,
+    "enables_filing": true
+  },
+  {
+    "documents": [],
+    "flags": [
+      {
+        "sev": "medium",
+        "code": "secondary_date",
+        "known_from": "2026-09-07",
+        "src": "cal-merlin",
+        "text": "תאריך ממקור משני — לאמת מול הודעת החברה"
+      }
+    ],
+    "chronology": [
+      {
+        "date": "2026-01-30",
+        "src": "cal-merlin",
+        "text": "CRL על ההגשה"
+      },
+      {
+        "date": "2026-06-04",
+        "src": "cal-merlin",
+        "text": "ההגשה החוזרת התקבלה"
+      },
+      {
+        "date": "2026-09-07",
+        "date_text": "October 24, 2026",
+        "src": "cal-merlin",
+        "text": "תאריך PDUFA לפי לוח משני"
+      }
+    ],
+    "prices": [],
+    "features": {
+      "prior_crl": true
+    },
+    "features_as_of": "2026-06",
+    "pivotal": false,
+    "id": "PHAR-SNDA",
+    "ticker": "PHAR",
+    "company": "Pharming Group",
+    "program": "Joenja (leniolisib) — הרחבה לגילאי 4–11",
+    "indication": "APDS",
+    "ta": "immunology",
+    "type": "PDUFA_SUPP",
+    "phase": "sNDA (הגשה חוזרת)",
+    "mcap": "unknown",
+    "dependency": "lead",
+    "commercial": true,
+    "enables_filing": true
+  },
+  {
+    "documents": [],
+    "flags": [
+      {
+        "sev": "low",
+        "code": "known_data",
+        "known_from": "2026-08-05",
+        "src": "qttb-8k",
+        "text": "ה-topline כבר פורסם ביולי; הצגה בכנס בדרך כלל משפיעה פחות"
+      }
+    ],
+    "chronology": [
+      {
+        "date": "2026-08-05",
+        "date_text": "second half of 2026",
+        "src": "qttb-8k",
+        "text": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026"
+      }
+    ],
+    "prices": [],
+    "features": {},
+    "features_as_of": null,
+    "pivotal": false,
+    "id": "QTTB-CONF",
+    "ticker": "QTTB",
+    "company": "Q32 Bio",
+    "program": "bempikibart — SIGNAL-AA Part B (נתוני 36/52 שבועות)",
+    "indication": "התקרחות (alopecia areata)",
+    "ta": "immunology",
+    "type": "CONFERENCE",
+    "phase": "2a",
+    "mcap": "unknown",
+    "dependency": "lead",
+    "commercial": false,
+    "enables_filing": false
+  },
+  {
+    "documents": [],
+    "flags": [],
+    "chronology": [
+      {
+        "date": "2026-09-28",
+        "date_text": "fourth quarter of 2026",
+        "src": "kod-daybreak-result-primary",
+        "text": "החברה מתכננת להגיש BLA ברבעון 4 2026"
+      }
+    ],
+    "prices": [],
+    "features": {},
+    "features_as_of": null,
+    "pivotal": false,
+    "id": "KOD-BLA",
+    "ticker": "KOD",
+    "company": "Kodiak Sciences",
+    "program": "Zenkuda — הגשת BLA רב-התוויות",
+    "indication": "DR / RVO / wet AMD",
+    "ta": "ophthalmology",
+    "type": "FILING",
+    "phase": "BLA",
+    "mcap": "large",
+    "dependency": "lead",
+    "commercial": false,
+    "enables_filing": false
+  },
+  {
+    "id": "PHAR-SNDA-LOWER-WEIGHT",
+    "ticker": "PHAR",
+    "company": "Pharming Group",
+    "program": "Joenja (leniolisib) lower-dose pediatric expansion",
+    "indication": "APDS in children age 4+ weighing 13-27 kg",
+    "ta": "immunology",
+    "type": "PDUFA_SUPP",
+    "phase": "sNDA",
+    "mcap": "unknown",
+    "dependency": "lead",
+    "commercial": true,
+    "enables_filing": true,
+    "pivotal": false,
+    "features": {},
+    "features_as_of": null,
+    "documents": [],
+    "flags": [],
+    "prices": [],
+    "chronology": [
+      {
+        "date": "2026-09-25",
+        "date_text": "January 30, 2027",
+        "src": "phar-lower-20260925",
+        "text": "FDA accepted the supplemental NDA for Priority Review with a PDUFA target action date of January 30, 2027."
+      }
+    ]
+  }
+]

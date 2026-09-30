@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MOZES — מודיעין קטליזטורים ביוטק</title>
+<style>
+:root{--bg:#0f172a;--card:#fff;--mut:#64748b;--line:#e2e8f0;--pos:#047857;--neg:#be123c}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:#f1f5f9;color:#0f172a}
+header{background:var(--bg);color:#fff;padding:14px 20px}header h1{margin:0;font-size:20px}header p{margin:4px 0 0;color:#cbd5e1;font-size:13px}
+nav{display:flex;gap:4px;flex-wrap:wrap;padding:8px 16px;background:#1e293b}nav button{background:transparent;color:#cbd5e1;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+nav button.on{background:#fff;color:#0f172a;font-weight:600}main{padding:16px;max-width:1300px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:15px}.mut{color:var(--mut);font-size:12px}.pos{color:var(--pos);font-weight:600}.neg{color:var(--neg);font-weight:600}
+table{width:100%;border-collapse:collapse;background:#fff;font-size:13px}th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:right;vertical-align:top}th{background:#f8fafc;font-weight:600}
+.click{cursor:pointer}.click:hover{background:#f8fafc}.b{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;white-space:nowrap}
+.c-RUNUP{background:#dcfce7;color:#166534}.c-HOLD{background:#dbeafe;color:#1e40af}.c-WATCH{background:#fef9c3;color:#854d0e}.c-AVOID{background:#ffe4e6;color:#9f1239}
+.s-critical{background:#9f1239;color:#fff}.s-high{background:#fecdd3;color:#9f1239}.s-medium{background:#fef3c7;color:#92400e}.s-low{background:#e2e8f0;color:#334155}
+.banner{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 14px;font-size:13px;margin-bottom:12px}
+ul.mini,ul.contrib,ul.flags,ul.tl{margin:0;padding-inline-start:18px}ul.mini li,ul.contrib li,ul.flags li{margin:4px 0;font-size:13px}
+ul.tl{list-style:none;padding:0;border-inline-start:3px solid #cbd5e1}ul.tl li{padding:6px 12px;font-size:13px}ul.tl li.sup{opacity:.55;text-decoration:line-through}ul.tl li.cat{font-weight:700;color:#9f1239}
+.bar{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin:4px 0 8px}.bar i{display:block;height:100%;background:#334155}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:13px}select,input{padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px}
+.radar{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border-radius:12px;padding:14px;font-size:13px;direction:rtl}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:800px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>MOZES — מודיעין קטליזטורים ביוטק</h1><p id="sub">ספקני כברירת מחדל. אינו ייעוץ השקעות. ציונים הם הערכות מודל — לא הסתברויות אובייקטיביות.</p></header>
+<nav id="tabs"></nav>
+<main id="app">טוען…</main>
+<script>
+const T={
+ types:{P3_TOPLINE:"Topline שלב 3",P2_TOPLINE:"Topline שלב 2",P12_DATA:"נתוני שלב 1/2",INTERIM:"ניתוח ביניים",PDUFA_NME:"PDUFA — מוצר חדש",PDUFA_SUPP:"PDUFA — התוויה משלימה",ADCOM:"ועדה מייעצת",FILING:"הגשת NDA/BLA",CONFERENCE:"הצגה בכנס"},
+ cls:{RUNUP:"🟢 מועמד לריצה מקדימה",HOLD:"🔵 מועמד להחזקה דרך האירוע",WATCH:"🟡 מעקב בלבד",AVOID:"🔴 הימנעות מהבינארי"},
+ prec:{exact:"תאריך מדויק",month:"חודש",quarter:"רבעון",half:"חצי שנה",mid_year:"אמצע שנה",early_late_year:"תחילת/סוף שנה",year:"שנה",relative:"עמום/יחסי",unknown:"לא ידוע"},
+ sev:{critical:"קריטי",high:"גבוה",medium:"בינוני",low:"נמוך"},
+ mcap:{micro:"<$300M",small:"$300–500M",mid:"$0.5–2B",large:"$2–10B",mega:">$10B",unknown:"לא ידוע"},
+ dep:{single:"נכס יחיד",lead:"נכס מוביל",one_of_few:"אחד מכמה נכסים מתקדמים",one_of_many:"אחד מרבים"},
+ out:{success:"הצלחה",fail:"כישלון",mixed:"מעורב",None:"—"},
+ lvl:{critical:"קריטי (≤3 ימים)",high:"≤7 ימים",medium:"≤14 ימים",low:"≤30 ימים",info:"≤60 ימים",in_window:"בתוך החלון",passed:"חלף — ממתין לתוצאה",delay:"דחיית תאריך",pulled_forward:"הקדמת תאריך",precision_up:"דיוק התאריך עלה"},
+ cat:{Weak:"חלשה",Moderate:"בינונית",Strong:"חזקה","Very Strong":"חזקה מאוד"},
+ grp:{type_group:"סוג אירוע",phase:"שלב",mcap:"שווי שוק",evidence_bucket:"דלי ראיות",impact_bucket:"דלי השפעה",clinical_outcome:"תוצאה קלינית"}
+};
+const TABS=[["dash","לוח בקרה"],["cal","לוח קטליזטורים"],["detail","פרטי חברה"],["bt","בקטסט היסטורי"],["alerts","התראות"],["method","מתודולוגיה ומקורות"]];
+let D=null;const state={tab:"dash",sel:null,f:{type:"",cls:"",minI:0}};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ltr=s=>`<span dir="ltr">${esc(s)}</span>`;
+const pct=(v,d=0)=>(v==null||isNaN(v))?"—":`<span dir="ltr" class="${v>=0?"pos":"neg"}">${v>=0?"+":""}${(v*100).toFixed(d)}%</span>`;
+const pp=v=>(v==null||isNaN(v))?"—":`<span dir="ltr">${(v*100).toFixed(0)}%</span>`;
+const clsB=c=>`<span class="b c-${c}">${T.cls[c]||esc(c)}</span>`;
+const sevB=s=>`<span class="b s-${s}">${T.sev[s]||esc(s)}</span>`;
+const bar=v=>`<div class="bar"><i style="width:${Math.max(0,Math.min(100,v))}%"></i></div>`;
+const src=id=>D.sources[id];
+const srcLink=id=>{const s=src(id);return s?`<a href="${esc(s.url)}" target="_blank" rel="noopener">[${s.reliability==="primary"?"מקור ראשוני":"מקור משני"}]</a>`:"";};
+function go(t){state.tab=t;render();}
+function openD(id){state.sel=id;state.tab="detail";render();}
+function daysTo(a){const w=a.date.window;return w?Math.round((Date.parse(w.start)-Date.parse(D.today))/864e5):null;}
+function winTxt(a){const w=a.date.window;if(!w)return "—";return w.start===w.end?ltr(w.start):ltr(w.start+" → "+w.end);}
+function cd(a){const w=a.date.window;if(!w)return "";const d=daysTo(a),e=Math.round((Date.parse(w.end)-Date.parse(D.today))/864e5);if(e<0)return "חלף";if(d<=0)return "בתוך החלון";return `עוד ${d} ימים`;}
+const HEAD=`<tr><th>חלון צפוי</th><th>טיקר</th><th>תוכנית</th><th>סוג</th><th>דיוק · ביטחון תאריך</th><th>השפעה</th><th>ראיות</th><th>סיווג</th></tr>`;
+function row(a){const s=a.snapshot;return `<tr class="click" onclick="openD('${a.id}')"><td>${winTxt(a)}<div class="mut">${cd(a)}</div></td><td><b>${esc(s.ticker)}</b></td><td>${esc(s.program)}</td><td>${T.types[s.type]||esc(s.type)}</td><td>${T.prec[a.date.precision]||"—"} · ${a.date.confidence}</td><td>${a.impact.score}</td><td>${a.evidence.score} <span class="mut">${T.cat[a.evidence.category]||""}</span></td><td>${clsB(a.classification.cls)}</td></tr>`;}
+function card(t,b){return `<section class="card"><h3>${t}</h3>${b}</section>`;}
+function mini(arr,f){return arr.length?`<ul class="mini">${arr.map(a=>`<li class="click" onclick="openD('${a.id}')"><b>${esc(a.snapshot.ticker)}</b> — ${esc(a.snapshot.program)} <span class="mut">${f(a)}</span></li>`).join("")}</ul>`:`<p class="mut">אין</p>`;}
+function banner(){return `<div class="banner">נתונים נכונים ל-${ltr(D.dataset_as_of)} (הופק ${ltr(D.generated_at)}). אין פיד מחירים/אופציות מחובר — לכן אף אירוע אינו מסווג "החזקה דרך האירוע". מודל הריצה המקדימה ${D.runup_edge_validated?"אומת":"<b>לא אומת</b>"}. גרסאות מודל: ${ltr(Object.entries(D.versions).map(([k,v])=>k+" "+v).join(" · "))}</div>`;}
+function vDash(){
+ const L=D.live;const up=L.filter(a=>a.date.window&&a.date.window.end>=D.today).sort((x,y)=>x.date.window.start<y.date.window.start?-1:1);
+ const wk=up.filter(a=>daysTo(a)<=7),mo=up.filter(a=>daysTo(a)<=31);
+ const topI=[...L].sort((x,y)=>y.impact.score-x.impact.score).slice(0,5),topE=[...L].sort((x,y)=>y.evidence.score-x.evidence.score).slice(0,5);
+ const avoid=L.filter(a=>a.classification.cls==="AVOID"),runup=L.filter(a=>a.classification.cls==="RUNUP");
+ const changes=D.alerts.filter(x=>x.kind==="change");
+ const resolved=D.historical.filter(a=>{const d=(Date.parse(D.today)-Date.parse(a.as_of))/864e5;return d>=0&&d<=14;});
+ return banner()+`<div class="grid">`+
+  card("קטליזטורים קרובים",mini(up.slice(0,8),a=>cd(a)))+
+  card(`השבוע (${wk.length}) · החודש (${mo.length})`,mini(mo,a=>T.types[a.snapshot.type]))+
+  card("השפעה הגבוהה ביותר",mini(topI,a=>"השפעה "+a.impact.score))+
+  card("ראיות קליניות חזקות ביותר",mini(topE,a=>"ראיות "+a.evidence.score+" · "+(T.cat[a.evidence.category]||"")))+
+  card("מועמדי ריצה מקדימה",runup.length?mini(runup,a=>""):`<p class="mut">אין. הסיווג חסום עד שבקטסט walk-forward על מחירים מאומתים יראה יתרון מחוץ למדגם.</p>`)+
+  card("בינאריים בסיכון הגבוה ביותר",mini(avoid,a=>a.classification.reasons[0]||""))+
+  card("שינויים בתאריכי קטליזטור",changes.length?`<ul class="mini">${changes.map(c=>`<li class="click" onclick="openD('${c.event_id}')"><b>${esc(c.ticker)}</b> ${T.lvl[c.level]}: «${esc(c.change.from)}» ← «${esc(c.change.to)}»</li>`).join("")}</ul>`:`<p class="mut">אין שינויים אחרונים</p>`)+
+  card("נפתרו לאחרונה",resolved.length?`<ul class="mini">${resolved.map(a=>{const o=D.outcomes[a.id]||{};return `<li class="click" onclick="openD('${a.id}')"><b>${esc(a.snapshot.ticker)}</b> ${esc(a.snapshot.program)} — ${T.out[o.clinical]||"—"} ${pct(o.move)} <span class="mut">(${esc(o.move_basis||"")})</span></li>`;}).join("")}</ul>`:`<p class="mut">אין</p>`)+
+ `</div>`;}
+function vCal(){const f=state.f;let L=D.live.filter(a=>(!f.type||a.snapshot.type===f.type)&&(!f.cls||a.classification.cls===f.cls)&&a.impact.score>=f.minI);
+ L.sort((x,y)=>((x.date.window||{}).start||"9")<((y.date.window||{}).start||"9")?-1:1);
+ const opts=(o,cur)=>Object.entries(o).map(([k,v])=>`<option value="${k}" ${k===cur?"selected":""}>${v}</option>`).join("");
+ return `<div class="filters">סוג: <select onchange="state.f.type=this.value;render()"><option value="">הכל</option>${opts(T.types,f.type)}</select> סיווג: <select onchange="state.f.cls=this.value;render()"><option value="">הכל</option>${opts(T.cls,f.cls)}</select> השפעה מינימלית: <input type="number" min="0" max="100" value="${f.minI}" onchange="state.f.minI=+this.value;render()"></div><table>${HEAD}${L.map(row).join("")}</table>`;}
+function contrib(cs){return `<ul class="contrib">${cs.map(c=>`<li><b dir="ltr" class="${c.points>=0?"pos":"neg"}">${c.points>=0?"+":""}${c.points}</b> ${esc(c.why)}</li>`).join("")}</ul>`;}
+function vDetail(){
+ const all=[...D.live.map(a=>["live",a]),...D.historical.map(a=>["hist",a])];
+ const cur=all.find(([,a])=>a.id===state.sel)||all[0];const kind=cur[0],a=cur[1],s=a.snapshot;
+ const opt=x=>`<option value="${x.id}" ${x.id===a.id?"selected":""}>${esc(x.snapshot.ticker)} ${x.id.includes("-20")?ltr(x.as_of):""} — ${esc(x.snapshot.program)}</option>`;
+ const sel=`<select onchange="state.sel=this.value;render()"><optgroup label="קטליזטורים עתידיים">${D.live.map(opt).join("")}</optgroup><optgroup label="היסטוריים (תמונת מצב נקודתית)">${D.historical.map(opt).join("")}</optgroup></select>`;
+ const ev=a.evidence,mp=ev.model_p,sc=a.scenario;
+ const flags=a.flags.length?`<ul class="flags">${a.flags.map(f=>`<li>${sevB(f.sev)} ${esc(f.text)} ${f.src?srcLink(f.src):""}</li>`).join("")}</ul>`:`<p class="mut">לא זוהו דגלים (ייתכן שחסרים נתונים)</p>`;
+ const tl=(a.date.timeline||[]).map(c=>{const n=c.norm;return `<li class="${c.superseded?"sup":""}">${ltr(c.date)} — ${esc(c.text||"")}${n?` <span class="mut">«${esc(c.date_text)}» → ${T.prec[n.precision]} · ביטחון ${n.confidence}</span>`:""} ${c.src?srcLink(c.src):""}</li>`;}).join("");
+ const catNode=kind==="live"?`<li class="cat">⬇ קטליזטור: ${winTxt(a)} (${T.prec[a.date.precision]||"—"}) ${cd(a)}</li>`:`<li class="cat">⬇ קטליזטור: ${ltr(a.as_of)}</li>`;
+ const scen=sc.available?`<table><tr><th>תרחיש שור (הצלחה)</th><td>${pct(sc.bull[0])} עד ${pct(sc.bull[1])}</td></tr><tr><th>תרחיש דוב (כישלון)</th><td>${pct(sc.bear[0])} עד ${pct(sc.bear[1])}</td></tr><tr><th>הסתברות מודל (לא מכויל)</th><td>${pp(sc.p.lo)}–${pp(sc.p.hi)}</td></tr><tr><th>טווח EV</th><td>${pct(sc.ev_min)} עד ${pct(sc.ev_max)}</td></tr><tr><th>אסימטריה (שור/|דוב|)</th><td dir="ltr">${sc.asymmetry?sc.asymmetry.toFixed(2):"—"}</td></tr><tr><th>תנועה מוחלטת צפויה</th><td>${pp(sc.expected_abs_move)}</td></tr><tr><th>קבוצת ייחוס</th><td>${sc.reference.group} · הצלחות n=${sc.reference.n_up} · כישלונות n=${sc.reference.n_down} · מקדם חשיפה ${sc.exposure_factor.toFixed(2)}</td></tr></table><p class="mut">⚠ ${esc(sc.caveat)}. אין להשתמש כהערכת שווי.</p>`:`<p class="mut">${esc(sc.why)}</p>`;
+ const ids=new Set([...(a.date.timeline||[]).map(c=>c.src),...a.flags.map(f=>f.src),...(s.documents||[]).map(d=>d.src)].filter(Boolean));
+ const outcome=kind==="hist"?(()=>{const o=D.outcomes[a.id]||{};return card("תוצאה בפועל — תווית בלבד, לא שימשה לחישוב",`<p>${T.out[o.clinical]||"—"} · תנועה: ${pct(o.move)} <span class="mut">${esc(o.move_basis||"")}</span></p>${(o.sources||[]).map(srcLink).join(" ")}`);})():"";
+ return `<div class="filters">בחירה: ${sel}</div>`+
+  card(`${esc(s.ticker)} — ${esc(s.company)}`,`<p><b>${esc(s.program)}</b> · ${esc(s.indication)} · ${T.types[s.type]||esc(s.type)} · שלב ${esc(s.phase)}</p><p class="mut">שווי שוק: ${T.mcap[s.mcap]||"—"} · תלות: ${T.dep[s.dependency]||"—"} · ${s.commercial?"מסחרית":"טרום-מסחרית"} · מסלול מזומנים: ${s.runway_months??"לא ידוע"} חודשים · תמונת מצב נכונה ל-${ltr(a.as_of)}</p><p>${clsB(a.classification.cls)}</p><ul class="mini">${a.classification.reasons.map(r=>`<li>${esc(r)}</li>`).join("")}</ul>`)+
+  `<div class="two">`+
+  card(`השפעת קטליזטור: ${a.impact.score}/100`,bar(a.impact.score)+contrib(a.impact.contributions))+
+  card(`ראיות קליניות: ${ev.score}/100 · ${T.cat[ev.category]}`,bar(ev.score)+contrib(ev.contributions)+`<p class="mut">שלמות נתונים: ${pp(ev.completeness)} · הערכת מודל: ${pp(mp.lo)}–${pp(mp.hi)} (${esc(mp.label)})</p>`)+
+  `</div><div class="two">`+card("דגלי סיכון",flags)+card("ציר זמן הקטליזטור",`<ul class="tl">${tl}${catNode}</ul>`)+`</div>`+
+  `<div class="two">`+card("התנהגות שוק",a.market.available?`<pre dir="ltr">${esc(JSON.stringify(a.market,null,1))}</pre>`:`<p class="mut">${esc(a.market.note)}</p>`)+card("תרחישים וטווח תוחלת",scen)+`</div>`+
+  outcome+card("מקורות",ids.size?`<ul class="mini">${[...ids].map(i=>{const x=src(i);return x?`<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a> <span class="mut">${x.reliability==="primary"?"ראשוני":"משני"} · פורסם ${ltr(x.published)} · נאסף ${ltr(x.retrieved)}</span></li>`:"";}).join("")}</ul>`:`<p class="mut">טרם נקלטו מקורות לאירוע זה (נתוני זרע מהזיכרון — נדרש אימות)</p>`);}
+function vBT(){const B=D.backtest,c=B.coverage;
+ const st=r=>`<td>${r.n}</td><td>${r.n_move}</td><td>${pct(r.median)}</td><td>${pct(r.mean)}</td><td>${r.win_rate==null?"—":(r.win_rate*100).toFixed(0)+"%"}</td><td>${pct(r.worst)}</td><td>${pct(r.best)}</td>`;
+ const groups=Object.entries(B.hold_through).map(([g,rows])=>card("החזקה דרך האירוע לפי "+(T.grp[g]||g),`<table><tr><th>קבוצה</th><th>n</th><th>עם תנועה</th><th>חציון</th><th>ממוצע</th><th>% חיובי</th><th>גרוע</th><th>טוב</th></tr>${rows.map(r=>`<tr><td>${esc(T.out[r.key]||T.mcap[r.key]||r.key)}</td>${st(r)}</tr>`).join("")}</table>`)).join("");
+ const cal=`<table><tr><th>דלי ראיות</th><th>n</th><th>הצלחות</th><th>שיעור</th><th>רווח סמך 95% (Wilson)</th></tr>${B.calibration.map(r=>`<tr><td>${r.bucket}</td><td>${r.n}</td><td>${r.successes}</td><td>${pp(r.rate)}</td><td>${pp(r.ci95[0])}–${pp(r.ci95[1])}</td></tr>`).join("")}</table>`;
+ const cvo=`<table><tr><th>סיווג נקודתי</th><th>הצלחה</th><th>כישלון</th><th>מעורב</th></tr>${Object.entries(B.class_vs_outcome).map(([k,v])=>`<tr><td>${clsB(k)}</td><td>${v.success||0}</td><td>${v.fail||0}</td><td>${v.mixed||0}</td></tr>`).join("")}</table>`;
+ const wf=B.run_up.walk_forward.map(f=>`<li>${f.year}: ${f.skipped?"דולג — "+esc(f.reason):"נבחר "+ltr(JSON.stringify(f.chosen))+" · מבחן n="+f.test.n}</li>`).join("");
+ const ev=`<table><tr><th>תאריך</th><th>טיקר</th><th>תוכנית</th><th>סוג</th><th>ראיות (נקודתי)</th><th>השפעה</th><th>סיווג</th><th>תוצאה</th><th>תנועה</th><th>מאומת</th></tr>${B.events.map(r=>`<tr class="click" onclick="openD('${r.id}')"><td>${ltr(r.date)}</td><td>${esc(r.ticker)}</td><td>${esc(r.program)}</td><td>${T.types[r.type]||r.type}</td><td>${r.evidence}</td><td>${r.impact}</td><td>${clsB(r.cls)}</td><td>${T.out[r.clinical]||"—"}</td><td>${pct(r.move)}</td><td>${r.verified===true?"כן":r.verified==="partial"?"חלקי":"לא"}</td></tr>`).join("")}</table>`;
+ return `<div class="banner"><b>אזהרות:</b><ul class="mini">${B.caveats.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`+
+  card("כיסוי הנתונים",`<p>${c.n_events} אירועים · ${ltr(c.date_min)} עד ${ltr(c.date_max)} · לפי תוצאה: ${ltr(JSON.stringify(c.by_outcome))} · עם תנועה: ${c.n_with_move} · מאומת מלא: ${c.n_verified_move} · עם חלון מחירים לפני האירוע: ${c.n_with_price_window}</p>`)+
+  card("ריצה מקדימה (כניסה T-60..T-7, יציאה T-14..T-1, walk-forward)",`<p><b>${esc(B.run_up.status)}</b></p><ul class="mini">${wf}</ul>`)+
+  `<div class="two">`+card("כיול: דלי ראיות מול הצלחה בפועל",cal)+card("סיווג נקודתי מול תוצאה",cvo)+`</div>`+groups+card("כל האירועים",ev);}
+function vAlerts(){const A=D.alerts;if(!A.length)return `<p class="mut">אין התראות</p>`;
+ const top=A.find(x=>x.kind==="countdown")||A[0];const a=D.live.find(x=>x.id===top.event_id);
+ const radar=`🔥 MOZES BIOTECH RADAR — ${T.lvl[top.level]||top.level}\n\nטיקר: ${top.ticker}\nתוכנית: ${top.program}\nקטליזטור: ${T.types[top.type]||top.type}\nצפוי: ${top.window?top.window.start+(top.window.end!==top.window.start?" → "+top.window.end:""):"—"}\nזמן שנותר: ${top.days_to_start!=null?top.days_to_start+" ימים":"—"}\n\nהשפעת קטליזטור: ${top.impact}/100\nראיות קליניות: ${T.cat[top.evidence_category]} (${top.evidence})\nביטחון תאריך: ${top.date_confidence}/100\nתמחור שוק: לא זמין (אין פיד)\n\nסיווג: ${T.cls[top.cls]}\nסיבות: ${a?a.classification.reasons.join("; "):""}\nסיכונים עיקריים: ${top.top_flags.join("; ")||"—"}`;
+ return `<div class="radar">${esc(radar)}</div><br>`+`<table><tr><th>בולטות</th><th>סוג</th><th>רמה</th><th>טיקר</th><th>תוכנית</th><th>פרט</th><th>השפעה</th><th>סיווג</th></tr>${A.map(x=>`<tr class="click" onclick="openD('${x.event_id}')"><td>${x.prominence}</td><td>${x.kind==="change"?"שינוי":"ספירה לאחור"}</td><td>${T.lvl[x.level]||x.level}</td><td><b>${esc(x.ticker)}</b></td><td>${esc(x.program)}</td><td>${x.kind==="change"?"«"+esc(x.change.from)+"» ← «"+esc(x.change.to)+"»":(x.days_to_start>0?"עוד "+x.days_to_start+" ימים":"")}</td><td>${x.impact}</td><td>${clsB(x.cls)}</td></tr>`).join("")}</table>`;}
+function vMethod(){const S=Object.values(D.sources);
+ return card("עקרונות",`<ul class="mini"><li>נקודתיות בזמן: כל ציון היסטורי מחושב מתמונת מצב שכוללת רק מידע שפורסם לפני יום האירוע. תאריכי פרסום ברמת חודש/שנה מטופלים כסוף התקופה (שמרני).</li><li>תוצאות נשמרות בקובץ נפרד ומשמשות רק כתוויות להערכה.</li><li>"החזקה דרך האירוע" דורשת ראיות ≥75, אסימטריה ≥2, ביטחון תאריך ≥80, נתוני שוק וללא דגלים גבוהים. "ריצה מקדימה" חסומה עד אימות מחוץ למדגם.</li><li>הציון הקליני מתחיל משיעור בסיס (BIO/Biomedtracker) ומתוקן לפי מאפיינים מתועדים. זו הערכת מודל לא מכוילת — לא הסתברות.</li><li>שיעורי הבסיס הם שיעורי מעבר שלב, לא שיעורי "topline חיובי"; מקדמי התחום הטיפולי הם הנחות.</li></ul>`)+
+ card("מצב מקורות הנתונים",`<table><tr><th>מקור</th><th>מצב</th></tr><tr><td>קטליזטורים חיים (8)</td><td>נאספו ידנית מהרשת ב-${ltr(D.dataset_as_of)} עם מקור לכל תאריך</td></tr><tr><td>SEC EDGAR</td><td>מתאם קיים (mozes ingest-edgar), דורש SEC_USER_AGENT; קורא מסמך ראשי בלבד</td></tr><tr><td>ClinicalTrials.gov v2</td><td>מתאם קיים; ה-API מחזיר גרסה נוכחית בלבד → כל שליפה נשמרת כגרסה</td></tr><tr><td>מחירים</td><td>לא מחובר. CSV או Tiingo (מפתח)</td></tr><tr><td>אופציות, שורט, בעלות מוסדית</td><td>לא זמין — דורש ספק בתשלום</td></tr><tr><td>אירועים היסטוריים (21)</td><td>נתוני זרע מהזיכרון, לא מאומתים (למעט KOD חלקית)</td></tr></table>`)+
+ card("כל המקורות",`<ul class="mini">${S.map(x=>`<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title)}</a> <span class="mut">${x.source_type} · ${x.reliability} · פורסם ${ltr(x.published)} · נאסף ${ltr(x.retrieved)}</span></li>`).join("")}</ul>`);}
+function render(){document.getElementById("tabs").innerHTML=TABS.map(([k,v])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${v}</button>`).join("");
+ const V={dash:vDash,cal:vCal,detail:vDetail,bt:vBT,alerts:vAlerts,method:vMethod};document.getElementById("app").innerHTML=V[state.tab]();}
+fetch("data.json").then(r=>r.json()).then(d=>{D=d;state.sel=(d.live[0]||{}).id;render();}).catch(()=>{document.getElementById("app").innerHTML=`<div class="card">לא נמצא <code>data.json</code>. הריצו <code>mozes export-ui</code> ואז <code>mozes serve</code>.</div>`;});
+</script>
+</body>
+</html>

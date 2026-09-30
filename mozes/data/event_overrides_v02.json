@@ -1,0 +1,57 @@
+{
+  "PHAR-SNDA": {
+    "status": "APPROVED",
+    "verification_state": "VERIFIED",
+    "verification_confidence": 100,
+    "resolved_at": "2026-09-11",
+    "note": "Resolved early: FDA approved the pediatric Joenja label expansion before the prior PDUFA date.",
+    "sources": [
+      {
+        "source_id": "phar-fda-approval-20260911",
+        "source_type": "fda",
+        "url": "https://www.fda.gov/drugs/news-events-human-drugs/fda-approves-first-treatment-children-aged-4-11-years-apds-rare-genetic-disorder-immune-system",
+        "published_at": "2026-09-11",
+        "statement": "FDA approved Joenja for children aged 4-11 years weighing at least 27 kg.",
+        "supports_date": true
+      }
+    ]
+  },
+  "REGN-POZELIMAB": {
+    "status": "QUARANTINED",
+    "verification_state": "QUARANTINED",
+    "verification_confidence": 25,
+    "note": "Secondary calendar only; no matching primary-source PDUFA confirmation was verified in the 2026-09-30 review."
+  },
+  "ACLX-ANITO": {
+    "status": "SCHEDULED",
+    "verification_state": "VERIFIED",
+    "verification_confidence": 100,
+    "note": "Primary SEC exhibit confirms FDA accepted the BLA with a December 23, 2026 PDUFA date.",
+    "sources": [
+      {
+        "source_id": "aclx-sec-pdufa-2026",
+        "source_type": "sec",
+        "url": "https://www.sec.gov/Archives/edgar/data/882095/000110465926018316/tm267044d1_ex99-1.htm",
+        "published_at": "2026-02-01",
+        "statement": "BLA accepted with anticipated PDUFA action date December 23, 2026.",
+        "supports_date": true
+      }
+    ]
+  },
+  "CYTK-SNDA": {
+    "status": "SCHEDULED",
+    "verification_state": "VERIFIED",
+    "verification_confidence": 100,
+    "note": "Company IR confirms supplemental NDA accepted with a November 14, 2026 PDUFA date.",
+    "sources": [
+      {
+        "source_id": "cytk-ir-pdufa-20260505",
+        "source_type": "company_ir",
+        "url": "https://ir.cytokinetics.com/press-releases/press-release-details/2026/Cytokinetics-Reports-First-Quarter-2026-Financial-Results-and-Provides-Business-Update/default.aspx",
+        "published_at": "2026-05-05",
+        "statement": "Supplemental NDA for MAPLE-HCM accepted with PDUFA date November 14, 2026.",
+        "supports_date": true
+      }
+    ]
+  }
+}

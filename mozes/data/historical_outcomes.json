@@ -1,0 +1,153 @@
+{
+  "MDGL-2022-12": {
+    "clinical": "success",
+    "move": 2.68,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "KRTX-2022-08": {
+    "clinical": "success",
+    "move": 0.71,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "SAGE-2023-08": {
+    "clinical": "fail",
+    "move": -0.54,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified (MDD CRL, PPD approved)",
+    "verified": false,
+    "sources": []
+  },
+  "SLRN-2023-09": {
+    "clinical": "fail",
+    "move": -0.6,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "AKRO-2023-10": {
+    "clinical": "fail",
+    "move": -0.6,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "SRPT-2023-10": {
+    "clinical": "fail",
+    "move": null,
+    "move_basis": "move not recalled reliably — needs price ingestion",
+    "verified": false,
+    "sources": []
+  },
+  "CYTK-2023-12": {
+    "clinical": "success",
+    "move": null,
+    "move_basis": "move not recalled reliably — needs price ingestion",
+    "verified": false,
+    "sources": []
+  },
+  "VKTX-2024-02": {
+    "clinical": "success",
+    "move": 1.21,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "AMLX-2024-03": {
+    "clinical": "fail",
+    "move": -0.8,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "MDGL-2024-03": {
+    "clinical": "success",
+    "move": null,
+    "move_basis": "move not recalled reliably — needs price ingestion",
+    "verified": false,
+    "sources": []
+  },
+  "INSM-2024-05": {
+    "clinical": "success",
+    "move": 1.2,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "SRPT-2024-06": {
+    "clinical": "success",
+    "move": 0.3,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "ALNY-2024-06": {
+    "clinical": "success",
+    "move": 0.35,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "SRRK-2024-10": {
+    "clinical": "success",
+    "move": 3.5,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "SAVA-2024-11": {
+    "clinical": "fail",
+    "move": -0.84,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "ALT-2025-06": {
+    "clinical": "mixed",
+    "move": -0.53,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified (MASH resolution met, fibrosis missed)",
+    "verified": false,
+    "sources": []
+  },
+  "RPTX-2025-07": {
+    "clinical": "fail",
+    "move": -0.75,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified (CRL)",
+    "verified": false,
+    "sources": []
+  },
+  "VKTX-2025-08": {
+    "clinical": "success",
+    "move": -0.42,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified (primary met; tolerability drove selloff)",
+    "verified": false,
+    "sources": []
+  },
+  "QURE-2025-09": {
+    "clinical": "success",
+    "move": 2.48,
+    "move_basis": "approximate catalyst-day move recalled from press coverage; NOT price-verified",
+    "verified": false,
+    "sources": []
+  },
+  "KOD-2026-03": {
+    "clinical": "success",
+    "move": null,
+    "move_basis": "move not ingested",
+    "verified": false,
+    "sources": []
+  },
+  "KOD-2026-09": {
+    "clinical": "success",
+    "move": 1.7,
+    "move_basis": "intraday ~+170-190% vs prior close $32.35; closing price not verified",
+    "verified": "partial",
+    "sources": [
+      "kod-result",
+      "kod-move",
+      "kod-context"
+    ]
+  }
+}

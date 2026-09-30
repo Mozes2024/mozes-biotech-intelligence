@@ -1,0 +1,110 @@
+"""ClinicalTrials.gov candidate discovery.
+
+Registry primary-completion dates are sponsor estimates. They create DISCOVERY candidates,
+not verified catalyst dates. Promotion requires primary-source verification elsewhere.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import urllib.parse
+import urllib.request
+from datetime import date, datetime, timedelta, timezone
+
+from .universe import best_mapping
+
+CTGOV_STUDIES = "https://clinicaltrials.gov/api/v2/studies"
+ACTIVE = "RECRUITING,ACTIVE_NOT_RECRUITING,ENROLLING_BY_INVITATION,NOT_YET_RECRUITING"
+
+
+def _candidate_id(nct_id: str, primary_completion: str | None) -> str:
+    raw = f"ctgov|{nct_id}|{primary_completion or 'unknown'}".encode()
+    return "CTGOV-" + hashlib.sha1(raw).hexdigest()[:16]
+
+
+def query_url(start: str, end: str, page_size=1000, page_token=None):
+    advanced = (
+        f"AREA[PrimaryCompletionDate]RANGE[{start},{end}] AND "
+        "AREA[Phase](PHASE2 OR PHASE3) AND AREA[LeadSponsorClass]INDUSTRY AND AREA[StudyType]INTERVENTIONAL"
+    )
+    params = {
+        "format": "json",
+        "pageSize": str(page_size),
+        "countTotal": "true",
+        "filter.overallStatus": ACTIVE,
+        "filter.advanced": advanced,
+        "fields": "NCTId,BriefTitle,OverallStatus,Phase,LeadSponsorName,LeadSponsorClass,PrimaryCompletionDate,LastUpdatePostDate,EnrollmentCount,Condition,InterventionName",
+    }
+    if page_token:
+        params["pageToken"] = page_token
+    return CTGOV_STUDIES + "?" + urllib.parse.urlencode(params)
+
+
+def fetch_json(url: str):
+    req = urllib.request.Request(url, headers={"User-Agent": "MOZES-Biotech-Catalyst/0.2"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> dict:
+    ps = study.get("protocolSection", study)
+    ident = ps.get("identificationModule", {})
+    status = ps.get("statusModule", {})
+    design = ps.get("designModule", {})
+    sponsor_mod = ps.get("sponsorCollaboratorsModule", {})
+    cond_mod = ps.get("conditionsModule", {})
+    arms = ps.get("armsInterventionsModule", {})
+    nct = ident.get("nctId") or study.get("NCTId")
+    sponsor = (sponsor_mod.get("leadSponsor") or {}).get("name") or study.get("LeadSponsorName") or ""
+    pc = (status.get("primaryCompletionDateStruct") or {}).get("date") or study.get("PrimaryCompletionDate")
+    last = (status.get("lastUpdatePostDateStruct") or {}).get("date") or study.get("LastUpdatePostDate")
+    phases = design.get("phases") or study.get("Phase") or []
+    if isinstance(phases, str):
+        phases = [phases]
+    mapping = best_mapping(sponsor, sponsor_map or [])
+    interventions = [x.get("name") for x in arms.get("interventions", []) if x.get("name")]
+    return {
+        "candidate_id": _candidate_id(nct or "UNKNOWN", pc),
+        "nct_id": nct,
+        "sponsor": sponsor,
+        "ticker": mapping.get("ticker") if mapping else None,
+        "ticker_confidence": float(mapping.get("confidence", 0)) if mapping else 0.0,
+        "phase": "/".join(phases),
+        "title": ident.get("briefTitle") or study.get("BriefTitle"),
+        "primary_completion": pc,
+        "last_update_posted": last,
+        "status": status.get("overallStatus") or study.get("OverallStatus"),
+        "conditions": cond_mod.get("conditions") or study.get("Condition") or [],
+        "interventions": interventions or study.get("InterventionName") or [],
+        "source_type": "clinicaltrials",
+        "verification_state": "DISCOVERED",
+        "date_semantics": "sponsor-estimated primary completion; NOT a readout date",
+        "raw": study,
+    }
+
+
+def discover(start: str | None = None, end: str | None = None, months=6, sponsor_map=None, fetcher=fetch_json):
+    today = date.today()
+    start = start or today.isoformat()
+    end = end or (today + timedelta(days=31 * months)).isoformat()
+    out, token = [], None
+    while True:
+        payload = fetcher(query_url(start, end, page_token=token))
+        out.extend(study_to_candidate(s, sponsor_map) for s in payload.get("studies", []))
+        token = payload.get("nextPageToken")
+        if not token:
+            break
+    return out
+
+
+def store_candidates(conn, candidates: list[dict], discovered_at=None):
+    discovered_at = discovered_at or datetime.now(timezone.utc).isoformat(timespec="seconds")
+    with conn:
+        for c in candidates:
+            conn.execute(
+                "INSERT INTO discovery_candidates(candidate_id,nct_id,sponsor,ticker,ticker_confidence,phase,title,primary_completion,last_update_posted,status,raw_json,discovered_at,promoted_event_id) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(candidate_id) DO UPDATE SET sponsor=excluded.sponsor,ticker=excluded.ticker,ticker_confidence=excluded.ticker_confidence,"
+                "phase=excluded.phase,title=excluded.title,primary_completion=excluded.primary_completion,last_update_posted=excluded.last_update_posted,status=excluded.status,raw_json=excluded.raw_json,discovered_at=excluded.discovered_at",
+                (c["candidate_id"], c.get("nct_id"), c.get("sponsor"), c.get("ticker"), c.get("ticker_confidence"), c.get("phase"), c.get("title"),
+                 c.get("primary_completion"), c.get("last_update_posted"), c.get("status"), json.dumps(c.get("raw") or {}, ensure_ascii=False), discovered_at, None),
+            )

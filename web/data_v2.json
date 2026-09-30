@@ -1,0 +1,2289 @@
+{
+  "version": "0.2.0",
+  "generated_at": "2026-09-30T18:53:18+00:00",
+  "today": "2026-09-30",
+  "live": [
+    {
+      "id": "QTTB-CONF",
+      "ticker": "QTTB",
+      "program": "bempikibart — SIGNAL-AA Part B (נתוני 36/52 שבועות)",
+      "type": "CONFERENCE",
+      "today": "2026-09-30",
+      "state": {
+        "event_id": "QTTB-CONF",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 93,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-09-30T18:52:47+00:00",
+        "note": "primary source: sec"
+      },
+      "date": {
+        "window": {
+          "start": "2026-07-01",
+          "end": "2026-12-31"
+        },
+        "precision": "half",
+        "confidence": 35,
+        "original": "second half of 2026",
+        "changes": [],
+        "timeline": [
+          {
+            "date": "2026-08-05",
+            "text": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026",
+            "src": "qttb-8k",
+            "date_text": "second half of 2026",
+            "superseded": null,
+            "norm": {
+              "original": "second half of 2026",
+              "precision": "half",
+              "start": "2026-07-01",
+              "end": "2026-12-31",
+              "confidence": 35,
+              "inferred_year": false
+            }
+          }
+        ]
+      },
+      "days_to": -91,
+      "impact": {
+        "score": 46,
+        "contributions": [
+          {
+            "code": "type",
+            "points": 10,
+            "why": "סוג אירוע: הצגה בכנס"
+          },
+          {
+            "code": "dependency",
+            "points": 18,
+            "why": "תלות החברה בתוכנית: נכס מוביל"
+          },
+          {
+            "code": "mcap",
+            "points": 8,
+            "why": "שווי שוק לפני האירוע: לא ידוע"
+          },
+          {
+            "code": "stage",
+            "points": 10,
+            "why": "חברה טרום-מסחרית"
+          }
+        ],
+        "version": "0.2.0"
+      },
+      "evidence": {
+        "engine": "informational_v0.2",
+        "score": null,
+        "category": "Informational",
+        "context_prior": null,
+        "reasons": [
+          {
+            "code": "non_binary",
+            "delta": 0,
+            "text": "not treated as a primary binary decision event"
+          }
+        ]
+      },
+      "market": {
+        "available": false,
+        "n_prices": 0,
+        "benchmark": "XBI",
+        "reason": "fewer than 31 pre-event closes in DB"
+      },
+      "risk_flags": [
+        {
+          "sev": "low",
+          "code": "known_data",
+          "known_from": "2026-08-05",
+          "src": "qttb-8k",
+          "text": "ה-topline כבר פורסם ביולי; הצגה בכנס בדרך כלל משפיעה פחות",
+          "origin": "source"
+        }
+      ],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "gates": {
+        "runup": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 150,
+          "note": "locked until stable positive out-of-sample evidence"
+        },
+        "hold_through": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 200,
+          "note": "locked until calibrated out-of-sample binary model"
+        }
+      },
+      "sources": [
+        {
+          "event_id": "QTTB-CONF",
+          "source_id": "qttb-8k",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/0001661998/000119312526333813/qttb-ex99_1.htm",
+          "published_at": "2026-08-05",
+          "statement": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        }
+      ]
+    },
+    {
+      "id": "KOD-BLA",
+      "ticker": "KOD",
+      "program": "Zenkuda — הגשת BLA רב-התוויות",
+      "type": "FILING",
+      "today": "2026-09-30",
+      "state": {
+        "event_id": "KOD-BLA",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 95,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-09-30T18:52:47+00:00",
+        "note": "primary source: company_press_release"
+      },
+      "date": {
+        "window": {
+          "start": "2026-10-01",
+          "end": "2026-12-31"
+        },
+        "precision": "quarter",
+        "confidence": 55,
+        "original": "fourth quarter of 2026",
+        "changes": [],
+        "timeline": [
+          {
+            "date": "2026-09-28",
+            "text": "החברה מתכננת להגיש BLA ברבעון 4 2026",
+            "src": "kod-daybreak-result-primary",
+            "date_text": "fourth quarter of 2026",
+            "superseded": null,
+            "norm": {
+              "original": "fourth quarter of 2026",
+              "precision": "quarter",
+              "start": "2026-10-01",
+              "end": "2026-12-31",
+              "confidence": 55,
+              "inferred_year": false
+            }
+          }
+        ]
+      },
+      "days_to": 1,
+      "impact": {
+        "score": 46,
+        "contributions": [
+          {
+            "code": "type",
+            "points": 8,
+            "why": "סוג אירוע: הגשת NDA/BLA"
+          },
+          {
+            "code": "dependency",
+            "points": 18,
+            "why": "תלות החברה בתוכנית: נכס מוביל"
+          },
+          {
+            "code": "mcap",
+            "points": 10,
+            "why": "שווי שוק לפני האירוע: $2–10B"
+          },
+          {
+            "code": "stage",
+            "points": 10,
+            "why": "חברה טרום-מסחרית"
+          }
+        ],
+        "version": "0.2.0"
+      },
+      "evidence": {
+        "engine": "informational_v0.2",
+        "score": null,
+        "category": "Informational",
+        "context_prior": null,
+        "reasons": [
+          {
+            "code": "non_binary",
+            "delta": 0,
+            "text": "not treated as a primary binary decision event"
+          }
+        ]
+      },
+      "market": {
+        "available": false,
+        "n_prices": 0,
+        "benchmark": "XBI",
+        "reason": "fewer than 31 pre-event closes in DB"
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "gates": {
+        "runup": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 150,
+          "note": "locked until stable positive out-of-sample evidence"
+        },
+        "hold_through": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 200,
+          "note": "locked until calibrated out-of-sample binary model"
+        }
+      },
+      "sources": [
+        {
+          "event_id": "KOD-BLA",
+          "source_id": "kod-daybreak-result-primary",
+          "source_type": "company_press_release",
+          "url": "https://ir.kodiak.com/news-releases/news-release-details/zenkuda-and-tabirafusp-ted-meet-primary-endpoints-pivotal",
+          "published_at": "2026-09-28",
+          "statement": "החברה מתכננת להגיש BLA ברבעון 4 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        }
+      ]
+    },
+    {
+      "id": "REGN-POZELIMAB",
+      "ticker": "REGN",
+      "program": "pozelimab",
+      "type": "PDUFA_NME",
+      "today": "2026-09-30",
+      "state": {
+        "event_id": "REGN-POZELIMAB",
+        "status": "QUARANTINED",
+        "verification_state": "QUARANTINED",
+        "verification_confidence": 25,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-09-30T18:52:47+00:00",
+        "note": "Secondary calendar only; no matching primary-source PDUFA confirmation was verified in the 2026-09-30 review."
+      },
+      "date": {
+        "window": {
+          "start": "2026-10-20",
+          "end": "2026-10-20"
+        },
+        "precision": "exact",
+        "confidence": 80,
+        "original": "2026-10-20",
+        "changes": [],
+        "timeline": [
+          {
+            "date": "2026-09",
+            "text": "תאריך PDUFA לפי לוח משני",
+            "src": "cal-dansfera",
+            "date_text": "2026-10-20",
+            "superseded": null,
+            "norm": {
+              "original": "2026-10-20",
+              "precision": "exact",
+              "start": "2026-10-20",
+              "end": "2026-10-20",
+              "confidence": 80,
+              "inferred_year": false
+            }
+          }
+        ]
+      },
+      "days_to": 20,
+      "impact": {
+        "score": 47,
+        "contributions": [
+          {
+            "code": "type",
+            "points": 26,
+            "why": "סוג אירוע: PDUFA — מוצר חדש"
+          },
+          {
+            "code": "dependency",
+            "points": 5,
+            "why": "תלות החברה בתוכנית: אחד מרבים"
+          },
+          {
+            "code": "mcap",
+            "points": 3,
+            "why": "שווי שוק לפני האירוע: >$10B"
+          },
+          {
+            "code": "stage",
+            "points": 3,
+            "why": "חברה מסחרית — הכנסות קיימות מרככות את התגובה"
+          },
+          {
+            "code": "filing",
+            "points": 10,
+            "why": "הצלחה מאפשרת הגשה/אישור ישירות"
+          }
+        ],
+        "version": "0.2.0"
+      },
+      "evidence": {
+        "engine": "regulatory_v0.2",
+        "score": 91,
+        "category": "Very Strong",
+        "context_prior": 0.906,
+        "reasons": [
+          {
+            "code": "base_rate",
+            "delta": 0,
+            "text": "historical application-transition context 90.6%"
+          }
+        ],
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "market": {
+        "available": false,
+        "n_prices": 0,
+        "benchmark": "XBI",
+        "reason": "fewer than 31 pre-event closes in DB"
+      },
+      "risk_flags": [
+        {
+          "sev": "low",
+          "code": "secondary_date",
+          "known_from": "2026-09",
+          "src": "cal-dansfera",
+          "text": "תאריך ממקור משני; השפעה צפויה נמוכה על מניית ענק",
+          "origin": "source"
+        }
+      ],
+      "classification": {
+        "class": "QUARANTINED",
+        "actionable": false,
+        "reasons": [
+          "primary-source verification missing or conflicting"
+        ]
+      },
+      "gates": {
+        "runup": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 150,
+          "note": "locked until stable positive out-of-sample evidence"
+        },
+        "hold_through": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 200,
+          "note": "locked until calibrated out-of-sample binary model"
+        }
+      },
+      "sources": [
+        {
+          "event_id": "REGN-POZELIMAB",
+          "source_id": "cal-dansfera",
+          "source_type": "aggregator",
+          "url": "https://dansfera.com/",
+          "published_at": "2026-09",
+          "statement": "תאריך PDUFA לפי לוח משני",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        }
+      ]
+    },
+    {
+      "id": "CYTK-SNDA",
+      "ticker": "CYTK",
+      "program": "MYQORZO (aficamten) — sNDA",
+      "type": "PDUFA_SUPP",
+      "today": "2026-09-30",
+      "state": {
+        "event_id": "CYTK-SNDA",
+        "status": "SCHEDULED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 100,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-09-30T18:52:47+00:00",
+        "note": "Company IR confirms supplemental NDA accepted with a November 14, 2026 PDUFA date."
+      },
+      "date": {
+        "window": {
+          "start": "2026-11-14",
+          "end": "2026-11-14"
+        },
+        "precision": "exact",
+        "confidence": 80,
+        "original": "2026-11-14",
+        "changes": [],
+        "timeline": [
+          {
+            "date": "2026-09",
+            "text": "תאריך PDUFA להתוויה המשלימה",
+            "src": "cal-dansfera",
+            "date_text": "2026-11-14",
+            "superseded": null,
+            "norm": {
+              "original": "2026-11-14",
+              "precision": "exact",
+              "start": "2026-11-14",
+              "end": "2026-11-14",
+              "confidence": 80,
+              "inferred_year": false
+            }
+          }
+        ]
+      },
+      "days_to": 45,
+      "impact": {
+        "score": 53,
+        "contributions": [
+          {
+            "code": "type",
+            "points": 12,
+            "why": "סוג אירוע: PDUFA — התוויה משלימה"
+          },
+          {
+            "code": "dependency",
+            "points": 18,
+            "why": "תלות החברה בתוכנית: נכס מוביל"
+          },
+          {
+            "code": "mcap",
+            "points": 10,
+            "why": "שווי שוק לפני האירוע: $2–10B"
+          },
+          {
+            "code": "stage",
+            "points": 3,
+            "why": "חברה מסחרית — הכנסות קיימות מרככות את התגובה"
+          },
+          {
+            "code": "filing",
+            "points": 10,
+            "why": "הצלחה מאפשרת הגשה/אישור ישירות"
+          }
+        ],
+        "version": "0.2.0"
+      },
+      "evidence": {
+        "engine": "regulatory_v0.2",
+        "score": 91,
+        "category": "Very Strong",
+        "context_prior": 0.906,
+        "reasons": [
+          {
+            "code": "base_rate",
+            "delta": 0,
+            "text": "historical application-transition context 90.6%"
+          }
+        ],
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "market": {
+        "available": false,
+        "n_prices": 0,
+        "benchmark": "XBI",
+        "reason": "fewer than 31 pre-event closes in DB"
+      },
+      "risk_flags": [
+        {
+          "sev": "low",
+          "code": "secondary_date",
+          "known_from": "2026-09",
+          "src": "cal-dansfera",
+          "text": "תאריך ממקור משני",
+          "origin": "source"
+        }
+      ],
+      "classification": {
+        "class": "REVIEW",
+        "actionable": true,
+        "reasons": [
+          "research-worthy; trading gates remain locked"
+        ]
+      },
+      "gates": {
+        "runup": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 150,
+          "note": "locked until stable positive out-of-sample evidence"
+        },
+        "hold_through": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 200,
+          "note": "locked until calibrated out-of-sample binary model"
+        }
+      },
+      "sources": [
+        {
+          "event_id": "CYTK-SNDA",
+          "source_id": "cytk-ir-pdufa-20260505",
+          "source_type": "company_ir",
+          "url": "https://ir.cytokinetics.com/press-releases/press-release-details/2026/Cytokinetics-Reports-First-Quarter-2026-Financial-Results-and-Provides-Business-Update/default.aspx",
+          "published_at": "2026-05-05",
+          "statement": "Supplemental NDA for MAPLE-HCM accepted with PDUFA date November 14, 2026.",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        },
+        {
+          "event_id": "CYTK-SNDA",
+          "source_id": "cal-dansfera",
+          "source_type": "aggregator",
+          "url": "https://dansfera.com/",
+          "published_at": "2026-09",
+          "statement": "תאריך PDUFA להתוויה המשלימה",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        }
+      ]
+    },
+    {
+      "id": "SMMT-PDUFA",
+      "ticker": "SMMT",
+      "program": "ivonescimab + כימותרפיה — HARMONi",
+      "type": "PDUFA_NME",
+      "today": "2026-09-30",
+      "state": {
+        "event_id": "SMMT-PDUFA",
+        "status": "SCHEDULED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 99,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-09-30T18:52:47+00:00",
+        "note": "primary source: company_press_release"
+      },
+      "date": {
+        "window": {
+          "start": "2026-11-14",
+          "end": "2026-11-14"
+        },
+        "precision": "exact",
+        "confidence": 80,
+        "original": "November 14, 2026",
+        "changes": [],
+        "timeline": [
+          {
+            "date": "2026-01-29",
+            "text": "ה-FDA קיבל את ה-BLA; נקבע תאריך PDUFA",
+            "src": "smmt-bla",
+            "date_text": "November 14, 2026",
+            "superseded": null,
+            "norm": {
+              "original": "November 14, 2026",
+              "precision": "exact",
+              "start": "2026-11-14",
+              "end": "2026-11-14",
+              "confidence": 100,
+              "inferred_year": false
+            }
+          },
+          {
+            "date": "2026-07-23",
+            "text": "ההנחיה חוזרת: החלטת FDA עד 14 בנובמבר",
+            "src": "smmt-q2",
+            "date_text": "November 14, 2026",
+            "superseded": null,
+            "norm": {
+              "original": "November 14, 2026",
+              "precision": "exact",
+              "start": "2026-11-14",
+              "end": "2026-11-14",
+              "confidence": 80,
+              "inferred_year": false
+            }
+          }
+        ]
+      },
+      "days_to": 45,
+      "impact": {
+        "score": 74,
+        "contributions": [
+          {
+            "code": "type",
+            "points": 26,
+            "why": "סוג אירוע: PDUFA — מוצר חדש"
+          },
+          {
+            "code": "dependency",
+            "points": 25,
+            "why": "תלות החברה בתוכנית: נכס יחיד"
+          },
+          {
+            "code": "mcap",
+            "points": 3,
+            "why": "שווי שוק לפני האירוע: >$10B"
+          },
+          {
+            "code": "stage",
+            "points": 10,
+            "why": "חברה טרום-מסחרית"
+          },
+          {
+            "code": "filing",
+            "points": 10,
+            "why": "הצלחה מאפשרת הגשה/אישור ישירות"
+          }
+        ],
+        "version": "0.2.0"
+      },
+      "evidence": {
+        "engine": "regulatory_v0.2",
+        "score": 61,
+        "category": "Moderate",
+        "context_prior": 0.906,
+        "reasons": [
+          {
+            "code": "base_rate",
+            "delta": 0,
+            "text": "historical application-transition context 90.6%"
+          },
+          {
+            "code": "fda_requirement",
+            "delta": -30,
+            "text": "public FDA requirement appears at risk"
+          }
+        ],
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "market": {
+        "available": false,
+        "n_prices": 0,
+        "benchmark": "XBI",
+        "reason": "fewer than 31 pre-event closes in DB"
+      },
+      "risk_flags": [
+        {
+          "sev": "critical",
+          "code": "fda_requirement",
+          "known_from": "2026-02-23",
+          "src": "smmt-fda-os",
+          "text": "ה-FDA הבהיר שנדרש יתרון OS מובהק סטטיסטית; החברה נשענת על ניתוח תת-קבוצה מערבית עם p נומינלי 0.033 — לא מבחן ראשי",
+          "origin": "source"
+        },
+        {
+          "sev": "high",
+          "code": "financing",
+          "known_from": "2026-07-23",
+          "src": "smmt-q2",
+          "text": "נדרש גיוס הון — סיכון דילול סביב האירוע",
+          "origin": "source"
+        }
+      ],
+      "classification": {
+        "class": "AVOID_BINARY",
+        "actionable": true,
+        "reasons": [
+          "critical risk flag"
+        ]
+      },
+      "gates": {
+        "runup": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 150,
+          "note": "locked until stable positive out-of-sample evidence"
+        },
+        "hold_through": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 200,
+          "note": "locked until calibrated out-of-sample binary model"
+        }
+      },
+      "sources": [
+        {
+          "event_id": "SMMT-PDUFA",
+          "source_id": "smmt-bla",
+          "source_type": "company_press_release",
+          "url": "https://www.businesswire.com/news/home/20260129109846/en/",
+          "published_at": "2026-01-29",
+          "statement": "ה-FDA קיבל את ה-BLA; נקבע תאריך PDUFA",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        },
+        {
+          "event_id": "SMMT-PDUFA",
+          "source_id": "smmt-q2",
+          "source_type": "aggregator",
+          "url": "https://quartr.com/events/summit-therapeutics-inc-smmt-q2-2026_FkQBrPi5",
+          "published_at": "2026-07-23",
+          "statement": "ההנחיה חוזרת: החלטת FDA עד 14 בנובמבר",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        }
+      ]
+    },
+    {
+      "id": "CAPR-PDUFA",
+      "ticker": "CAPR",
+      "program": "deramiocel — HOPE-3",
+      "type": "PDUFA_NME",
+      "today": "2026-09-30",
+      "state": {
+        "event_id": "CAPR-PDUFA",
+        "status": "SCHEDULED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 100,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-09-30T18:52:47+00:00",
+        "note": "primary source: sec"
+      },
+      "date": {
+        "window": {
+          "start": "2026-11-22",
+          "end": "2026-11-22"
+        },
+        "precision": "exact",
+        "confidence": 100,
+        "original": "November 22, 2026",
+        "changes": [
+          {
+            "type": "delay",
+            "from": "August 22, 2026",
+            "to": "November 22, 2026",
+            "date": "2026-08-24",
+            "src": "capr-8k"
+          }
+        ],
+        "timeline": [
+          {
+            "date": "2025-07",
+            "text": "CRL על ה-BLA המקורי (PDUFA מקורי 31/08/2025)",
+            "src": "capr-adcom",
+            "date_text": null,
+            "superseded": null
+          },
+          {
+            "date": "2026-07-29",
+            "text": "ועדה מייעצת: 9 נגד 3 נגד המלצה על אישור",
+            "src": "capr-adcom",
+            "date_text": null,
+            "superseded": null
+          },
+          {
+            "date": "2026-08-24",
+            "text": "יעד PDUFA הקודם (כפי שמצוטט ב-8-K; ההודעה המקורית טרם נקלטה)",
+            "src": "capr-8k",
+            "date_text": "August 22, 2026",
+            "superseded": true,
+            "norm": {
+              "original": "August 22, 2026",
+              "precision": "exact",
+              "start": "2026-08-22",
+              "end": "2026-08-22",
+              "confidence": 100,
+              "inferred_year": false
+            }
+          },
+          {
+            "date": "2026-08-24",
+            "text": "ה-FDA האריך את ה-PDUFA ב-3 חודשים — תיקון מהותי (נתוני 24 חודשים + התוויה מצומצמת)",
+            "src": "capr-8k",
+            "date_text": "November 22, 2026",
+            "superseded": null,
+            "norm": {
+              "original": "November 22, 2026",
+              "precision": "exact",
+              "start": "2026-11-22",
+              "end": "2026-11-22",
+              "confidence": 100,
+              "inferred_year": false
+            }
+          }
+        ]
+      },
+      "days_to": 53,
+      "impact": {
+        "score": 87,
+        "contributions": [
+          {
+            "code": "type",
+            "points": 26,
+            "why": "סוג אירוע: PDUFA — מוצר חדש"
+          },
+          {
+            "code": "dependency",
+            "points": 25,
+            "why": "תלות החברה בתוכנית: נכס יחיד"
+          },
+          {
+            "code": "mcap",
+            "points": 16,
+            "why": "שווי שוק לפני האירוע: $0.5–2B"
+          },
+          {
+            "code": "stage",
+            "points": 10,
+            "why": "חברה טרום-מסחרית"
+          },
+          {
+            "code": "filing",
+            "points": 10,
+            "why": "הצלחה מאפשרת הגשה/אישור ישירות"
+          }
+        ],
+        "version": "0.2.0"
+      },
+      "evidence": {
+        "engine": "regulatory_v0.2",
+        "score": 36,
+        "category": "Weak",
+        "context_prior": 0.906,
+        "reasons": [
+          {
+            "code": "base_rate",
+            "delta": 0,
+            "text": "historical application-transition context 90.6%"
+          },
+          {
+            "code": "prior_crl",
+            "delta": -20,
+            "text": "prior Complete Response Letter"
+          },
+          {
+            "code": "negative_adcom",
+            "delta": -35,
+            "text": "negative advisory committee vote"
+          }
+        ],
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "market": {
+        "available": false,
+        "n_prices": 0,
+        "benchmark": "XBI",
+        "reason": "fewer than 31 pre-event closes in DB"
+      },
+      "risk_flags": [
+        {
+          "sev": "critical",
+          "code": "negative_adcom",
+          "text": "הצבעה שלילית בוועדה מייעצת",
+          "origin": "computed"
+        },
+        {
+          "sev": "high",
+          "code": "sap_change",
+          "known_from": "2026-07-29",
+          "src": "capr-adcom",
+          "text": "חברי הוועדה העלו חשש משינויים בתוכנית הניתוח הסטטיסטי לאחר הרנדומיזציה",
+          "origin": "source"
+        },
+        {
+          "sev": "high",
+          "code": "prior_crl",
+          "text": "CRL קודם לתוכנית",
+          "origin": "computed"
+        },
+        {
+          "sev": "medium",
+          "code": "narrowed_indication",
+          "known_from": "2026-08-24",
+          "src": "capr-8k",
+          "text": "ההתוויה המבוקשת צומצמה לתפקוד גפה עליונה",
+          "origin": "source"
+        },
+        {
+          "sev": "medium",
+          "code": "date_delay",
+          "known_from": "2026-08-24",
+          "src": "capr-8k",
+          "text": "תאריך ההחלטה נדחה ב-3 חודשים",
+          "origin": "source"
+        }
+      ],
+      "classification": {
+        "class": "AVOID_BINARY",
+        "actionable": true,
+        "reasons": [
+          "critical risk flag"
+        ]
+      },
+      "gates": {
+        "runup": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 150,
+          "note": "locked until stable positive out-of-sample evidence"
+        },
+        "hold_through": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 200,
+          "note": "locked until calibrated out-of-sample binary model"
+        }
+      },
+      "sources": [
+        {
+          "event_id": "CAPR-PDUFA",
+          "source_id": "capr-8k",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/0001133869/000110465926100071/capr-20260824x8k.htm",
+          "published_at": "2026-08-24",
+          "statement": "יעד PDUFA הקודם (כפי שמצוטט ב-8-K; ההודעה המקורית טרם נקלטה)",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        },
+        {
+          "event_id": "CAPR-PDUFA",
+          "source_id": "capr-adcom",
+          "source_type": "news",
+          "url": "https://www.pharmanow.live/latest-news/capricor-therapeutics-deramiocel-bla-review-extension-november-2026",
+          "published_at": "2026-08-25",
+          "statement": "CRL על ה-BLA המקורי (PDUFA מקורי 31/08/2025)",
+          "supports_date": 0,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        }
+      ]
+    },
+    {
+      "id": "KOD-PEAK-PA1",
+      "ticker": "KOD",
+      "program": "KSI-101 — PEAK, Pivotal Analysis 1",
+      "type": "P3_TOPLINE",
+      "today": "2026-09-30",
+      "state": {
+        "event_id": "KOD-PEAK-PA1",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 98,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-09-30T18:52:47+00:00",
+        "note": "primary source: company_ir"
+      },
+      "date": {
+        "window": {
+          "start": "2026-12-01",
+          "end": "2026-12-31"
+        },
+        "precision": "month",
+        "confidence": 75,
+        "original": "December 2026",
+        "changes": [
+          {
+            "type": "precision_up",
+            "from": "4Q 2026",
+            "to": "December 2026",
+            "date": "2026-08",
+            "src": "kod-q2-26"
+          }
+        ],
+        "timeline": [
+          {
+            "date": "2025-11",
+            "text": "PEAK — topline צפוי ברבעון 4 2026",
+            "src": "kod-q3-25",
+            "date_text": "4Q 2026",
+            "superseded": null,
+            "norm": {
+              "original": "4Q 2026",
+              "precision": "quarter",
+              "start": "2026-10-01",
+              "end": "2026-12-31",
+              "confidence": 55,
+              "inferred_year": false
+            }
+          },
+          {
+            "date": "2026-05",
+            "text": "ההנחיה חוזרת: רבעון 4 2026",
+            "src": "kod-q1-26",
+            "date_text": "4Q 2026",
+            "superseded": null,
+            "norm": {
+              "original": "4Q 2026",
+              "precision": "quarter",
+              "start": "2026-10-01",
+              "end": "2026-12-31",
+              "confidence": 55,
+              "inferred_year": false
+            }
+          },
+          {
+            "date": "2026-08",
+            "text": "Pivotal Analysis 1 (עוקבה ראשונה, 300 מטופלים) — topline צפוי בדצמבר 2026",
+            "src": "kod-q2-26",
+            "date_text": "December 2026",
+            "superseded": null,
+            "norm": {
+              "original": "December 2026",
+              "precision": "month",
+              "start": "2026-12-01",
+              "end": "2026-12-31",
+              "confidence": 75,
+              "inferred_year": false
+            }
+          }
+        ]
+      },
+      "days_to": 62,
+      "impact": {
+        "score": 62,
+        "contributions": [
+          {
+            "code": "type",
+            "points": 30,
+            "why": "סוג אירוע: תוצאות Topline שלב 3"
+          },
+          {
+            "code": "dependency",
+            "points": 12,
+            "why": "תלות החברה בתוכנית: אחד מכמה נכסים מתקדמים"
+          },
+          {
+            "code": "mcap",
+            "points": 10,
+            "why": "שווי שוק לפני האירוע: $2–10B"
+          },
+          {
+            "code": "stage",
+            "points": 10,
+            "why": "חברה טרום-מסחרית"
+          }
+        ],
+        "version": "0.2.0"
+      },
+      "evidence": {
+        "engine": "clinical_readout_v0.2",
+        "score": 69,
+        "category": "Strong",
+        "context_prior": 0.578,
+        "reasons": [
+          {
+            "code": "base_rate",
+            "delta": 0,
+            "text": "historical program-transition context 57.8%; not a topline probability"
+          },
+          {
+            "code": "prior_efficacy",
+            "delta": 5,
+            "text": "prior efficacy: moderate"
+          },
+          {
+            "code": "endpoint",
+            "delta": 2,
+            "text": "partial endpoint continuity"
+          },
+          {
+            "code": "objective",
+            "delta": 4,
+            "text": "objective endpoint"
+          }
+        ],
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "market": {
+        "available": false,
+        "n_prices": 0,
+        "benchmark": "XBI",
+        "reason": "fewer than 31 pre-event closes in DB"
+      },
+      "risk_flags": [
+        {
+          "sev": "medium",
+          "code": "financing",
+          "known_from": "2026-09-28",
+          "src": "kod-context",
+          "text": "מזומן ~$126M לסוף Q2 2026, 'לתוך 2027' לפי החברה; גיוס הון לאחר זינוק DAYBREAK הוא תרחיש סביר",
+          "origin": "source"
+        },
+        {
+          "sev": "medium",
+          "code": "uncontrolled_prior",
+          "known_from": "2026-02-07",
+          "src": "kod-q1-26",
+          "text": "הראיות הקודמות (APEX שלב 1b) ללא זרוע ביקורת",
+          "origin": "source"
+        },
+        {
+          "sev": "medium",
+          "code": "partial_pivotal",
+          "known_from": "2026-08",
+          "src": "kod-q2-26",
+          "text": "ניתוח פיבוטלי 1 מתוך 2 — הגשת BLA תלויה גם בניתוח 2 (צפוי 2Q 2027)",
+          "origin": "source"
+        }
+      ],
+      "classification": {
+        "class": "REVIEW",
+        "actionable": true,
+        "reasons": [
+          "research-worthy; trading gates remain locked"
+        ]
+      },
+      "gates": {
+        "runup": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 150,
+          "note": "locked until stable positive out-of-sample evidence"
+        },
+        "hold_through": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 200,
+          "note": "locked until calibrated out-of-sample binary model"
+        }
+      },
+      "sources": [
+        {
+          "event_id": "KOD-PEAK-PA1",
+          "source_id": "kod-q3-25",
+          "source_type": "company_ir",
+          "url": "https://ir.kodiak.com/node/12296/html",
+          "published_at": "2025-11",
+          "statement": "PEAK — topline צפוי ברבעון 4 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        },
+        {
+          "event_id": "KOD-PEAK-PA1",
+          "source_id": "kod-q1-26",
+          "source_type": "company_ir",
+          "url": "https://ir.kodiak.com/node/12596/pdf",
+          "published_at": "2026-05",
+          "statement": "ההנחיה חוזרת: רבעון 4 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        },
+        {
+          "event_id": "KOD-PEAK-PA1",
+          "source_id": "kod-q2-26",
+          "source_type": "company_ir",
+          "url": "https://kodiak.gcs-web.com/node/12746/html",
+          "published_at": "2026-08",
+          "statement": "Pivotal Analysis 1 (עוקבה ראשונה, 300 מטופלים) — topline צפוי בדצמבר 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        }
+      ]
+    },
+    {
+      "id": "ACLX-ANITO",
+      "ticker": "ACLX",
+      "program": "anito-cel — iMMagine-1",
+      "type": "PDUFA_NME",
+      "today": "2026-09-30",
+      "state": {
+        "event_id": "ACLX-ANITO",
+        "status": "SCHEDULED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 100,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-09-30T18:52:47+00:00",
+        "note": "Primary SEC exhibit confirms FDA accepted the BLA with a December 23, 2026 PDUFA date."
+      },
+      "date": {
+        "window": {
+          "start": "2026-12-23",
+          "end": "2026-12-23"
+        },
+        "precision": "exact",
+        "confidence": 80,
+        "original": "Dec 23, 2026",
+        "changes": [],
+        "timeline": [
+          {
+            "date": "2026-09-30",
+            "text": "תאריך PDUFA לפי לוח קטליזטורים משני",
+            "src": "cal-nova",
+            "date_text": "Dec 23, 2026",
+            "superseded": null,
+            "norm": {
+              "original": "Dec 23, 2026",
+              "precision": "exact",
+              "start": "2026-12-23",
+              "end": "2026-12-23",
+              "confidence": 80,
+              "inferred_year": false
+            }
+          }
+        ]
+      },
+      "days_to": 84,
+      "impact": {
+        "score": 72,
+        "contributions": [
+          {
+            "code": "type",
+            "points": 26,
+            "why": "סוג אירוע: PDUFA — מוצר חדש"
+          },
+          {
+            "code": "dependency",
+            "points": 18,
+            "why": "תלות החברה בתוכנית: נכס מוביל"
+          },
+          {
+            "code": "mcap",
+            "points": 8,
+            "why": "שווי שוק לפני האירוע: לא ידוע"
+          },
+          {
+            "code": "stage",
+            "points": 10,
+            "why": "חברה טרום-מסחרית"
+          },
+          {
+            "code": "filing",
+            "points": 10,
+            "why": "הצלחה מאפשרת הגשה/אישור ישירות"
+          }
+        ],
+        "version": "0.2.0"
+      },
+      "evidence": {
+        "engine": "regulatory_v0.2",
+        "score": 91,
+        "category": "Very Strong",
+        "context_prior": 0.906,
+        "reasons": [
+          {
+            "code": "base_rate",
+            "delta": 0,
+            "text": "historical application-transition context 90.6%"
+          }
+        ],
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "market": {
+        "available": false,
+        "n_prices": 0,
+        "benchmark": "XBI",
+        "reason": "fewer than 31 pre-event closes in DB"
+      },
+      "risk_flags": [
+        {
+          "sev": "medium",
+          "code": "secondary_date",
+          "known_from": "2026-09-30",
+          "src": "cal-nova",
+          "text": "התאריך ממקור משני בלבד — נדרש אימות מול הודעת החברה/8-K",
+          "origin": "source"
+        },
+        {
+          "sev": "medium",
+          "code": "partnered",
+          "known_from": "2026-09-30",
+          "src": null,
+          "text": "מוצר בשותפות — כלכלת ההצלחה ל-ACLX תלויה בתנאי ההסכם (טרם נקלטו)",
+          "origin": "source"
+        },
+        {
+          "sev": "medium",
+          "code": "evidence_missing",
+          "known_from": "2026-09-30",
+          "src": null,
+          "text": "נתוני היעילות והבטיחות של iMMagine-1 טרם נקלטו למערכת",
+          "origin": "source"
+        },
+        {
+          "sev": "medium",
+          "code": "uncontrolled",
+          "text": "ללא ביקורת אקראית",
+          "origin": "computed"
+        }
+      ],
+      "classification": {
+        "class": "REVIEW",
+        "actionable": true,
+        "reasons": [
+          "research-worthy; trading gates remain locked"
+        ]
+      },
+      "gates": {
+        "runup": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 150,
+          "note": "locked until stable positive out-of-sample evidence"
+        },
+        "hold_through": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 200,
+          "note": "locked until calibrated out-of-sample binary model"
+        }
+      },
+      "sources": [
+        {
+          "event_id": "ACLX-ANITO",
+          "source_id": "aclx-sec-pdufa-2026",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/882095/000110465926018316/tm267044d1_ex99-1.htm",
+          "published_at": "2026-02-01",
+          "statement": "BLA accepted with anticipated PDUFA action date December 23, 2026.",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        },
+        {
+          "event_id": "ACLX-ANITO",
+          "source_id": "cal-nova",
+          "source_type": "aggregator",
+          "url": "https://novapharmanews.com/regulatory/pdufa-calendar",
+          "published_at": "2026-09-30",
+          "statement": "תאריך PDUFA לפי לוח קטליזטורים משני",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        }
+      ]
+    },
+    {
+      "id": "PHAR-SNDA-LOWER-WEIGHT",
+      "ticker": "PHAR",
+      "program": "Joenja (leniolisib) lower-dose pediatric expansion",
+      "type": "PDUFA_SUPP",
+      "today": "2026-09-30",
+      "state": {
+        "event_id": "PHAR-SNDA-LOWER-WEIGHT",
+        "status": "SCHEDULED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 99,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-09-30T18:52:47+00:00",
+        "note": "primary source: company_press_release"
+      },
+      "date": {
+        "window": {
+          "start": "2027-01-30",
+          "end": "2027-01-30"
+        },
+        "precision": "exact",
+        "confidence": 100,
+        "original": "January 30, 2027",
+        "changes": [],
+        "timeline": [
+          {
+            "date": "2026-09-25",
+            "text": "FDA accepted the supplemental NDA for Priority Review with a PDUFA target action date of January 30, 2027.",
+            "src": "phar-lower-20260925",
+            "date_text": "January 30, 2027",
+            "superseded": null,
+            "norm": {
+              "original": "January 30, 2027",
+              "precision": "exact",
+              "start": "2027-01-30",
+              "end": "2027-01-30",
+              "confidence": 100,
+              "inferred_year": false
+            }
+          }
+        ]
+      },
+      "days_to": 122,
+      "impact": {
+        "score": 51,
+        "contributions": [
+          {
+            "code": "type",
+            "points": 12,
+            "why": "סוג אירוע: PDUFA — התוויה משלימה"
+          },
+          {
+            "code": "dependency",
+            "points": 18,
+            "why": "תלות החברה בתוכנית: נכס מוביל"
+          },
+          {
+            "code": "mcap",
+            "points": 8,
+            "why": "שווי שוק לפני האירוע: לא ידוע"
+          },
+          {
+            "code": "stage",
+            "points": 3,
+            "why": "חברה מסחרית — הכנסות קיימות מרככות את התגובה"
+          },
+          {
+            "code": "filing",
+            "points": 10,
+            "why": "הצלחה מאפשרת הגשה/אישור ישירות"
+          }
+        ],
+        "version": "0.2.0"
+      },
+      "evidence": {
+        "engine": "regulatory_v0.2",
+        "score": 91,
+        "category": "Very Strong",
+        "context_prior": 0.906,
+        "reasons": [
+          {
+            "code": "base_rate",
+            "delta": 0,
+            "text": "historical application-transition context 90.6%"
+          }
+        ],
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "market": {
+        "available": false,
+        "n_prices": 0,
+        "benchmark": "XBI",
+        "reason": "fewer than 31 pre-event closes in DB"
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "REVIEW",
+        "actionable": true,
+        "reasons": [
+          "research-worthy; trading gates remain locked"
+        ]
+      },
+      "gates": {
+        "runup": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 150,
+          "note": "locked until stable positive out-of-sample evidence"
+        },
+        "hold_through": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 200,
+          "note": "locked until calibrated out-of-sample binary model"
+        }
+      },
+      "sources": [
+        {
+          "event_id": "PHAR-SNDA-LOWER-WEIGHT",
+          "source_id": "phar-lower-20260925",
+          "source_type": "company_press_release",
+          "url": "https://www.pharming.com/our-news/pharming-announces-us-fda-acceptance-and-priority-review-of-snda-for-lower-doses-joenja",
+          "published_at": "2026-09-25",
+          "statement": "FDA accepted the supplemental NDA for Priority Review with a PDUFA target action date of January 30, 2027.",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        }
+      ]
+    }
+  ],
+  "resolved": [
+    {
+      "documents": [],
+      "flags": [
+        {
+          "sev": "medium",
+          "code": "secondary_date",
+          "known_from": "2026-09-07",
+          "src": "cal-merlin",
+          "text": "תאריך ממקור משני — לאמת מול הודעת החברה"
+        }
+      ],
+      "chronology": [
+        {
+          "date": "2026-01-30",
+          "src": "cal-merlin",
+          "text": "CRL על ההגשה"
+        },
+        {
+          "date": "2026-06-04",
+          "src": "cal-merlin",
+          "text": "ההגשה החוזרת התקבלה"
+        },
+        {
+          "date": "2026-09-07",
+          "date_text": "October 24, 2026",
+          "src": "cal-merlin",
+          "text": "תאריך PDUFA לפי לוח משני"
+        }
+      ],
+      "prices": [],
+      "features": {
+        "prior_crl": true
+      },
+      "features_as_of": "2026-06",
+      "pivotal": false,
+      "id": "PHAR-SNDA",
+      "ticker": "PHAR",
+      "company": "Pharming Group",
+      "program": "Joenja (leniolisib) — הרחבה לגילאי 4–11",
+      "indication": "APDS",
+      "ta": "immunology",
+      "type": "PDUFA_SUPP",
+      "phase": "sNDA (הגשה חוזרת)",
+      "mcap": "unknown",
+      "dependency": "lead",
+      "commercial": true,
+      "enables_filing": true,
+      "state": {
+        "event_id": "PHAR-SNDA",
+        "status": "APPROVED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 100,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": "2026-09-11",
+        "updated_at": "2026-09-30T18:52:47+00:00",
+        "note": "Resolved early: FDA approved the pediatric Joenja label expansion before the prior PDUFA date."
+      },
+      "sources_v2": [
+        {
+          "event_id": "PHAR-SNDA",
+          "source_id": "cal-merlin",
+          "source_type": "aggregator",
+          "url": "https://www.merlintrader.com/free-catalyst-calendar/",
+          "published_at": "2026-09-07",
+          "statement": "CRL על ההגשה",
+          "supports_date": 0,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        },
+        {
+          "event_id": "PHAR-SNDA",
+          "source_id": "phar-fda-approval-20260911",
+          "source_type": "fda",
+          "url": "https://www.fda.gov/drugs/news-events-human-drugs/fda-approves-first-treatment-children-aged-4-11-years-apds-rare-genetic-disorder-immune-system",
+          "published_at": "2026-09-11",
+          "statement": "FDA approved Joenja for children aged 4-11 years weighing at least 27 kg.",
+          "supports_date": 1,
+          "retrieved_at": "2026-09-30T18:52:47+00:00"
+        }
+      ]
+    }
+  ],
+  "candidates": [],
+  "validation": {
+    "runup": {
+      "enabled": false,
+      "satisfied": false,
+      "n": 0,
+      "min_n": 150,
+      "note": "locked until stable positive out-of-sample evidence"
+    },
+    "hold_through": {
+      "enabled": false,
+      "satisfied": false,
+      "n": 0,
+      "min_n": 200,
+      "note": "locked until calibrated out-of-sample binary model"
+    }
+  },
+  "backtest": {
+    "coverage": {
+      "historical_events": 21,
+      "with_pre_event_prices": 0,
+      "with_session_aware_event_move": 0
+    },
+    "runup_all_grids": [
+      {
+        "entry": 60,
+        "exit": 14,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 60,
+        "exit": 7,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 60,
+        "exit": 3,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 60,
+        "exit": 1,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 45,
+        "exit": 14,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 45,
+        "exit": 7,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 45,
+        "exit": 3,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 45,
+        "exit": 1,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 30,
+        "exit": 14,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 30,
+        "exit": 7,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 30,
+        "exit": 3,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 30,
+        "exit": 1,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 21,
+        "exit": 14,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 21,
+        "exit": 7,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 21,
+        "exit": 3,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 21,
+        "exit": 1,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 14,
+        "exit": 7,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 14,
+        "exit": 3,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 14,
+        "exit": 1,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 7,
+        "exit": 3,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      },
+      {
+        "entry": 7,
+        "exit": 1,
+        "return": {
+          "n": 0
+        },
+        "excess": {
+          "n": 0
+        }
+      }
+    ],
+    "hold_through": {
+      "stats": {
+        "n": 0
+      },
+      "rows": [
+        {
+          "id": "AKRO-2023-10",
+          "ticker": "AKRO",
+          "date": "2023-10-10",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "fail",
+          "available": false
+        },
+        {
+          "id": "ALNY-2024-06",
+          "ticker": "ALNY",
+          "date": "2024-06-24",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "ALT-2025-06",
+          "ticker": "ALT",
+          "date": "2025-06-26",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "mixed",
+          "available": false
+        },
+        {
+          "id": "AMLX-2024-03",
+          "ticker": "AMLX",
+          "date": "2024-03-08",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "fail",
+          "available": false
+        },
+        {
+          "id": "CYTK-2023-12",
+          "ticker": "CYTK",
+          "date": "2023-12-27",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "INSM-2024-05",
+          "ticker": "INSM",
+          "date": "2024-05-28",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "KOD-2026-03",
+          "ticker": "KOD",
+          "date": "2026-03-26",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "KOD-2026-09",
+          "ticker": "KOD",
+          "date": "2026-09-28",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "KRTX-2022-08",
+          "ticker": "KRTX",
+          "date": "2022-08-08",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "MDGL-2022-12",
+          "ticker": "MDGL",
+          "date": "2022-12-19",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "MDGL-2024-03",
+          "ticker": "MDGL",
+          "date": "2024-03-14",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "QURE-2025-09",
+          "ticker": "QURE",
+          "date": "2025-09-24",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "RPTX-2025-07",
+          "ticker": "RPTX",
+          "date": "2025-07-22",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "fail",
+          "available": false
+        },
+        {
+          "id": "SAGE-2023-08",
+          "ticker": "SAGE",
+          "date": "2023-08-07",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "fail",
+          "available": false
+        },
+        {
+          "id": "SAVA-2024-11",
+          "ticker": "SAVA",
+          "date": "2024-11-25",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "fail",
+          "available": false
+        },
+        {
+          "id": "SLRN-2023-09",
+          "ticker": "SLRN",
+          "date": "2023-09-11",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "fail",
+          "available": false
+        },
+        {
+          "id": "SRPT-2023-10",
+          "ticker": "SRPT",
+          "date": "2023-10-30",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "fail",
+          "available": false
+        },
+        {
+          "id": "SRPT-2024-06",
+          "ticker": "SRPT",
+          "date": "2024-06-21",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "SRRK-2024-10",
+          "ticker": "SRRK",
+          "date": "2024-10-07",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "VKTX-2024-02",
+          "ticker": "VKTX",
+          "date": "2024-02-27",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        },
+        {
+          "id": "VKTX-2025-08",
+          "ticker": "VKTX",
+          "date": "2025-08-19",
+          "session": "unknown",
+          "timing_uncertain": true,
+          "move": null,
+          "clinical": "success",
+          "available": false
+        }
+      ]
+    },
+    "warnings": [
+      "No grid is a validated edge merely because it looks best in-sample.",
+      "Unknown announcement sessions use next-close and are flagged timing_uncertain.",
+      "Historical evidence annotations require blinded reconstruction before calibration.",
+      "Transaction costs, borrow constraints and gap slippage must be modeled before capital deployment."
+    ]
+  },
+  "historical_audit": {
+    "n": 21,
+    "eligible": 0,
+    "ineligible": 21,
+    "rows": [
+      {
+        "id": "AKRO-2023-10",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "ALNY-2024-06",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "ALT-2025-06",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "AMLX-2024-03",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "CYTK-2023-12",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "INSM-2024-05",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "KOD-2026-03",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "KOD-2026-09",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "KRTX-2022-08",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "MDGL-2022-12",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "MDGL-2024-03",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "QURE-2025-09",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "RPTX-2025-07",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "SAGE-2023-08",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "SAVA-2024-11",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "SLRN-2023-09",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "SRPT-2023-10",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "SRPT-2024-06",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "SRRK-2024-10",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "VKTX-2024-02",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      },
+      {
+        "id": "VKTX-2025-08",
+        "eligible_for_validation": false,
+        "reasons": [
+          "features not blinded / reconstructed post hoc",
+          "outcome/move not fully verified",
+          "no pre-event provenance",
+          "insufficient pre-event price history",
+          "announcement session unknown"
+        ]
+      }
+    ]
+  },
+  "principles": {
+    "ctgov_is_discovery_only": true,
+    "primary_source_required_for_actionable_date": true,
+    "hold_and_runup_empirically_gated": true,
+    "readout_and_regulatory_models_separate": true
+  }
+}

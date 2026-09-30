@@ -1,0 +1,218 @@
+[
+  {
+    "id": "kod-pr-0925",
+    "url": "https://www.placera.se/pressmeddelanden/kodiak-sciences-kodiak-sciences-to-present-topline-results-on-september-28-2026-from-daybreak-pivotal-phase-3-study-of-zenkuda-and-ksi-501-in-patients-with-wet-age-related-macular-degeneration-20260926",
+    "source_type": "press_release",
+    "reliability": "primary",
+    "published": "2026-09-25",
+    "retrieved": "2026-09-30",
+    "title": "Kodiak: DAYBREAK topline to be reported Sept 28, 2026 (PR Newswire copy)"
+  },
+  {
+    "id": "kod-q3-25",
+    "url": "https://ir.kodiak.com/node/12296/html",
+    "source_type": "earnings_release",
+    "reliability": "primary",
+    "published": "2025-11",
+    "retrieved": "2026-09-30",
+    "title": "Kodiak Q3 2025 results — PEAK topline expected 4Q 2026"
+  },
+  {
+    "id": "kod-q4-25",
+    "url": "https://kodiak.gcs-web.com/static-files/180b6417-abd4-4dde-8249-f023fd8fde6c",
+    "source_type": "earnings_release",
+    "reliability": "primary",
+    "published": "2026-03",
+    "retrieved": "2026-09-30",
+    "title": "Kodiak Q4/FY2025 results — DAYBREAK topline September 2026"
+  },
+  {
+    "id": "kod-q1-26",
+    "url": "https://ir.kodiak.com/node/12596/pdf",
+    "source_type": "earnings_release",
+    "reliability": "primary",
+    "published": "2026-05",
+    "retrieved": "2026-09-30",
+    "title": "Kodiak Q1 2026 results — DAYBREAK Sept 2026; PEAK 4Q 2026"
+  },
+  {
+    "id": "kod-q2-26",
+    "url": "https://kodiak.gcs-web.com/node/12746/html",
+    "source_type": "earnings_release",
+    "reliability": "primary",
+    "published": "2026-08",
+    "retrieved": "2026-09-30",
+    "title": "Kodiak Q2 2026 results — PEAK Pivotal Analysis 1 December 2026"
+  },
+  {
+    "id": "kod-result",
+    "url": "https://www.stocktitan.net/overview/KOD/",
+    "source_type": "aggregator",
+    "reliability": "secondary",
+    "published": "2026-09-28",
+    "retrieved": "2026-09-30",
+    "title": "DAYBREAK met primary endpoints (8-K summary)"
+  },
+  {
+    "id": "kod-move",
+    "url": "https://www.fxleaders.com/news/2026/09/28/kodiak-sciences-kod-stock-explodes-toward-100-after-strong-daybreak-trial-data/",
+    "source_type": "news",
+    "reliability": "secondary",
+    "published": "2026-09-28",
+    "retrieved": "2026-09-30",
+    "title": "KOD up as much as ~190% intraday; multi-indication BLA planned 4Q 2026"
+  },
+  {
+    "id": "kod-context",
+    "url": "https://www.top1markets.com/news/kodiak-sciences-kod-stock-daybreak-phase-3-results",
+    "source_type": "news",
+    "reliability": "secondary",
+    "published": "2026-09-28",
+    "retrieved": "2026-09-30",
+    "title": "Prior close $32.35; cash ~$126M at end of Q2 2026, runway 'into 2027'"
+  },
+  {
+    "id": "smmt-bla",
+    "url": "https://www.businesswire.com/news/home/20260129109846/en/",
+    "source_type": "press_release",
+    "reliability": "primary",
+    "published": "2026-01-29",
+    "retrieved": "2026-09-30",
+    "title": "Summit: BLA accepted, PDUFA goal date Nov 14, 2026"
+  },
+  {
+    "id": "smmt-fda-os",
+    "url": "https://www.marketbeat.com/instant-alerts/summit-therapeutics-q4-earnings-call-highlights-2026-02-23/?.tsrc=rss",
+    "source_type": "news",
+    "reliability": "secondary",
+    "published": "2026-02-23",
+    "retrieved": "2026-09-30",
+    "title": "Summit Q4 call: FDA position that statistically significant OS is necessary"
+  },
+  {
+    "id": "smmt-q2",
+    "url": "https://quartr.com/events/summit-therapeutics-inc-smmt-q2-2026_FkQBrPi5",
+    "source_type": "aggregator",
+    "reliability": "secondary",
+    "published": "2026-07-23",
+    "retrieved": "2026-09-30",
+    "title": "Summit Q2 2026: cash may be insufficient for 12 months without new capital"
+  },
+  {
+    "id": "capr-8k",
+    "url": "https://www.sec.gov/Archives/edgar/data/0001133869/000110465926100071/capr-20260824x8k.htm",
+    "source_type": "sec_8k",
+    "reliability": "primary",
+    "published": "2026-08-24",
+    "retrieved": "2026-09-30",
+    "title": "Capricor 8-K: PDUFA extended Aug 22 -> Nov 22, 2026 (major amendment)"
+  },
+  {
+    "id": "capr-adcom",
+    "url": "https://www.pharmanow.live/latest-news/capricor-therapeutics-deramiocel-bla-review-extension-november-2026",
+    "source_type": "news",
+    "reliability": "secondary",
+    "published": "2026-08-25",
+    "retrieved": "2026-09-30",
+    "title": "AdCom 9-3 against; SAP-revision and surrogate-endpoint concerns; CRL history"
+  },
+  {
+    "id": "capr-hope3",
+    "url": "https://www.cgtlive.com/view/fda-extends-deramiocel-review-dmd",
+    "source_type": "news",
+    "reliability": "secondary",
+    "published": "2026-08-24",
+    "retrieved": "2026-09-30",
+    "title": "HOPE-3: PUL v2.0 p=0.029; LVEF p=0.041; n=106"
+  },
+  {
+    "id": "capr-q4-25",
+    "url": "https://www.sec.gov/Archives/edgar/data/1133869/000110465926027037/capr-20260312xex99d1.htm",
+    "source_type": "sec_8k",
+    "reliability": "primary",
+    "published": "2026-03-12",
+    "retrieved": "2026-09-30",
+    "title": "Capricor FY2025: runway through 2027"
+  },
+  {
+    "id": "capr-mcap",
+    "url": "https://www.boardroomalpha.com/sec/capr-8-k-2026-08-24-0001104659-26-100071",
+    "source_type": "aggregator",
+    "reliability": "secondary",
+    "published": "2026-08-24",
+    "retrieved": "2026-09-30",
+    "title": "Market cap ~$558M (as-of date not stated by source)"
+  },
+  {
+    "id": "cal-dansfera",
+    "url": "https://dansfera.com/",
+    "source_type": "aggregator",
+    "reliability": "secondary",
+    "published": "2026-09",
+    "retrieved": "2026-09-30",
+    "title": "Catalyst calendar: REGN pozelimab PDUFA Oct 20; CYTK MYQORZO sNDA Nov 14"
+  },
+  {
+    "id": "cal-merlin",
+    "url": "https://www.merlintrader.com/free-catalyst-calendar/",
+    "source_type": "aggregator",
+    "reliability": "secondary",
+    "published": "2026-09-07",
+    "retrieved": "2026-09-30",
+    "title": "Calendar: PHAR Joenja pediatric sNDA Oct 24 (Jan 30 CRL; resubmission accepted Jun 4)"
+  },
+  {
+    "id": "cal-nova",
+    "url": "https://novapharmanews.com/regulatory/pdufa-calendar",
+    "source_type": "aggregator",
+    "reliability": "secondary",
+    "published": "2026-09-30",
+    "retrieved": "2026-09-30",
+    "title": "PDUFA calendar: anito-cel Dec 23, 2026 (priority BLA). Publication date unknown; retrieval date used"
+  },
+  {
+    "id": "qttb-8k",
+    "url": "https://www.sec.gov/Archives/edgar/data/0001661998/000119312526333813/qttb-ex99_1.htm",
+    "source_type": "sec_8k",
+    "reliability": "primary",
+    "published": "2026-08-05",
+    "retrieved": "2026-09-30",
+    "title": "Q32 Bio Q2 2026: SIGNAL-AA Part B data at a medical meeting in 2H 2026"
+  },
+  {
+    "id": "base-bio2016",
+    "url": "https://cdn.vanderbilt.edu/t2-main/medschool-prd/wp-content/uploads/sites/106/2025/05/BiomedtrackerPDF.pdf",
+    "source_type": "research",
+    "reliability": "primary",
+    "published": "2016",
+    "retrieved": "2026-09-30",
+    "title": "BIO/Biomedtracker/Amplion: Clinical Development Success Rates 2006-2015"
+  },
+  {
+    "id": "base-bio2021",
+    "url": "https://go.bio.org/ClinicalDevelopment.html",
+    "source_type": "research",
+    "reliability": "primary",
+    "published": "2021",
+    "retrieved": "2026-09-30",
+    "title": "BIO/Informa/QLS: Clinical Development Success Rates 2011-2020"
+  },
+  {
+    "id": "phar-lower-20260925",
+    "url": "https://www.pharming.com/our-news/pharming-announces-us-fda-acceptance-and-priority-review-of-snda-for-lower-doses-joenja",
+    "source_type": "press_release",
+    "reliability": "primary",
+    "published": "2026-09-25",
+    "retrieved": "2026-09-30",
+    "title": "Pharming: FDA accepts lower-dose Joenja sNDA; PDUFA Jan 30, 2027"
+  },
+  {
+    "id": "kod-daybreak-result-primary",
+    "url": "https://ir.kodiak.com/news-releases/news-release-details/zenkuda-and-tabirafusp-ted-meet-primary-endpoints-pivotal",
+    "source_type": "press_release",
+    "reliability": "primary",
+    "published": "2026-09-28",
+    "retrieved": "2026-09-30",
+    "title": "Kodiak DAYBREAK results; Zenkuda BLA planned Q4 2026"
+  }
+]
