@@ -1,1 +1,217 @@
-# mozes-biotech-intelligence
+# MOZES Biotech Catalyst Intelligence v0.2
+
+A skeptical, point-in-time research system for discovering, verifying, scoring and forward-testing biotech catalysts.
+
+The project is designed around one rule: **an upcoming catalyst is not a bullish signal**. The system separates event importance, clinical/regulatory evidence, market setup, provenance and lifecycle state. It does not unlock RUN-UP or HOLD-through classifications until an out-of-sample validation gate is satisfied.
+
+The user interface is Hebrew RTL. Code and engineering documentation are English.
+
+## What changed in v0.2
+
+v0.2 combines the strongest ideas from two independent prototypes and fixes the most important failure modes found in review:
+
+- Database-driven live radar instead of scoring static JSON only.
+- ClinicalTrials.gov is **discovery-only**. Primary-completion dates are sponsor estimates, not assumed readout dates.
+- Primary-source verification tiers: SEC / FDA / company IR can promote an event; secondary calendars are quarantined.
+- First-class event lifecycle: candidate, discovered, verified, scheduled, delayed, resolved, approved, CRL, cancelled, superseded, quarantined.
+- Early resolution removes stale calendar rows. The seed correction for PHAR demonstrates this behavior.
+- Separate evidence engines for clinical readouts and regulatory decisions.
+- Both RUN-UP and HOLD-through are empirically gated and locked by default.
+- SEC EX-99 exhibit crawling is supported for catalyst extraction.
+- SEC-first regulatory discovery can create PDUFA/AdCom events without a CT.gov candidate.
+- Announcement-session handling: premarket / intraday / after-hours / unknown.
+- Calendar-aligned benchmark returns; no row-position alignment.
+- Historical quality audit prevents post-hoc/unclean seed data from unlocking model gates.
+- Hebrew RTL v0.2 dashboard reads the database-driven payload.
+
+## Current status
+
+This is a strong research foundation, **not yet a validated trading system**.
+
+The included historical seed remains intentionally ineligible for model validation because it was reconstructed post hoc and lacks fully verified price/timestamp coverage. v0.2 will not treat that seed as evidence of economic edge.
+
+## Quick start
+
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+pip install -e ".[dev]"
+pytest -q
+
+# initialize database state, provenance and validation gates
+mozes bootstrap-v2
+
+# database-driven current radar
+mozes radar-v2 --as-of 2026-09-30
+
+# export Hebrew RTL UI payload
+mozes export-v2 --as-of 2026-09-30
+
+# serve locally
+mozes serve-v2 --port 8000
+# open http://127.0.0.1:8000/index_v2.html
+```
+
+## Live refresh pipeline
+
+The intended daily pipeline is:
+
+```text
+SEC company map
+      |
+ClinicalTrials.gov discovery -----> candidate queue
+      |                                  |
+      |                                  v
+      |                          sponsor/ticker mapping
+      |                                  |
+      +---- SEC/6-K/8-K/EX-99 verification
+                       |
+                       v
+             VERIFIED / SCHEDULED event
+                       |
+            lifecycle reconciliation
+                       |
+               scoring + alerts
+                       |
+                 paper ledger
+                       |
+             resolved outcome audit
+```
+
+Run live refresh:
+
+```bash
+# SEC access requires a real SEC_USER_AGENT contact string.
+export SEC_USER_AGENT="Your Name your@email.com"
+mozes refresh-v2 --months 6
+```
+
+If SEC access is not configured, CT.gov discovery can still be run independently:
+
+```bash
+mozes discover-v2 --months 6
+```
+
+Candidates remain discovery-only until primary-source verification exists.
+
+## Core modules
+
+```text
+mozes/
+  radar.py            DB-driven orchestration and seed/bootstrap state
+  discovery.py        CT.gov Phase 2/3 candidate discovery
+  source_quality.py   provenance hierarchy and verification rules
+  lifecycle.py        event state machine and terminal states
+  refresh.py          SEC map -> CT.gov -> SEC verification refresh pipeline
+  promotion.py        conservative candidate-to-event promotion
+  session.py          premarket/intraday/after-hours classification
+  engine_v2.py        readout/regulatory scoring and gated classification
+  market.py           calendar-aligned and session-aware market calculations
+  backtest_v2.py      all-grid run-up + session-aware hold-through framework
+  audit.py            historical validation eligibility audit
+  validation.py       empirical RUN-UP / HOLD release gates
+  payload_v2.py       Hebrew UI payload builder
+  ingest/edgar.py     EDGAR filings + EX-99 crawling
+  ingest/ctgov.py     single-study CT.gov version capture
+  ingest/prices.py    CSV / Tiingo price adapters
+  paper.py            immutable forward-test ledger
+  pit.py              legacy point-in-time guard layer
+web/
+  index_v2.html       Hebrew RTL v0.2 interface
+  data_v2.json        generated payload
+```
+
+## Model philosophy
+
+### 1. Event Impact
+
+Measures how much the event could matter to the stock. It is not an estimate of success.
+
+### 2. Clinical Readout Evidence
+
+Uses the relevant phase-transition base rate only as context, then adjusts for prior evidence, endpoint/population continuity, trial design, mechanism validation, safety and integrity risk.
+
+The score is **not a calibrated probability**.
+
+### 3. Regulatory Evidence
+
+PDUFA/AdCom is modeled separately because after pivotal success the remaining uncertainty is often regulatory/CMC/label/inspection-related rather than the original efficacy binary.
+
+### 4. Market Setup
+
+Uses verified point-in-time prices from SQLite and aligns benchmarks by actual trading date. A missing trading date cannot silently shift the benchmark comparison.
+
+### 5. Classification gates
+
+`RUNUP_CANDIDATE` and `HOLD_THROUGH_CANDIDATE` are disabled unless explicit validation gates are unlocked from out-of-sample evidence.
+
+Default thresholds:
+
+- RUN-UP: minimum 150 out-of-sample events plus stable positive walk-forward evidence.
+- HOLD-through: minimum 200 out-of-sample events plus a calibrated probability model and positive risk-adjusted utility.
+
+The current seed satisfies neither gate.
+
+## Historical data policy
+
+An event is not eligible to unlock a model unless it passes the audit. Typical disqualifiers:
+
+- features reconstructed after the outcome;
+- missing `features_as_of`;
+- unverified outcome/move;
+- insufficient pre-event price history;
+- missing pre-event provenance;
+- unknown announcement session when exact event-return timing is required.
+
+This is intentional. A smaller clean dataset is more valuable than a large hindsight-contaminated dataset.
+
+## Primary source policy
+
+Recommended source priority:
+
+1. FDA / Federal Register
+2. SEC filings and exhibits
+3. Company investor relations / press releases
+4. ClinicalTrials.gov for discovery and trial structure
+5. Conference sources / peer-reviewed papers
+6. Secondary calendars and news only as leads, never as sole actionable verification
+
+SEC provides keyless JSON APIs on `data.sec.gov`, while ClinicalTrials.gov v2 is keyless. SEC fair-access policy still requires a descriptive User-Agent with contact information.
+
+## Current seed corrections in v0.2
+
+- `PHAR-SNDA`: marked resolved/APPROVED because FDA approved the pediatric Joenja expansion on 2026-09-11, before the prior 2026-10-24 PDUFA target date.
+- `REGN-POZELIMAB`: quarantined because the seed relied on a secondary calendar and no matching primary PDUFA confirmation was verified during review.
+- `ACLX-ANITO`: upgraded to primary-source verified PDUFA date 2026-12-23.
+- `CYTK-SNDA`: upgraded to primary-source verified PDUFA date 2026-11-14.
+
+These are examples of the lifecycle/provenance behavior, not hard-coded trading conclusions.
+
+## Testing
+
+The delivered v0.2 passes its complete local test suite, including:
+
+- point-in-time leakage guards;
+- lifecycle transitions;
+- source verification hierarchy;
+- CT.gov discovery-only policy;
+- conservative promotion rules;
+- SEC-first regulatory discovery;
+- announcement-session handling;
+- calendar-date benchmark alignment;
+- historical audit gate;
+- immutable paper ledger;
+- legacy v0.1 regression coverage.
+
+Run:
+
+```bash
+pytest -q
+```
+
+## Next scientific milestone
+
+The next milestone is not more scoring heuristics. It is a **blinded, timestamped, source-provenance historical catalog of 200-500 events with verified prices**, then walk-forward testing and a frozen live paper tape.
+
+Until that milestone is reached, the radar should be used to prioritize research, not to automate capital deployment.

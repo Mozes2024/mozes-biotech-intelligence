@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mozes-biotech-catalyst"
+version = "0.2.0"
+description = "Verified, point-in-time biotech catalyst intelligence: discovery, provenance, scoring, validation and paper signals."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+mozes = "mozes.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["mozes*"]
+
+[tool.setuptools.package-data]
+mozes = ["data/*.json", "schema.sql"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
