@@ -1,31 +1,53 @@
-# MOZES Live Intelligence v2A — upload bundle
+# MOZES Live Intelligence v2B — manual GitHub upload
 
-Base reviewed: `main` at `577b11c0c0ff20c98776960313da7c75b2dc41a2`.
+Base expected: current `main` around `b4fc0bdef98f2245f99f33748fabbe13fde85ca2`.
 
-Upload these files to the exact same paths in GitHub:
+Upload/replace these files at the exact repository paths:
 
-- `mozes/live_intelligence.py` — new
-- `mozes/payload_v3.py` — replace existing
-- `web/live_intelligence_ui.js` — new
-- `web/index.html` — replace existing
-- `tests/test_live_intelligence.py` — new
+- `mozes/live_prices.py` — **new**
+- `mozes/live_intelligence.py` — replace
+- `mozes/payload_v3.py` — replace
+- `web/live_intelligence_ui.js` — replace
+- `tests/test_live_prices.py` — **new**
+- `tests/test_live_intelligence.py` — replace
+- `tests/test_public_label_guard.py` — **new**
+- `.github/workflows/lightweight-monitor.yml` — replace
+- `.github/workflows/pages.yml` — replace
+- `.github/workflows/nightly.yml` — replace
 
-What this adds:
+Do **not** upload `web/data.json`; Pages generates it.
 
-1. **Market Attention context** using existing daily price/XBI data: latest-session move, 20-day relative volume, 20-day breakout, relative performance vs XBI, and a transparent descriptive attention score.
-2. **Post-event chase warning** when the stock has already made a very large recent move. This is context only and does not change evidence scores, recommendations, or validation gates.
-3. **Catalyst chain per ticker**, so multiple future events are shown as one timeline rather than looking like unrelated duplicate ideas.
-4. **Recent completed catalyst context** from clean historical cases, including the case-bound stock move when available.
-5. **Dashboard de-duplicates by ticker**. KOD therefore appears once, with an explicit message that DAYBREAK already happened and that the remaining reason for monitoring is the future BLA/PEAK catalyst chain.
+## What v2B adds
 
-After upload, GitHub should trigger CI + Pages automatically. Expected safety invariant: no change to RUN-UP/HOLD gate logic and no change to recommendation thresholds.
+1. Refreshes current daily prices for the active watch universe + XBI on every lightweight monitor run (keyless Yahoo adapter, best effort).
+2. Adds price freshness metadata. Stale prices cannot present a current Market Attention score.
+3. Suppresses relative-volume scoring while the US session is still open, avoiding the partial-volume bug seen in the friend's monitor.
+4. Adds peer breadth context in addition to XBI, while excluding the stock itself from the breadth denominator.
+5. Fixes `return_since_event`: the event baseline remains case-bound/frozen, but the latest price comes from the live shared price table rather than an old frozen historical capture.
+6. Adds a public health block: SEC monitoring enabled/disabled, latest monitor/refresh, fresh/stale market-price tickers.
+7. While empirical RUN-UP/HOLD gates are locked, the public payload downgrades `INVESTMENT_CANDIDATE` to `HIGH_RESEARCH_PRIORITY` / `עדיפות מחקר גבוהה`. Core heuristic calculations are left intact.
+8. Pages is triggered automatically after a successful `lightweight-live-monitor`, so “מה השתנה?” no longer waits for the next daily Pages run.
 
-Recommended checks after upload:
+## After upload
 
-```bash
-pytest -q
-python -m py_compile mozes/live_intelligence.py mozes/payload_v3.py
-node --check web/live_intelligence_ui.js
-```
+GitHub should automatically run CI and Pages. Then manually run `lightweight-live-monitor` once. With v2B, a successful monitor completion should automatically trigger another Pages deployment via `workflow_run`.
 
-Operational note: SEC filing monitoring still needs the repository Actions variable `SEC_USER_AGENT` to be configured; this bundle does not work around SEC fair-access requirements.
+Check:
+
+- CI green
+- lightweight-live-monitor green
+- automatic deploy-pages run appears after monitor completion
+- Health banner says SEC active
+- market-price dates are current/recent
+- KOD shows the previous DAYBREAK event as already completed and the future BLA/PEAK chain separately
+- no `מועמדת להשקעה` label while both empirical gates are locked; strongest heuristic label should be `עדיפות מחקר גבוהה`
+
+## Deliberately not included yet
+
+- automated cash/runway from SEC XBRL
+- SEC sponsor→primary-ticker hardening
+- PDUFA supersede/dedup rework
+- options implied move / short interest / borrow fee
+- LLM news interpretation
+
+Those should be separate patches because they alter entity identity, lifecycle logic, or financial extraction and deserve their own tests.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections import Counter
 from datetime import date, datetime, timezone
 
@@ -15,21 +16,31 @@ from .security import tradability
 from .live_monitor import recent_changes
 from .live_intelligence import enrich_live_rows
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 
 
-def _refresh_status(conn):
-    row = conn.execute(
-        "SELECT run_id,started_at,finished_at,status,details_json FROM refresh_runs ORDER BY run_id DESC LIMIT 1"
-    ).fetchone()
+def _decode_details(row):
     if not row:
         return None
     out = dict(row)
+    raw = out.pop("details_json", "{}")
     try:
-        out["details"] = json.loads(out.pop("details_json") or "{}")
+        out["details"] = json.loads(raw or "{}")
     except Exception:
         out["details"] = {}
     return out
+
+
+def _refresh_status(conn):
+    return _decode_details(conn.execute(
+        "SELECT run_id,started_at,finished_at,status,details_json FROM refresh_runs ORDER BY run_id DESC LIMIT 1"
+    ).fetchone())
+
+
+def _monitor_status(conn):
+    return _decode_details(conn.execute(
+        "SELECT run_id,started_at,finished_at,status,details_json FROM monitor_runs ORDER BY run_id DESC LIMIT 1"
+    ).fetchone())
 
 
 def _watch_universe(conn):
@@ -46,7 +57,7 @@ def _summary(conn, live, stale, resolved, candidates, validation, paper, histori
     high_impact = sum(1 for x in live if (x.get("impact") or {}).get("score", 0) >= 70)
     next_30 = sum(1 for x in live if x.get("days_to") is not None and 0 <= x["days_to"] <= 30)
     mapped = sum(1 for c in candidates if c.get("ticker"))
-    market_attention = sum(1 for x in live if (x.get("market_intelligence") or {}).get("attention_score", 0) >= 50)
+    market_attention = sum(1 for x in live if ((x.get("market_intelligence") or {}).get("attention_score") or 0) >= 50)
     recent_shocks = sum(1 for x in live if (x.get("market_intelligence") or {}).get("recent_shock"))
     chase_flags = sum(1 for x in live if (x.get("market_intelligence") or {}).get("post_event_chase_risk"))
     return {
@@ -77,10 +88,84 @@ def _summary(conn, live, stale, resolved, candidates, validation, paper, histori
     }
 
 
+def _apply_public_research_label_guard(rows, validation):
+    """Keep public labels aligned with locked empirical gates.
+
+    The heuristic engine may still compute strong setups internally, but until at least one
+    empirical gate is open the public payload uses research-priority language rather than
+    an investment-candidate label.
+    """
+    gates_open = bool(validation["runup"].get("satisfied") or validation["hold_through"].get("satisfied"))
+    if gates_open:
+        return rows
+    for row in rows:
+        rec = row.get("recommendation") or {}
+        status = rec.get("status")
+        if status == "INVESTMENT_CANDIDATE":
+            rec.update({
+                "status": "HIGH_RESEARCH_PRIORITY",
+                "label_he": "עדיפות מחקר גבוהה",
+                "why_he": "האירוע בולט לפי ההיוריסטיקה, אך שערי האימות האמפיריים עדיין נעולים.",
+                "missing_he": "אימות OOS / walk-forward לפני שימוש בתווית השקעתית.",
+            })
+        elif status == "APPROACHING_CANDIDATE":
+            rec.update({
+                "status": "RESEARCH_WORTHY",
+                "label_he": "שווה מחקר",
+                "why_he": "האירוע נראה מבטיח לפי ההיוריסטיקה, אך טרם הוכח יתרון אמפירי.",
+                "missing_he": "עוד ראיות ו-validation מחוץ למדגם.",
+            })
+        row["recommendation"] = rec
+    return rows
+
+
+def _health(conn, live, refresh, monitor):
+    stale_prices = []
+    fresh_prices = []
+    for row in live:
+        mi = row.get("market_intelligence") or {}
+        if not mi.get("available"):
+            continue
+        target = {"ticker": row.get("ticker"), "date": mi.get("price_date"), "age_days": mi.get("price_age_days")}
+        if mi.get("price_fresh"):
+            fresh_prices.append(target)
+        else:
+            stale_prices.append(target)
+    # one row per ticker for concise health reporting
+    def uniq(rows):
+        out, seen = [], set()
+        for r in rows:
+            if r["ticker"] in seen:
+                continue
+            seen.add(r["ticker"]); out.append(r)
+        return out
+    stale_prices, fresh_prices = uniq(stale_prices), uniq(fresh_prices)
+    warnings = []
+    if not os.environ.get("SEC_USER_AGENT"):
+        warnings.append("SEC monitoring identity is not configured")
+    if monitor and monitor.get("status") not in {"OK"}:
+        warnings.append(f"latest monitor status is {monitor.get('status')}")
+    if refresh and refresh.get("status") not in {"OK"}:
+        warnings.append(f"latest refresh status is {refresh.get('status')}")
+    if stale_prices:
+        warnings.append(f"{len(stale_prices)} live tickers have stale market prices")
+    return {
+        "status": "ok" if not warnings else "degraded",
+        "warnings": warnings,
+        "sec_monitoring_enabled": bool(os.environ.get("SEC_USER_AGENT")),
+        "latest_monitor": monitor,
+        "latest_refresh": refresh,
+        "fresh_price_tickers": fresh_prices,
+        "stale_price_tickers": stale_prices,
+    }
+
+
 def build(conn, today: date):
     bootstrap_database(conn)
     t = today.isoformat()
+    validation = validation_status(conn)
     scored = [score_event(conn, e, t) for e in live_event_records(conn, include_quarantined=True)]
+    _apply_public_research_label_guard(scored, validation)
     enrich_live_rows(conn, scored, today)
     stale = [row for row in scored if row["classification"]["class"] == "STALE_UNRESOLVED"]
     for row in stale:
@@ -95,9 +180,10 @@ def build(conn, today: date):
         "SELECT candidate_id,nct_id,sponsor,ticker,ticker_confidence,phase,title,primary_completion,last_update_posted,status,promoted_event_id,discovered_at "
         "FROM discovery_candidates ORDER BY primary_completion,candidate_id"
     ).fetchall()]
-    validation = validation_status(conn)
     paper = PaperBook(conn).list()
     historical = readiness_summary(conn)
+    refresh = _refresh_status(conn)
+    monitor = _monitor_status(conn)
     return {
         "version": VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -109,8 +195,9 @@ def build(conn, today: date):
         "candidates": candidates,
         "paper": paper,
         "watch_universe": _watch_universe(conn),
-        "refresh": _refresh_status(conn),
+        "refresh": refresh,
         "changes": recent_changes(conn),
+        "health": _health(conn, live, refresh, monitor),
         "validation": validation,
         "backtest": backtest_report(conn),
         "historical_audit": audit_catalog(conn),
@@ -121,5 +208,6 @@ def build(conn, today: date):
             "readout_and_regulatory_models_separate": True,
             "scores_are_not_probabilities": True,
             "market_attention_is_observational_only": True,
+            "investment_candidate_label_requires_open_empirical_gate": True,
         },
     }
