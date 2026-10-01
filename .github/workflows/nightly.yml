@@ -30,6 +30,7 @@ jobs:
       - name: Score and export product payload
         run: |
           mozes audit-securities --provider auto
+          python -m mozes.live_prices
           mozes historical-import --file mozes/data/historical_starter.json
           for ticker_case in 'KOD PIT-KOD-DAYBREAK-20260928' 'QTTB PIT-QTTB-SIGNALAA-20260713' 'PHAR PIT-PHAR-JOENJA-20260911'; do
             set -- $ticker_case

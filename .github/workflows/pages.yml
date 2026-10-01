@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: "45 5 * * *"
   workflow_dispatch: {}
+  workflow_run:
+    workflows: ["lightweight-live-monitor"]
+    types: [completed]
 permissions:
   contents: read
   actions: read
@@ -15,6 +18,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
       SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
@@ -27,30 +31,37 @@ jobs:
           python-version: "3.11"
       - run: pip install -e ".[dev]"
       - run: pytest -q
-      - name: Restore latest lightweight monitor state
+      - name: Restore lightweight monitor state
         shell: bash
         run: |
           mkdir -p /tmp/mozes-monitor-snapshot
-          for run in $(gh run list --workflow lightweight-monitor.yml --branch main --status completed --limit 10 --json databaseId --jq '.[].databaseId'); do
-            if gh run download "$run" -n mozes-live-monitor -D /tmp/mozes-monitor-snapshot; then
-              cp /tmp/mozes-monitor-snapshot/mozes-live.db "$MOZES_DB_PATH"
-              break
-            fi
-          done
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            gh run download "${{ github.event.workflow_run.id }}" -n mozes-live-monitor -D /tmp/mozes-monitor-snapshot || true
+          fi
+          if [ ! -f /tmp/mozes-monitor-snapshot/mozes-live.db ]; then
+            for run in $(gh run list --workflow lightweight-monitor.yml --branch main --status completed --limit 10 --json databaseId --jq '.[].databaseId'); do
+              if gh run download "$run" -n mozes-live-monitor -D /tmp/mozes-monitor-snapshot; then break; fi
+            done
+          fi
+          if [ -f /tmp/mozes-monitor-snapshot/mozes-live.db ]; then
+            cp /tmp/mozes-monitor-snapshot/mozes-live.db "$MOZES_DB_PATH"
+          fi
       - run: mozes bootstrap-v2
       - name: Refresh public snapshot
         shell: bash
         run: |
           if [ -n "$SEC_USER_AGENT" ]; then
-            mozes refresh-v2 --months 9 || echo "Live refresh failed; deploying the verified local snapshot."
+            mozes refresh-v2 --months 9 || echo "Live refresh failed; deploying with health warning."
           else
-            mozes discover-v2 --months 9 || echo "CT.gov discovery failed; deploying the verified local snapshot."
+            mozes discover-v2 --months 9 || echo "CT.gov discovery failed; deploying with health warning."
           fi
       - name: Audit current security listings
         run: mozes audit-securities --provider auto
+      - name: Refresh live market context
+        run: python -m mozes.live_prices
       - name: Capture lightweight changes in public snapshot
-        run: mozes monitor-live || echo "Live monitor incomplete; publishing the last captured state."
-      - name: Import starter historical cases and fixed price capture
+        run: mozes monitor-live || echo "Live monitor incomplete; publishing last captured state with health warning."
+      - name: Import historical research cases
         run: |
           mozes historical-import --file mozes/data/historical_starter.json
           for ticker_case in 'KOD PIT-KOD-DAYBREAK-20260928' 'QTTB PIT-QTTB-SIGNALAA-20260713' 'PHAR PIT-PHAR-JOENJA-20260911'; do

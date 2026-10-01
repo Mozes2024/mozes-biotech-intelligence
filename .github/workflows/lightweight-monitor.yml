@@ -35,6 +35,8 @@ jobs:
             done
           fi
       - run: mozes bootstrap-v2
+      - name: Refresh live market context
+        run: python -m mozes.live_prices
       - name: Lightweight source checks
         run: mozes monitor-live
       - uses: actions/upload-artifact@v4
