@@ -1,47 +1,12 @@
-name: nightly-radar-v3
+name: nightly-radar-v3-deprecated
+# No automatic execution. Heavy refresh belongs to the single data producer.
 on:
-  schedule:
-    - cron: "15 5 * * 1-5"
   workflow_dispatch: {}
+permissions:
+  contents: read
 jobs:
-  radar:
+  notice:
     runs-on: ubuntu-latest
-    env:
-      SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
-      MOZES_DB_PATH: mozes-nightly.db
+    timeout-minutes: 1
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install -e ".[dev]"
-      - run: pytest -q
-      - name: Initialize radar
-        run: mozes bootstrap-v2
-      - name: Discovery and verification
-        shell: bash
-        run: |
-          if [ -n "$SEC_USER_AGENT" ]; then
-            mozes refresh-v2 --months 9
-          else
-            echo "SEC_USER_AGENT is not configured; running CT.gov discovery only."
-            mozes discover-v2 --months 9
-          fi
-      - name: Score and export product payload
-        run: |
-          mozes audit-securities --provider auto
-          python -m mozes.live_prices
-          mozes historical-import --file mozes/data/historical_starter.json
-          for ticker_case in 'KOD PIT-KOD-DAYBREAK-20260928' 'QTTB PIT-QTTB-SIGNALAA-20260713' 'PHAR PIT-PHAR-JOENJA-20260911'; do
-            set -- $ticker_case
-            mozes historical-prices --case "$2" --provider csv --stock-file "mozes/data/starter_prices/$1.csv" --benchmark-file mozes/data/starter_prices/XBI.csv --source-url https://query1.finance.yahoo.com/v8/finance/chart/
-          done
-          mozes historical-batch-import
-          mozes radar-v2
-          mozes export-v3
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mozes-biotech-radar-v3
-          path: |
-            web/data.json
-            mozes-nightly.db
+      - run: echo 'Use lightweight-live-monitor with deep_refresh=true. This legacy nightly scan is intentionally disabled.'
