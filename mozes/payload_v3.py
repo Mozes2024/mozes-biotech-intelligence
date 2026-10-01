@@ -15,6 +15,7 @@ from .historical import readiness_summary
 from .security import tradability
 from .live_monitor import recent_changes
 from .live_intelligence import enrich_live_rows
+from .financial_context import enrich_financial_context, operation_health
 
 VERSION = "0.3.1"
 
@@ -141,6 +142,10 @@ def _health(conn, live, refresh, monitor):
         return out
     stale_prices, fresh_prices = uniq(stale_prices), uniq(fresh_prices)
     warnings = []
+    operations = operation_health(conn).get("modules", {})
+    for name, op in operations.items():
+        if op.get("status") in {"PARTIAL", "FAILED", "SKIPPED"}:
+            warnings.append(f"{name} collection is {op['status'].lower()}")
     if not os.environ.get("SEC_USER_AGENT"):
         warnings.append("SEC monitoring identity is not configured")
     if monitor and monitor.get("status") not in {"OK"}:
@@ -167,6 +172,7 @@ def build(conn, today: date):
     scored = [score_event(conn, e, t) for e in live_event_records(conn, include_quarantined=True)]
     _apply_public_research_label_guard(scored, validation)
     enrich_live_rows(conn, scored, today)
+    enrich_financial_context(conn, scored, today)
     stale = [row for row in scored if row["classification"]["class"] == "STALE_UNRESOLVED"]
     for row in stale:
         window = (row.get("date") or {}).get("window") or {}
@@ -198,6 +204,7 @@ def build(conn, today: date):
         "refresh": refresh,
         "changes": recent_changes(conn),
         "health": _health(conn, live, refresh, monitor),
+        "intelligence_v2c": operation_health(conn),
         "validation": validation,
         "backtest": backtest_report(conn),
         "historical_audit": audit_catalog(conn),

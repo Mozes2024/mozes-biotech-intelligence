@@ -1,10 +1,10 @@
-"""SEC EDGAR ingestion (free, official). Requires SEC_USER_AGENT per SEC fair-access policy.
-Note: catalyst guidance usually sits in EX-99.1 press-release exhibits; this MVP reads the
-primary document only — exhibit crawling is a listed next step."""
+"""SEC EDGAR primary and EX-99 ingestion with bounded cached transport.
+Requires an identifying SEC_USER_AGENT under the SEC fair-access policy."""
 from __future__ import annotations
 
 import html as _html
 import json
+import logging
 import re
 import time
 import urllib.request
@@ -17,11 +17,8 @@ SUBMISSIONS = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 
 
 def _get(url):
-    if not SEC_USER_AGENT:
-        raise RuntimeError("Set SEC_USER_AGENT (e.g. 'Your Name you@example.com') — required by the SEC")
-    req = urllib.request.Request(url, headers={"User-Agent": SEC_USER_AGENT, "Accept-Encoding": "identity"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return r.read().decode("utf-8", "replace")
+    from ..sec_http import get_text
+    return get_text(url, user_agent=SEC_USER_AGENT)
 
 
 def recent_filings(cik, forms=("8-K", "10-Q", "10-K"), limit=20):
@@ -77,7 +74,8 @@ def filing_documents(filing):
     """Return primary document plus likely press-release exhibits from filing index.json."""
     try:
         idx = json.loads(_get(filing["index_url"]))
-    except Exception:
+    except Exception as exc:
+        logging.getLogger(__name__).warning("SEC exhibit index unavailable: %s", str(exc))
         return [{"name": filing.get("primary_document"), "url": filing["url"], "kind": "primary"}]
     items = (idx.get("directory") or {}).get("item") or []
     docs = []
@@ -107,7 +105,8 @@ def extract_from_filing_v2(filing):
         time.sleep(0.12)
         try:
             text = html_to_text(_get(doc["url"]))
-        except Exception:
+        except Exception as exc:
+            logging.getLogger(__name__).warning("SEC document unavailable %s: %s", doc["url"], str(exc))
             continue
         for s in extract_catalyst_statements(text, date.fromisoformat(filing["filed"]), source_id=doc["url"], reliability="primary"):
             s["document_kind"] = doc["kind"]

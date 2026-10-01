@@ -27,10 +27,12 @@ def token_similarity(a: str, b: str) -> float:
 
 
 def best_mapping(sponsor: str, rows: list[dict]) -> dict | None:
+    rows = [r for r in rows if float(r.get("confidence", 0)) >= 0.85]
     sn = normalize_org(sponsor)
     direct = [r for r in rows if r.get("sponsor_norm") == sn]
     if direct:
-        return max(direct, key=lambda r: float(r.get("confidence", 0)))
+        identities = {(str(r.get("cik") or ""), r.get("ticker")) for r in direct}
+        return max(direct, key=lambda r: float(r.get("confidence", 0))) if len(identities) == 1 else None
     scored = []
     for r in rows:
         sim = token_similarity(sponsor, r.get("sponsor") or r.get("name") or "")
@@ -38,7 +40,11 @@ def best_mapping(sponsor: str, rows: list[dict]) -> dict | None:
             scored.append((sim, r))
     if not scored:
         return None
-    sim, r = max(scored, key=lambda x: x[0])
+    best = max(s for s, _ in scored)
+    tied = [r for s, r in scored if s == best]
+    if len({(str(r.get("cik") or ""), r.get("ticker")) for r in tied}) != 1:
+        return None
+    sim, r = best, tied[0]
     if sim < 0.92:
         return None
     out = dict(r)
