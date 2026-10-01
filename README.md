@@ -1,4 +1,4 @@
-# MOZES Biotech Catalyst Intelligence v0.3
+# MOZES Biotech Catalyst Intelligence v2D / v0.3
 
 A skeptical, point-in-time research system for discovering, verifying, scoring and forward-testing biotech catalysts.
 
@@ -10,7 +10,7 @@ The user interface is Hebrew RTL. Code and engineering documentation are English
 
 v0.3 adds the daily-use product surface on top of the v0.2 research engine:
 
-- `mozes app` runs a local UI + JSON API on `127.0.0.1`.
+- `mozes app` runs the only supported local UI + JSON API on `127.0.0.1`.
 - The dashboard includes a filterable Radar, event detail drawer, provenance, risks, evidence explanations, CT.gov candidates, resolved events, Paper Signals, validation and system status.
 - `mozes export-v3` creates `web/data.json` for static/cloud hosting.
 - The SPA works in both modes: live API when `mozes app` is running, or a read-only static snapshot on GitHub Pages.
@@ -109,6 +109,18 @@ mozes export-v3
 
 `auto` uses the SEC ticker map when `SEC_USER_AGENT` is configured, and the two official Nasdaq Trader current-listing directories otherwise. Nasdaq's financial-status flag remains visible in the listing audit; a deficient flag alone does not mean a share is delisted. Missing from a directory means `UNKNOWN`, never an inferred acquisition. Corporate-action overrides are sourced separately. Pages and the nightly job run this audit before export. Events with elapsed windows or an unconfirmed broad conference window older than 90 days go to the advanced stale queue for reconciliation.
 
+## Current scoring and validation model
+
+The API, dashboard, paper ledger and supported CLI commands all score through
+`mozes.engine_v2.score_event`. v0.1 `analysis.py`/`scoring.py` are legacy compatibility
+modules for frozen tests only; they are not product paths. The UI translates stable
+English explanation codes into Hebrew.
+
+`mozes validation-evaluate` writes observed OOS counts and chronological walk-forward
+metrics to `model_validation`, but it **never enables** RUN-UP or HOLD gates. Both gates
+remain locked by default and require an explicit, controlled enablement decision after
+the existing minimum sample thresholds are met.
+
 ## Quick start
 
 ```bash
@@ -124,12 +136,13 @@ mozes bootstrap-v2
 # database-driven current radar
 mozes radar-v2 --as-of 2026-09-30
 
-# export Hebrew RTL UI payload
-mozes export-v2 --as-of 2026-09-30
+# inspect gates and record reporting-only walk-forward metrics
+mozes validation-v2
+mozes validation-evaluate
 
 # serve locally
-mozes serve-v2 --port 8000
-# open http://127.0.0.1:8000/index_v2.html
+mozes app --port 8000
+# open http://127.0.0.1:8000
 ```
 
 ## Live refresh pipeline
@@ -185,20 +198,21 @@ mozes/
   refresh.py          SEC map -> CT.gov -> SEC verification refresh pipeline
   promotion.py        conservative candidate-to-event promotion
   session.py          premarket/intraday/after-hours classification
-  engine_v2.py        readout/regulatory scoring and gated classification
+  engine_v2.py        sole active readout/regulatory scoring and gated classification
+  scoring_common.py   shared impact/risk components with stable English codes
   market.py           calendar-aligned and session-aware market calculations
   backtest_v2.py      all-grid run-up + session-aware hold-through framework
   audit.py            historical validation eligibility audit
   validation.py       empirical RUN-UP / HOLD release gates
-  payload_v2.py       Hebrew UI payload builder
+  payload_v3.py       active Hebrew product payload builder
   ingest/edgar.py     EDGAR filings + EX-99 crawling
   ingest/ctgov.py     single-study CT.gov version capture
   ingest/prices.py    CSV / Tiingo price adapters
   paper.py            immutable forward-test ledger
   pit.py              legacy point-in-time guard layer
 web/
-  index_v2.html       Hebrew RTL v0.2 interface
-  data_v2.json        generated payload
+  index.html          Hebrew RTL v0.3 interface
+  data.json           generated static snapshot
 ```
 
 ## Model philosophy

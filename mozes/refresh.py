@@ -14,6 +14,7 @@ from .ingest.edgar import fetch_company_ticker_map, recent_filings_v2, extract_f
 from .promotion import promote_candidate
 from .universe import normalize_org
 from .session import session_from_sec_acceptance
+from .source_observability import capture
 
 
 def refresh_sec_company_map(conn):
@@ -74,23 +75,28 @@ def refresh_live(conn, start=None, end=None, months=6, do_sec_map=True, do_sec_v
         cur = conn.execute("INSERT INTO refresh_runs(started_at,status,details_json) VALUES(?,?,?)", (started, "RUNNING", "{}"))
         rid = cur.lastrowid
     details = {}
+    metrics = None
     try:
-        from .security import audit_current_universe
-        details["security_audit"] = audit_current_universe(conn)
-        if not os.environ.get("SEC_USER_AGENT"):
-            do_sec_map = do_sec_verify = False
-            details["sec_skipped"] = "SEC_USER_AGENT not configured"
-        if do_sec_map:
-            details["sec_map_rows"] = refresh_sec_company_map(conn)
-            details["watch_ciks_synced"] = sync_watch_ciks(conn)
-        candidates = discover_registry(conn, start=start, end=end, months=months)
-        details["ctgov_candidates"] = len(candidates)
-        details["ctgov_mapped"] = sum(1 for x in candidates if x.get("ticker"))
-        if do_sec_verify:
-            details["sec_verification"] = verify_candidates_from_sec(conn)
-            details["sec_regulatory_discovery"] = scan_watch_universe_regulatory(conn)
-        status = "PARTIAL" if any(isinstance(v, dict) and v.get("errors") for v in details.values()) else "OK"
+        with capture() as metrics:
+            from .security import audit_current_universe
+            details["security_audit"] = audit_current_universe(conn)
+            if not os.environ.get("SEC_USER_AGENT"):
+                do_sec_map = do_sec_verify = False
+                details["sec_skipped"] = "SEC_USER_AGENT not configured"
+            if do_sec_map:
+                details["sec_map_rows"] = refresh_sec_company_map(conn)
+                details["watch_ciks_synced"] = sync_watch_ciks(conn)
+            candidates = discover_registry(conn, start=start, end=end, months=months)
+            details["ctgov_candidates"] = len(candidates)
+            details["ctgov_mapped"] = sum(1 for x in candidates if x.get("ticker"))
+            if do_sec_verify:
+                details["sec_verification"] = verify_candidates_from_sec(conn)
+                details["sec_regulatory_discovery"] = scan_watch_universe_regulatory(conn)
+            details["source_operations"] = metrics.snapshot()
+            status = "PARTIAL" if any(isinstance(v, dict) and v.get("errors") for v in details.values()) else "OK"
     except Exception as exc:
+        if metrics is not None:
+            details["source_operations"] = metrics.snapshot()
         details["fatal_error"] = str(exc)
         status = "FAILED"
     with conn:

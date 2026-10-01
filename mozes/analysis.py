@@ -1,5 +1,7 @@
-"""Ties the engines together. Live catalysts are scored as of end of `today`;
-historical events are scored as of their catalyst date (information strictly before T)."""
+"""Legacy v0.1 point-in-time pipeline, retained only for frozen regression tests.
+
+Supported product, API, and CLI scoring paths use ``engine_v2.score_event``.
+"""
 from __future__ import annotations
 
 import math
@@ -9,7 +11,8 @@ from .data_loader import load_historical, load_live, load_outcomes, load_sources
 from .dates import date_info, days_between
 from .pit import snapshot_at, thaw
 from .scenarios import reference_class, scenario_for
-from .scoring import catalyst_impact, classify, clinical_evidence, risk_flags
+from .scoring import _legacy_catalyst_impact as catalyst_impact, classify, clinical_evidence
+from .scoring import _legacy_risk_flags as risk_flags
 from .versions import VERSIONS
 
 

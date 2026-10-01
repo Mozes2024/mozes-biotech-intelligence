@@ -1,0 +1,27 @@
+{
+  "package": "MOZES Biotech Catalyst Intelligence v2D",
+  "base_commit": "7de5c3c",
+  "workflows_changed": false,
+  "primary_entrypoint": "mozes app --port 8000",
+  "validation_command": "mozes validation-evaluate",
+  "removed_files": [
+    "web/index_v2.html",
+    "web/data_v2.json",
+    "mozes/__pycache__/live_intelligence.cpython-313.pyc",
+    "mozes/__pycache__/payload_v3.cpython-313.pyc",
+    "tests/__pycache__/test_live_intelligence.cpython-313.pyc"
+  ],
+  "new_files": [
+    "mozes/scoring_common.py",
+    "mozes/source_observability.py",
+    "mozes/validation_evaluator.py",
+    "tests/test_v2d_foundation.py",
+    "START_HERE_HE.md",
+    "VALIDATION_REPORT.md"
+  ],
+  "verification": {
+    "compileall": "passed",
+    "pytest": "209 passed",
+    "github_actions_triggered": false
+  }
+}

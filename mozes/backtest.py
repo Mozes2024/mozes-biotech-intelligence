@@ -8,7 +8,7 @@ from statistics import mean, stdev
 from .dates import days_between
 from .pit import snapshot_at
 from .scenarios import REG_TYPES, quantile
-from .versions import RUNUP_EDGE_VALIDATED
+RUNUP_EDGE_VALIDATED = False  # legacy report only; active gates live in model_validation
 
 GRID = [(e, x) for e in (60, 45, 30, 21, 14, 7) for x in (14, 7, 3, 1) if x < e]
 

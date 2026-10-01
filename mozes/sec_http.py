@@ -15,6 +15,8 @@ import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
+from .source_observability import record
+
 _LAST_REQUEST = 0.0
 MAX_BYTES = 16 * 1024 * 1024
 
@@ -57,12 +59,14 @@ def get_text(url, *, user_agent=None, cache_dir=None, ttl=None, opener=None,
     key = hashlib.sha256(url.encode()).hexdigest()
     body_path, meta_path = root / (key + '.body'), root / (key + '.json')
     max_age = ttl_for(url) if ttl is None else ttl
+    started = time.monotonic()
     try:
         meta = json.loads(meta_path.read_text())
         raw = body_path.read_bytes()
         age = clock() - float(meta['retrieved_epoch'])
         if (0 <= age <= max_age and meta['url'] == url
                 and hashlib.sha256(raw).hexdigest() == meta['sha256']):
+            record("sec", cache=True, duration_ms=(time.monotonic() - started) * 1000)
             return raw.decode('utf-8')
     except (OSError, ValueError, KeyError, UnicodeError):
         pass
@@ -83,9 +87,11 @@ def get_text(url, *, user_agent=None, cache_dir=None, ttl=None, opener=None,
             _atomic(body_path, raw)
             _atomic(meta_path, json.dumps({'url': url, 'retrieved_epoch': clock(),
                     'sha256': hashlib.sha256(raw).hexdigest()}).encode())
+            record("sec", cache=False, duration_ms=(time.monotonic() - started) * 1000)
             return text
         except urllib.error.HTTPError as exc:
             if exc.code not in {429, 500, 502, 503, 504} or attempt == retries:
+                record("sec", cache=False, error=True, duration_ms=(time.monotonic() - started) * 1000)
                 raise
             try:
                 retry_after = float(exc.headers.get('Retry-After', 0))
@@ -94,6 +100,7 @@ def get_text(url, *, user_agent=None, cache_dir=None, ttl=None, opener=None,
             sleeper(min(30, max(2 ** attempt, retry_after)))
         except (urllib.error.URLError, TimeoutError):
             if attempt == retries:
+                record("sec", cache=False, error=True, duration_ms=(time.monotonic() - started) * 1000)
                 raise
             sleeper(2 ** attempt)
     raise RuntimeError('unreachable SEC retry state')

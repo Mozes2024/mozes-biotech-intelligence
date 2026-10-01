@@ -1,11 +1,16 @@
-"""Scoring engines v0.1 — heuristic, documented, NOT fitted, NOT calibrated.
-Every function returns its contributions so each score can be audited.
-User-facing explanation strings are Hebrew (the UI language); codes are English."""
+"""Legacy v0.1 scoring compatibility module; not used by product paths.
+
+The active engine is :mod:`mozes.engine_v2`. This module remains importable only
+for frozen regression fixtures; its evidence and classification are retired.
+"""
 from __future__ import annotations
 
 import math
 
-from .versions import RUNUP_EDGE_VALIDATED, VERSIONS
+from .versions import VERSIONS
+
+# Legacy-only fixture guard. Active gating is read from model_validation by engine_v2.
+RUNUP_EDGE_VALIDATED = False
 
 
 def rnd(x: float) -> int:
@@ -46,7 +51,7 @@ EVIDENCE_CHECKS = ("prior", "endpoint_consistent", "population_consistent", "reg
                    "objective", "mechanism_validated", "safety_concern", "n")
 
 
-def catalyst_impact(s):
+def _legacy_catalyst_impact(s):
     c = []
 
     def add(code, p, why):
@@ -151,7 +156,7 @@ def clinical_evidence(s):
     }
 
 
-def risk_flags(s):
+def _legacy_risk_flags(s):
     out = [dict(f, origin="source") for f in s.get("flags", ())]
     f = s.get("features") or {}
 
@@ -219,3 +224,7 @@ def classify(impact, evidence, flags, scenario, date_conf, market_data_available
     if not scen_ok:
         reasons.append("אין מספיק היסטוריה לבניית תרחישים")
     return {"cls": "WATCH", "reasons": reasons, "version": v}
+
+
+# Keep the historical import surface while sharing these components with v2.
+from .scoring_common import catalyst_impact, risk_flags  # noqa: E402

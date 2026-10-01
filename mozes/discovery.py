@@ -12,6 +12,7 @@ import urllib.request
 from datetime import date, datetime, timedelta, timezone
 
 from .universe import best_mapping
+from .source_observability import record
 
 CTGOV_STUDIES = "https://clinicaltrials.gov/api/v2/studies"
 ACTIVE = "RECRUITING,ACTIVE_NOT_RECRUITING,ENROLLING_BY_INVITATION,NOT_YET_RECRUITING"
@@ -41,9 +42,17 @@ def query_url(start: str, end: str, page_size=1000, page_token=None):
 
 
 def fetch_json(url: str):
+    from time import monotonic
+    started = monotonic()
     req = urllib.request.Request(url, headers={"User-Agent": "MOZES-Biotech-Catalyst/0.2"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            value = json.loads(r.read().decode("utf-8"))
+        record("clinicaltrials.gov", cache=False, duration_ms=(monotonic() - started) * 1000)
+        return value
+    except Exception:
+        record("clinicaltrials.gov", cache=False, error=True, duration_ms=(monotonic() - started) * 1000)
+        raise
 
 
 def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> dict:

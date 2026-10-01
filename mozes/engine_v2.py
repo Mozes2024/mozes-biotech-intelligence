@@ -1,4 +1,4 @@
-"""MOZES v0.2 scoring engine.
+"""MOZES v2 scoring engine.
 
 Key changes from v0.1:
 - readout and regulatory catalysts use separate evidence engines;
@@ -17,7 +17,7 @@ from .data_loader import load_sources
 from .dates import date_info, days_between
 from .lifecycle import is_resolved
 from .market import join_on_dates
-from .scoring import catalyst_impact, risk_flags
+from .scoring_common import catalyst_impact, risk_flags
 
 READOUT_TYPES = {"P3_TOPLINE", "P2_TOPLINE", "P12_DATA", "INTERIM"}
 REG_TYPES = {"PDUFA_NME", "PDUFA_SUPP", "PDUFA_GENERIC", "ADCOM"}
@@ -103,7 +103,7 @@ def readout_evidence(event: dict) -> dict:
     if f.get("n") is not None and f["n"] < 100:
         score -= 5; reasons.append({"code": "sample", "delta": -5, "text": "small sample"})
     s = _clamp(score)
-    return {"engine": "clinical_readout_v0.2", "score": s, "category": _cat(s), "context_prior": prior, "reasons": reasons,
+    return {"engine": "clinical_readout_v2", "score": s, "category": _cat(s), "context_prior": prior, "reasons": reasons,
             "probability_label": "UNCALIBRATED; do not interpret score as probability"}
 
 
@@ -127,12 +127,12 @@ def regulatory_evidence(event: dict) -> dict:
     if f.get("integrity"):
         score -= 30; reasons.append({"code": "integrity", "delta": -30, "text": "data-integrity concern"})
     s = _clamp(score)
-    return {"engine": "regulatory_v0.2", "score": s, "category": _cat(s), "context_prior": base, "reasons": reasons,
+    return {"engine": "regulatory_v2", "score": s, "category": _cat(s), "context_prior": base, "reasons": reasons,
             "probability_label": "UNCALIBRATED; do not interpret score as probability"}
 
 
 def informational_evidence(event: dict) -> dict:
-    return {"engine": "informational_v0.2", "score": None, "category": "Informational", "context_prior": None,
+    return {"engine": "informational_v2", "score": None, "category": "Informational", "context_prior": None,
             "reasons": [{"code": "non_binary", "delta": 0, "text": "not treated as a primary binary decision event"}]}
 
 

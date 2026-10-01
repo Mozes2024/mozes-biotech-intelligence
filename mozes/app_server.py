@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import threading
+import uuid
 from datetime import date
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -22,6 +24,7 @@ from .radar import bootstrap_database, live_event_records
 from .refresh import refresh_live
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+MAX_POST_BYTES = 64 * 1024
 
 
 def _json_bytes(value):
@@ -33,6 +36,53 @@ def _find_live_event(conn, event_id):
         if event.get("id") == event_id:
             return event
     return None
+
+
+def _web_file(path: str):
+    """Return an in-boundary static target, or ``None`` for traversal attempts."""
+    if path in {"/", "/index.html"}:
+        return WEB_DIR / "index.html"
+    candidate = (WEB_DIR / path.lstrip("/")).resolve()
+    return candidate if WEB_DIR.resolve() in candidate.parents else None
+
+
+class RefreshJobs:
+    """Small in-process queue; refresh state itself remains persisted in refresh_runs."""
+    def __init__(self, db_path):
+        self.db_path, self._jobs, self._lock = db_path, {}, threading.Lock()
+
+    def start(self, options):
+        job_id = uuid.uuid4().hex
+        with self._lock:
+            self._jobs[job_id] = {"run_id": job_id, "status": "QUEUED"}
+        thread = threading.Thread(target=self._run, args=(job_id, options), daemon=True)
+        thread.start()
+        return self.status(job_id)
+
+    def status(self, job_id):
+        with self._lock:
+            job = self._jobs.get(job_id)
+            return dict(job) if job else None
+
+    def _run(self, job_id, options):
+        with self._lock:
+            self._jobs[job_id] = {"run_id": job_id, "status": "RUNNING"}
+        conn = db.connect(self.db_path)
+        try:
+            bootstrap_database(conn)
+            sec_ok = bool(SEC_USER_AGENT.strip())
+            result = refresh_live(conn, do_sec_map=bool(options.get("sec_map", True)) and sec_ok,
+                                  do_sec_verify=bool(options.get("sec_verify", True)) and sec_ok,
+                                  start=options.get("start"), end=options.get("end"), months=options["months"])
+            if not sec_ok:
+                result["notice"] = "SEC_USER_AGENT is not configured; CT.gov discovery ran without SEC verification."
+            job = {"run_id": job_id, "status": result.get("status", "FAILED"), "result": result}
+        except Exception:
+            job = {"run_id": job_id, "status": "FAILED", "error": "refresh failed; inspect persisted refresh status"}
+        finally:
+            conn.close()
+        with self._lock:
+            self._jobs[job_id] = job
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -73,22 +123,23 @@ class Handler(BaseHTTPRequestHandler):
     def _body_json(self):
         try:
             n = int(self.headers.get("Content-Length", "0"))
+            if n < 0 or n > MAX_POST_BYTES:
+                return "too_large"
             return json.loads(self.rfile.read(n).decode("utf-8")) if n else {}
-        except Exception:
+        except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
             return None
 
     def do_HEAD(self):
         u = urlparse(self.path)
         path = unquote(u.path)
-        if path in {"/", "/index.html"}:
-            target = WEB_DIR / "index.html"
-        elif path.startswith("/api/"):
+        if path.startswith("/api/"):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
             return
-        else:
-            target = (WEB_DIR / path.lstrip("/")).resolve()
+        target = _web_file(path)
+        if target is None:
+            self.send_error(HTTPStatus.FORBIDDEN); return
         if not target.exists() or not target.is_file():
             self.send_error(HTTPStatus.NOT_FOUND); return
         ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
@@ -132,19 +183,22 @@ class Handler(BaseHTTPRequestHandler):
                 "watch_universe": payload["watch_universe"],
             })
             return
-        if path in {"/", "/index.html"}:
-            self._send_file(WEB_DIR / "index.html")
+        if path.startswith("/api/refresh/"):
+            job = self.server.refresh_jobs.status(path.rsplit("/", 1)[1])
+            if not job:
+                self._send_json({"error": "refresh run not found"}, 404); return
+            self._send_json(job)
             return
-        # Static assets are constrained to WEB_DIR.
-        rel = path.lstrip("/")
-        candidate = (WEB_DIR / rel).resolve()
-        if WEB_DIR.resolve() not in candidate.parents:
+        candidate = _web_file(path)
+        if candidate is None:
             self.send_error(HTTPStatus.FORBIDDEN); return
         self._send_file(candidate)
 
     def do_POST(self):
         u = urlparse(self.path)
         body = self._body_json()
+        if body == "too_large":
+            self._send_json({"error": "request body too large"}, 413); return
         if body is None:
             self._send_json({"error": "invalid JSON"}, 400); return
         if u.path == "/api/paper":
@@ -159,18 +213,13 @@ class Handler(BaseHTTPRequestHandler):
             return
         if u.path == "/api/refresh":
             try:
-                sec_ok = bool(SEC_USER_AGENT.strip())
-                result = refresh_live(
-                    self.conn,
-                    start=body.get("start"), end=body.get("end"), months=int(body.get("months", 6)),
-                    do_sec_map=bool(body.get("sec_map", True)) and sec_ok,
-                    do_sec_verify=bool(body.get("sec_verify", True)) and sec_ok,
-                )
-                if not sec_ok:
-                    result["notice"] = "SEC_USER_AGENT is not configured; CT.gov discovery ran without SEC verification."
-            except Exception as exc:
-                self._send_json({"ok": False, "error": str(exc)}, 500); return
-            self._send_json({"ok": result.get("status") == "OK", "result": result}, 200)
+                months = int(body.get("months", 6))
+                if not 1 <= months <= 24:
+                    raise ValueError
+            except (TypeError, ValueError):
+                self._send_json({"error": "months must be between 1 and 24"}, 400); return
+            job = self.server.refresh_jobs.start({**body, "months": months})
+            self._send_json({"ok": True, **job, "status_url": f"/api/refresh/{job['run_id']}"}, 202)
             return
         self._send_json({"error": "not found"}, 404)
 
@@ -180,6 +229,7 @@ def serve(port=8000, host="127.0.0.1", db_path=DB_PATH):
     bootstrap_database(conn)
     httpd = HTTPServer((host, port), Handler)
     httpd.conn = conn
+    httpd.refresh_jobs = RefreshJobs(db_path)
     print(f"MOZES v0.3: http://{host}:{port}")
     print("API: /api/radar  ·  /api/status  ·  /api/health")
     try:

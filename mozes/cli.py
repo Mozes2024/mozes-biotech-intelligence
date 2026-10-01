@@ -12,12 +12,10 @@ from pathlib import Path
 
 from . import db
 from .alerts import build_alerts
-from .analysis import run_all
-from .backtest import full_report
 from .config import DB_PATH
 from .extract import extract_catalyst_statements
 from .paper import PaperBook
-from .versions import DATASET_AS_OF, RUNUP_EDGE_VALIDATED, VERSIONS
+from .versions import DATASET_AS_OF, VERSIONS
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
@@ -27,51 +25,32 @@ def _today(args):
 
 
 def cmd_score(args):
-    r = run_all(_today(args))
-    print(f"MOZES radar as of {r['today']}  (models {VERSIONS})")
-    print(f"{'TICKER':<7}{'WINDOW':<25}{'PREC':<16}{'DATE%':>6}{'IMPACT':>8}{'EVID':>6}  CLASS")
-    rows = sorted(r["live"], key=lambda a: (a["date"]["window"] or {}).get("start") or "9999")
-    for a in rows:
-        w = a["date"]["window"]
-        win = f"{w['start']}..{w['end']}" if w else "-"
-        print(f"{a['ticker']:<7}{win:<25}{str(a['date']['precision']):<16}{a['date']['confidence']:>6}"
-              f"{a['impact']['score']:>8}{a['evidence']['score']:>6}  {a['classification']['cls']}")
-    if args.store:
-        conn = db.connect(DB_PATH)
-        for a in r["live"]:
-            db.store_score_run(conn, a)
-        print(f"stored {len(r['live'])} score runs in {DB_PATH}")
-    return 0
+    """Compatibility alias; scoring is now exclusively database-backed v2."""
+    return cmd_radar_v2(args)
 
 
 def cmd_backtest(args):
-    r = run_all(_today(args))
-    rep = full_report(r["historical"], r["historical_events"], r["outcomes"])
-    print(json.dumps({k: rep[k] for k in ("coverage", "calibration", "class_vs_outcome", "caveats")}, indent=2))
-    print("hold-through by clinical outcome:")
-    for g in rep["hold_through"]["clinical_outcome"]:
-        print(f"  {g['key']:<8} n={g['n']:<3} with_move={g['n_move']:<3} median={g.get('median')} mean={g.get('mean')}")
-    print("run-up:", rep["run_up"]["status"])
+    from .backtest_v2 import report
+    from .radar import bootstrap_database
+    conn = db.connect(DB_PATH); bootstrap_database(conn)
+    print(json.dumps(report(conn), indent=2))
     return 0
 
 
 def cmd_alerts(args):
-    r = run_all(_today(args))
-    for x in build_alerts(r["live"], r["today"]):
-        extra = f"{x['change']['from']} -> {x['change']['to']}" if x["kind"] == "change" else f"days_to_start={x['days_to_start']}"
-        print(f"[{x['level']:<13}] {x['ticker']:<6} {x['type']:<11} impact={x['impact']:<3} {extra}")
+    from .engine_v2 import score_event
+    from .radar import bootstrap_database, live_event_records
+    conn = db.connect(DB_PATH); bootstrap_database(conn)
+    for row in build_alerts([score_event(conn, event, _today(args).isoformat()) for event in live_event_records(conn)], _today(args).isoformat()):
+        print(json.dumps(row, ensure_ascii=False))
     return 0
 
 
 def build_payload(today):
-    r = run_all(today)
-    return {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "today": r["today"],
-        "dataset_as_of": DATASET_AS_OF, "versions": VERSIONS, "runup_edge_validated": RUNUP_EDGE_VALIDATED,
-        "live": r["live"], "historical": r["historical"], "outcomes": r["outcomes"], "sources": r["sources"],
-        "backtest": full_report(r["historical"], r["historical_events"], r["outcomes"]),
-        "alerts": build_alerts(r["live"], r["today"]),
-    }
+    from .payload_v3 import build
+    from .radar import bootstrap_database
+    conn = db.connect(DB_PATH); bootstrap_database(conn)
+    return build(conn, today)
 
 
 def cmd_export_ui(args):
@@ -83,11 +62,7 @@ def cmd_export_ui(args):
 
 
 def cmd_serve(args):
-    cmd_export_ui(args)
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(WEB_DIR))
-    with socketserver.TCPServer(("127.0.0.1", args.port), handler) as httpd:
-        print(f"MOZES UI: http://127.0.0.1:{args.port}  (Ctrl+C to stop)")
-        httpd.serve_forever()
+    return cmd_app_v3(args)
 
 
 def cmd_extract(args):
@@ -106,12 +81,14 @@ def cmd_seed(args):
 
 
 def cmd_paper_record(args):
-    r = run_all(_today(args))
-    a = next((x for x in r["live"] if x["id"] == args.id), None)
-    if not a:
+    from .engine_v2 import score_event
+    from .radar import bootstrap_database, live_event_records
+    conn = db.connect(DB_PATH); bootstrap_database(conn)
+    event = next((row for row in live_event_records(conn, include_quarantined=True) if row["id"] == args.id), None)
+    if not event:
         print(f"unknown live catalyst id: {args.id}")
         return 1
-    sid = PaperBook(db.connect(DB_PATH)).record(a, price=args.price)
+    sid = PaperBook(conn).record(score_event(conn, event, _today(args).isoformat()), price=args.price)
     print(f"recorded immutable paper signal {sid}")
     return 0
 
@@ -197,6 +174,15 @@ def cmd_validation_v2(args):
     return 0
 
 
+def cmd_validation_evaluate(args):
+    from .radar import bootstrap_database
+    from .validation_evaluator import evaluate_walk_forward
+    conn = db.connect(DB_PATH)
+    bootstrap_database(conn)
+    print(json.dumps(evaluate_walk_forward(conn, folds=args.folds), indent=2))
+    return 0
+
+
 
 def cmd_refresh_v2(args):
     from .radar import bootstrap_database
@@ -210,23 +196,13 @@ def cmd_refresh_v2(args):
 
 
 def cmd_export_v2(args):
-    from .payload_v2 import build
-    from .radar import bootstrap_database
-    conn = db.connect(DB_PATH)
-    bootstrap_database(conn)
-    WEB_DIR.mkdir(parents=True, exist_ok=True)
-    out = WEB_DIR / "data_v2.json"
-    out.write_text(json.dumps(build(conn, _today(args)), ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-    print(f"wrote {out}")
-    return 0
+    print("export-v2 is deprecated; writing the v3 static payload instead.")
+    return cmd_export_v3(args)
 
 
 def cmd_serve_v2(args):
-    cmd_export_v2(args)
-    handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(WEB_DIR))
-    with socketserver.TCPServer(("127.0.0.1", args.port), handler) as httpd:
-        print(f"MOZES v0.2 UI: http://127.0.0.1:{args.port}/index_v2.html")
-        httpd.serve_forever()
+    print("serve-v2 is deprecated; starting the v3 application instead.")
+    return cmd_app_v3(args)
 
 
 
@@ -244,7 +220,7 @@ def cmd_export_v3(args):
 
 def cmd_app_v3(args):
     from .app_server import serve
-    serve(port=args.port, host=args.host, db_path=DB_PATH)
+    serve(port=args.port, host=getattr(args, "host", "127.0.0.1"), db_path=DB_PATH)
     return 0
 
 
@@ -396,6 +372,8 @@ def main(argv=None):
     sp("bootstrap-v2", cmd_bootstrap_v2, "initialize v0.2 database state and validation gates")
     sp("radar-v2", cmd_radar_v2, "database-driven verified catalyst radar")
     sp("validation-v2", cmd_validation_v2, "show empirical release gates")
+    s = sp("validation-evaluate", cmd_validation_evaluate, "record walk-forward OOS metrics without opening gates")
+    s.add_argument("--folds", type=int, default=5)
     s = sp("discover-v2", cmd_discover_v2, "discover ClinicalTrials.gov candidates (not verified catalysts)")
     s.add_argument("--start", default=None, help="YYYY-MM-DD")
     s.add_argument("--end", default=None, help="YYYY-MM-DD")

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta, timezone
 from statistics import median
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from . import db
 from .market import join_on_dates
@@ -47,7 +47,13 @@ def _market_context_label(code: str) -> str:
 
 
 def _is_us_market_open(now_utc: datetime, latest_day: date) -> bool:
-    ny = now_utc.astimezone(ZoneInfo("America/New_York"))
+    try:
+        eastern = ZoneInfo("America/New_York")
+    except ZoneInfoNotFoundError:
+        # Minimal Windows/Python environments may lack the IANA zone database.
+        # US DST dates keep this fallback correct for supported current-era runs.
+        eastern = timezone(timedelta(hours=-4))
+    ny = now_utc.astimezone(eastern)
     return latest_day == ny.date() and ny.weekday() < 5 and time(9, 30) <= ny.time() < time(16, 0)
 
 
