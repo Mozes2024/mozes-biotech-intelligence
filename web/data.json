@@ -1,6 +1,6 @@
 {
   "version": "0.3.0",
-  "generated_at": "2026-10-01T07:52:08+00:00",
+  "generated_at": "2026-10-01T08:14:09+00:00",
   "today": "2026-10-01",
   "summary": {
     "live_events": 7,
@@ -69,7 +69,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-10-01T07:45:59+00:00",
+        "updated_at": "2026-10-01T08:13:29+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -208,7 +208,7 @@
           "published_at": "2026-09-28",
           "statement": "החברה מתכננת להגיש BLA ברבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         }
       ],
       "features": {},
@@ -224,7 +224,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -251,7 +251,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-10-01T07:45:59+00:00",
+        "updated_at": "2026-10-01T08:13:29+00:00",
         "note": "Secondary calendar only; no matching primary-source PDUFA confirmation was verified in the 2026-09-30 review."
       },
       "date": {
@@ -383,7 +383,7 @@
           "published_at": "2026-09",
           "statement": "תאריך PDUFA לפי לוח משני",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         }
       ],
       "features": {},
@@ -399,7 +399,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -426,7 +426,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-10-01T07:45:59+00:00",
+        "updated_at": "2026-10-01T08:13:29+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -586,7 +586,7 @@
           "published_at": "2026-01-29",
           "statement": "ה-FDA קיבל את ה-BLA; נקבע תאריך PDUFA",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         },
         {
           "event_id": "SMMT-PDUFA",
@@ -596,7 +596,7 @@
           "published_at": "2026-07-23",
           "statement": "ההנחיה חוזרת: החלטת FDA עד 14 בנובמבר",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         }
       ],
       "features": {
@@ -617,7 +617,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -644,7 +644,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-10-01T07:45:59+00:00",
+        "updated_at": "2026-10-01T08:13:29+00:00",
         "note": "Company IR confirms supplemental NDA accepted with a November 14, 2026 PDUFA date."
       },
       "date": {
@@ -776,7 +776,7 @@
           "published_at": "2026-05-05",
           "statement": "Supplemental NDA for MAPLE-HCM accepted with PDUFA date November 14, 2026.",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         },
         {
           "event_id": "CYTK-SNDA",
@@ -786,7 +786,7 @@
           "published_at": "2026-09",
           "statement": "תאריך PDUFA להתוויה המשלימה",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         }
       ],
       "features": {},
@@ -802,7 +802,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -829,7 +829,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-10-01T07:45:59+00:00",
+        "updated_at": "2026-10-01T08:13:29+00:00",
         "note": "primary source: sec"
       },
       "date": {
@@ -1036,7 +1036,7 @@
           "published_at": "2026-08-24",
           "statement": "יעד PDUFA הקודם (כפי שמצוטט ב-8-K; ההודעה המקורית טרם נקלטה)",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         },
         {
           "event_id": "CAPR-PDUFA",
@@ -1046,7 +1046,7 @@
           "published_at": "2026-08-25",
           "statement": "CRL על ה-BLA המקורי (PDUFA מקורי 31/08/2025)",
           "supports_date": 0,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         }
       ],
       "features": {
@@ -1073,7 +1073,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -1100,7 +1100,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-10-01T07:45:59+00:00",
+        "updated_at": "2026-10-01T08:13:29+00:00",
         "note": "primary source: company_ir"
       },
       "date": {
@@ -1318,7 +1318,7 @@
           "published_at": "2025-11",
           "statement": "PEAK — topline צפוי ברבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         },
         {
           "event_id": "KOD-PEAK-PA1",
@@ -1328,7 +1328,7 @@
           "published_at": "2026-05",
           "statement": "ההנחיה חוזרת: רבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         },
         {
           "event_id": "KOD-PEAK-PA1",
@@ -1338,7 +1338,7 @@
           "published_at": "2026-08",
           "statement": "Pivotal Analysis 1 (עוקבה ראשונה, 300 מטופלים) — topline צפוי בדצמבר 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         }
       ],
       "features": {
@@ -1359,7 +1359,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -1386,7 +1386,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-10-01T07:45:59+00:00",
+        "updated_at": "2026-10-01T08:13:29+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -1531,7 +1531,7 @@
           "published_at": "2026-09-25",
           "statement": "FDA accepted the supplemental NDA for Priority Review with a PDUFA target action date of January 30, 2027.",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         }
       ],
       "features": {},
@@ -1547,7 +1547,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -1576,7 +1576,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-10-01T07:45:59+00:00",
+        "updated_at": "2026-10-01T08:13:29+00:00",
         "note": "primary source: sec"
       },
       "date": {
@@ -1724,7 +1724,7 @@
           "published_at": "2026-08-05",
           "statement": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         }
       ],
       "features": {},
@@ -1740,7 +1740,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       },
@@ -1804,7 +1804,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": "2026-09-11",
-        "updated_at": "2026-10-01T07:45:59+00:00",
+        "updated_at": "2026-10-01T08:13:29+00:00",
         "note": "Resolved early: FDA approved the pediatric Joenja label expansion before the prior PDUFA date."
       },
       "security": {
@@ -1819,7 +1819,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       },
@@ -1832,7 +1832,7 @@
           "published_at": "2026-09-07",
           "statement": "CRL על ההגשה",
           "supports_date": 0,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         },
         {
           "event_id": "PHAR-SNDA",
@@ -1842,7 +1842,7 @@
           "published_at": "2026-09-11",
           "statement": "FDA approved Joenja for children aged 4-11 years weighing at least 27 kg.",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         }
       ]
     },
@@ -1907,7 +1907,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-10-01T07:45:59+00:00",
+        "updated_at": "2026-10-01T08:13:29+00:00",
         "note": "Primary SEC exhibit confirms FDA accepted the BLA with a December 23, 2026 PDUFA date."
       },
       "security": {
@@ -1922,7 +1922,7 @@
         "source_url": "https://www.sec.gov/Archives/edgar/data/882095/000110465926049902/xslSCHEDULE_13D_X02/primary_doc.xml",
         "source_type": "sec_schedule_13d",
         "published_at": "2026-04-28",
-        "verified_at": "2026-10-01T07:45:59+00:00",
+        "verified_at": "2026-10-01T08:13:30+00:00",
         "tradable": false,
         "verified": false
       },
@@ -1935,7 +1935,7 @@
           "published_at": "2026-02-01",
           "statement": "BLA accepted with anticipated PDUFA action date December 23, 2026.",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         },
         {
           "event_id": "ACLX-ANITO",
@@ -1945,7 +1945,7 @@
           "published_at": "2026-09-30",
           "statement": "תאריך PDUFA לפי לוח קטליזטורים משני",
           "supports_date": 1,
-          "retrieved_at": "2026-10-01T07:45:59+00:00"
+          "retrieved_at": "2026-10-01T08:13:29+00:00"
         }
       ]
     }
@@ -1959,7 +1959,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-10-01T07:52:08+00:00",
+      "updated_at": "2026-10-01T08:14:09+00:00",
       "security": {
         "ticker": "ACLX",
         "company": "Arcellx, Inc.",
@@ -1972,7 +1972,7 @@
         "source_url": "https://www.sec.gov/Archives/edgar/data/882095/000110465926049902/xslSCHEDULE_13D_X02/primary_doc.xml",
         "source_type": "sec_schedule_13d",
         "published_at": "2026-04-28",
-        "verified_at": "2026-10-01T07:45:59+00:00",
+        "verified_at": "2026-10-01T08:13:30+00:00",
         "tradable": false,
         "verified": false
       }
@@ -1983,7 +1983,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-10-01T07:52:08+00:00",
+      "updated_at": "2026-10-01T08:14:09+00:00",
       "security": {
         "ticker": "CAPR",
         "company": "Capricor Therapeutics",
@@ -1996,7 +1996,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -2007,7 +2007,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-10-01T07:52:08+00:00",
+      "updated_at": "2026-10-01T08:14:09+00:00",
       "security": {
         "ticker": "CYTK",
         "company": "Cytokinetics",
@@ -2020,7 +2020,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -2031,7 +2031,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-10-01T07:52:08+00:00",
+      "updated_at": "2026-10-01T08:14:09+00:00",
       "security": {
         "ticker": "KOD",
         "company": "Kodiak Sciences",
@@ -2044,7 +2044,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -2055,7 +2055,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-10-01T07:52:08+00:00",
+      "updated_at": "2026-10-01T08:14:09+00:00",
       "security": {
         "ticker": "PHAR",
         "company": "Pharming Group",
@@ -2068,7 +2068,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -2079,7 +2079,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-10-01T07:52:08+00:00",
+      "updated_at": "2026-10-01T08:14:09+00:00",
       "security": {
         "ticker": "QTTB",
         "company": "Q32 Bio",
@@ -2092,7 +2092,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -2103,7 +2103,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-10-01T07:52:08+00:00",
+      "updated_at": "2026-10-01T08:14:09+00:00",
       "security": {
         "ticker": "REGN",
         "company": "Regeneron",
@@ -2116,7 +2116,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -2127,7 +2127,7 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-10-01T07:52:08+00:00",
+      "updated_at": "2026-10-01T08:14:09+00:00",
       "security": {
         "ticker": "SMMT",
         "company": "Summit Therapeutics",
@@ -2140,7 +2140,7 @@
         "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
         "source_type": "nasdaq_security_master",
         "published_at": null,
-        "verified_at": "2026-10-01T07:46:03+00:00",
+        "verified_at": "2026-10-01T08:13:32+00:00",
         "tradable": true,
         "verified": true
       }
@@ -2165,316 +2165,327 @@
   },
   "backtest": {
     "coverage": {
-      "historical_events": 21,
-      "with_pre_event_prices": 2,
-      "with_session_aware_event_move": 2
+      "historical_cases_total": 24,
+      "legacy_quarantined": 21,
+      "clean_cases_total": 3,
+      "research_ready_cases": 3,
+      "runup_ready_cases": 3,
+      "hold_ready_cases": 0,
+      "runup_case_ids": [
+        "PIT-QTTB-SIGNALAA-20260713",
+        "PIT-PHAR-JOENJA-20260911",
+        "PIT-KOD-DAYBREAK-20260928"
+      ],
+      "hold_case_ids": [],
+      "runup_with_attached_prices": 3,
+      "hold_with_session_aware_move": 0
     },
     "runup_all_grids": [
       {
         "entry": 60,
         "exit": 14,
         "return": {
-          "n": 1,
-          "mean": -0.05048337764179811,
+          "n": 3,
+          "mean": 0.29491933709494994,
           "median": -0.05048337764179811,
-          "win_rate": 0.0,
-          "sd": 0.0,
-          "worst": -0.05048337764179811,
-          "best": -0.05048337764179811
+          "win_rate": 0.3333333333333333,
+          "sd": 0.6315244844172234,
+          "worst": -0.08856803061819307,
+          "best": 1.023809419544841
         },
         "excess": {
-          "n": 1,
-          "mean": -0.0968583017255471,
+          "n": 3,
+          "mean": 0.20085535310434563,
           "median": -0.0968583017255471,
-          "win_rate": 0.0,
-          "sd": 0.0,
-          "worst": -0.0968583017255471,
-          "best": -0.0968583017255471
+          "win_rate": 0.3333333333333333,
+          "sd": 0.6874380673737848,
+          "worst": -0.28754446422478197,
+          "best": 0.9869688252633659
         }
       },
       {
         "entry": 60,
         "exit": 7,
         "return": {
-          "n": 1,
-          "mean": -0.12003225078498869,
-          "median": -0.12003225078498869,
-          "win_rate": 0.0,
-          "sd": 0.0,
+          "n": 3,
+          "mean": 0.31415317774571416,
+          "median": -0.1041748015497822,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.7383408410528578,
           "worst": -0.12003225078498869,
-          "best": -0.12003225078498869
+          "best": 1.1666665855719134
         },
         "excess": {
-          "n": 1,
-          "mean": -0.10489325155294782,
+          "n": 3,
+          "mean": 0.19931063892708312,
           "median": -0.10489325155294782,
-          "win_rate": 0.0,
-          "sd": 0.0,
-          "worst": -0.10489325155294782,
-          "best": -0.10489325155294782
+          "win_rate": 0.3333333333333333,
+          "sd": 0.6996043036796631,
+          "worst": -0.29669325324660367,
+          "best": 0.9995184215808008
         }
       },
       {
         "entry": 60,
         "exit": 3,
         "return": {
-          "n": 1,
-          "mean": -0.0923738530171806,
+          "n": 3,
+          "mean": 0.3667564740848637,
           "median": -0.0923738530171806,
-          "win_rate": 0.0,
-          "sd": 0.0,
-          "worst": -0.0923738530171806,
-          "best": -0.0923738530171806
+          "win_rate": 0.3333333333333333,
+          "sd": 0.8225007269986915,
+          "worst": -0.12368319079566947,
+          "best": 1.3163264660674412
         },
         "excess": {
-          "n": 1,
-          "mean": -0.12635655478481211,
+          "n": 3,
+          "mean": 0.21851906431202647,
           "median": -0.12635655478481211,
-          "win_rate": 0.0,
-          "sd": 0.0,
-          "worst": -0.12635655478481211,
-          "best": -0.12635655478481211
+          "win_rate": 0.3333333333333333,
+          "sd": 0.7765092015279802,
+          "worst": -0.3258151579404962,
+          "best": 1.1077289056613877
         }
       },
       {
         "entry": 60,
         "exit": 1,
         "return": {
-          "n": 1,
-          "mean": -0.10794844996175568,
+          "n": 3,
+          "mean": 0.29641204594918963,
           "median": -0.10794844996175568,
-          "win_rate": 0.0,
-          "sd": 0.0,
-          "worst": -0.10794844996175568,
-          "best": -0.10794844996175568
+          "win_rate": 0.3333333333333333,
+          "sd": 0.7317918069072225,
+          "worst": -0.14397185905325705,
+          "best": 1.1411564468625817
         },
         "excess": {
-          "n": 1,
-          "mean": -0.10475458225014223,
+          "n": 3,
+          "mean": 0.17039546463629576,
           "median": -0.10475458225014223,
-          "win_rate": 0.0,
-          "sd": 0.0,
-          "worst": -0.10475458225014223,
-          "best": -0.10475458225014223
+          "win_rate": 0.3333333333333333,
+          "sd": 0.6656748940050045,
+          "worst": -0.31359399231038587,
+          "best": 0.9295349684694154
         }
       },
       {
         "entry": 45,
         "exit": 14,
         "return": {
-          "n": 2,
-          "mean": -0.09676850341894311,
-          "median": -0.09676850341894311,
-          "win_rate": 0.0,
-          "sd": 0.058283932314598504,
-          "worst": -0.13798146719281346,
-          "best": -0.05555553964507276
+          "n": 3,
+          "mean": 0.3313256144117914,
+          "median": -0.13798146719281346,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.8523387772132378,
+          "worst": -0.1832167727701578,
+          "best": 1.3151750831983455
         },
         "excess": {
-          "n": 2,
-          "mean": -0.12925594526494188,
-          "median": -0.12925594526494188,
-          "win_rate": 0.0,
-          "sd": 0.1199177328024318,
+          "n": 3,
+          "mean": 0.2878647328256139,
+          "median": -0.18573259567644917,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.8449373780982864,
           "worst": -0.2140505873140579,
-          "best": -0.044461303215825865
+          "best": 1.2633773814673488
         }
       },
       {
         "entry": 45,
         "exit": 7,
         "return": {
-          "n": 2,
-          "mean": -0.16306070097432873,
-          "median": -0.16306070097432873,
-          "win_rate": 0.0,
-          "sd": 0.05382595951132257,
+          "n": 3,
+          "mean": 0.36009166659088937,
+          "median": -0.19720283992203347,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.9686579558179483,
           "worst": -0.20112140194865746,
-          "best": -0.125
+          "best": 1.478599241643359
         },
         "excess": {
-          "n": 2,
-          "mean": -0.16395827980000321,
-          "median": -0.16395827980000321,
-          "win_rate": 0.0,
-          "sd": 0.07067202332877817,
+          "n": 3,
+          "mean": 0.2954547949993281,
+          "median": -0.19431886607910132,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.8653529872833486,
           "worst": -0.21393094673595614,
-          "best": -0.11398561286405029
+          "best": 1.2946141978130417
         }
       },
       {
         "entry": 45,
         "exit": 3,
         "return": {
-          "n": 2,
-          "mean": -0.1704007500288519,
-          "median": -0.1704007500288519,
-          "win_rate": 0.0,
-          "sd": 0.007935123129815445,
-          "worst": -0.17601172940349463,
-          "best": -0.1647897706542092
+          "n": 3,
+          "mean": 0.4197028024871266,
+          "median": -0.17601172940349463,
+          "win_rate": 0.3333333333333333,
+          "sd": 1.0654756619409311,
+          "worst": -0.21468535717136739,
+          "best": 1.6498054940362419
         },
         "excess": {
-          "n": 2,
-          "mean": -0.1821894546496352,
-          "median": -0.1821894546496352,
-          "win_rate": 0.0,
-          "sd": 0.08081877532463606,
+          "n": 3,
+          "mean": 0.32153216757215525,
+          "median": -0.21983965754320733,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.9546184433703716,
           "worst": -0.2393369587288774,
-          "best": -0.12504195057039302
+          "best": 1.4237731189885505
         }
       },
       {
         "entry": 45,
         "exit": 1,
         "return": {
-          "n": 2,
-          "mean": -0.18497794837757126,
-          "median": -0.18497794837757126,
-          "win_rate": 0.0,
-          "sd": 0.007315976626741514,
-          "worst": -0.19015112506134246,
-          "best": -0.17980477169380005
+          "n": 3,
+          "mean": 0.34213272874551953,
+          "median": -0.19015112506134246,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.9591736391055996,
+          "worst": -0.23286712442588642,
+          "best": 1.4494164357237875
         },
         "excess": {
-          "n": 2,
-          "mean": -0.1745780101106693,
-          "median": -0.1745780101106693,
-          "win_rate": 0.0,
-          "sd": 0.05751150067509187,
+          "n": 3,
+          "mean": 0.2647443952023147,
+          "median": -0.2108385528421577,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.8275526683913308,
           "worst": -0.21524478223424148,
-          "best": -0.13391123798709714
+          "best": 1.2203165206833433
         }
       },
       {
         "entry": 30,
         "exit": 14,
         "return": {
-          "n": 2,
-          "mean": -0.01832775803746267,
-          "median": -0.01832775803746267,
-          "win_rate": 0.5,
-          "sd": 0.1375039782473916,
+          "n": 3,
+          "mean": -0.0723216224340979,
+          "median": -0.07393001826750112,
+          "win_rate": 0.0,
+          "sd": 0.044062351043034235,
           "worst": -0.1155577534963208,
-          "best": 0.07890223742139546
+          "best": -0.027477095538471774
         },
         "excess": {
-          "n": 2,
-          "mean": -0.03473690325678441,
-          "median": -0.03473690325678441,
-          "win_rate": 0.5,
-          "sd": 0.17695751096434723,
+          "n": 3,
+          "mean": -0.13749899133102458,
+          "median": -0.13206773063874078,
+          "win_rate": 0.0,
+          "sd": 0.02020524315197746,
           "worst": -0.15986475924156718,
-          "best": 0.09039095272799835
+          "best": -0.12056448411276577
         }
       },
       {
         "entry": 30,
         "exit": 7,
         "return": {
-          "n": 2,
-          "mean": -0.09038448776863245,
-          "median": -0.09038448776863245,
+          "n": 3,
+          "mean": -0.07767681862234692,
+          "median": -0.0441299480886731,
           "win_rate": 0.0,
-          "sd": 0.1272165164795759,
+          "sd": 0.09067038390285312,
           "worst": -0.18034014925027075,
-          "best": -0.00042882628699414393
+          "best": -0.00856035852809689
         },
         "excess": {
-          "n": 2,
-          "mean": -0.07613736408085009,
-          "median": -0.07613736408085009,
-          "win_rate": 0.5,
-          "sd": 0.12320265902868528,
-          "worst": -0.16325479974024748,
-          "best": 0.010980071578547301
+          "n": 3,
+          "mean": -0.1642530166187358,
+          "median": -0.16325479974024748,
+          "win_rate": 0.0,
+          "sd": 0.02199813138417428,
+          "worst": -0.1867332637157706,
+          "best": -0.14277098640018926
         }
       },
       {
         "entry": 30,
         "exit": 3,
         "return": {
-          "n": 2,
-          "mean": -0.10023032374126123,
-          "median": -0.10023032374126123,
-          "win_rate": 0.0,
-          "sd": 0.07685822813770485,
+          "n": 3,
+          "mean": -0.05320036459998841,
+          "median": -0.06494593436973883,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.10773101173418051,
           "worst": -0.15457729804741505,
-          "best": -0.04588334943510741
+          "best": 0.05992213861718865
         },
         "excess": {
-          "n": 2,
-          "mean": -0.09613452617826801,
-          "median": -0.09613452617826801,
+          "n": 3,
+          "mean": -0.17301731800059872,
+          "median": -0.1724436931610026,
           "win_rate": 0.0,
-          "sd": 0.12781951477198142,
+          "sd": 0.01322177720273655,
           "worst": -0.18651657184151016,
-          "best": -0.0057524805150258596
+          "best": -0.1600916889992834
         }
       },
       {
         "entry": 30,
         "exit": 1,
         "return": {
-          "n": 2,
-          "mean": -0.116060247094039,
-          "median": -0.116060247094039,
+          "n": 3,
+          "mean": -0.09197082740786795,
+          "median": -0.08659449975296585,
           "win_rate": 0.0,
-          "sd": 0.07498762074017384,
+          "sd": 0.07457100884582782,
           "worst": -0.16908450222446092,
-          "best": -0.06303599196361709
+          "best": -0.020233480246177105
         },
         "excess": {
-          "n": 2,
-          "mean": -0.09034126920727231,
-          "median": -0.09034126920727231,
+          "n": 3,
+          "mean": -0.19045404333264973,
+          "median": -0.16414166314095124,
           "win_rate": 0.0,
-          "sd": 0.10405699703635081,
-          "worst": -0.16392067744158445,
-          "best": -0.016761860972960174
+          "sd": 0.04576589197156316,
+          "worst": -0.24329978941541353,
+          "best": -0.16392067744158445
         }
       },
       {
         "entry": 21,
         "exit": 14,
         "return": {
-          "n": 2,
-          "mean": -0.10086352534135484,
-          "median": -0.10086352534135484,
-          "win_rate": 0.0,
-          "sd": 0.00010926028439890697,
+          "n": 3,
+          "mean": -0.048357041089057105,
+          "median": -0.0449713211485514,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.050975281206764964,
           "worst": -0.10094078402936768,
-          "best": -0.100786266653342
+          "best": 0.0008409819107477734
         },
         "excess": {
-          "n": 2,
-          "mean": -0.06690178520005485,
-          "median": -0.06690178520005485,
+          "n": 3,
+          "mean": -0.07418551229089254,
+          "median": -0.07374200828463517,
           "win_rate": 0.0,
-          "sd": 0.009673536255871017,
-          "worst": -0.07374200828463517,
-          "best": -0.06006156211547453
+          "sd": 0.004174459074425495,
+          "worst": -0.07856401623650933,
+          "best": -0.07025051235153312
         }
       },
       {
         "entry": 21,
         "exit": 7,
         "return": {
-          "n": 2,
-          "mean": -0.1668493803939909,
-          "median": -0.1668493803939909,
-          "win_rate": 0.0,
-          "sd": 7.856968593921783e-05,
-          "worst": -0.1669049375517142,
-          "best": -0.16679382323626757
+          "n": 3,
+          "mean": -0.052209947136853486,
+          "median": -0.061324613906147185,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.11940241061243839,
+          "worst": -0.16679382323626757,
+          "best": 0.07148859573185429
         },
         "excess": {
-          "n": 2,
-          "mean": -0.10433201945920134,
-          "median": -0.10433201945920134,
+          "n": 3,
+          "mean": -0.10199050353487098,
+          "median": -0.08935012456924762,
           "win_rate": 0.0,
-          "sd": 0.031007580348875064,
-          "worst": -0.12625768979207763,
+          "sd": 0.02812240063966171,
+          "worst": -0.13421503690904024,
           "best": -0.08240634912632505
         }
       },
@@ -2482,21 +2493,21 @@
         "entry": 21,
         "exit": 3,
         "return": {
-          "n": 2,
-          "mean": -0.1726971587617836,
-          "median": -0.1726971587617836,
-          "win_rate": 0.0,
-          "sd": 0.04538488977704841,
-          "worst": -0.20478912208653854,
-          "best": -0.14060519543702865
+          "n": 3,
+          "mean": -0.025623656497214837,
+          "median": -0.08176615187486291,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.1510896574972639,
+          "worst": -0.14060519543702865,
+          "best": 0.14550037782024705
         },
         "excess": {
-          "n": 2,
-          "mean": -0.11907745443579498,
-          "median": -0.11907745443579498,
+          "n": 3,
+          "mean": -0.1076621773959499,
+          "median": -0.10302188691048686,
           "win_rate": 0.0,
-          "sd": 0.024313051299133952,
-          "worst": -0.136269377880749,
+          "sd": 0.00903920664829872,
+          "worst": -0.11807911428652185,
           "best": -0.10188553099084097
         }
       },
@@ -2504,21 +2515,21 @@
         "entry": 21,
         "exit": 1,
         "return": {
-          "n": 2,
-          "mean": -0.18721859556061943,
-          "median": -0.18721859556061943,
-          "win_rate": 0.0,
-          "sd": 0.04506594991758155,
-          "worst": -0.21908503434795468,
-          "best": -0.15535215677328418
+          "n": 3,
+          "mean": -0.06650148803018778,
+          "median": -0.10302529209883526,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.11168524529355502,
+          "worst": -0.15535215677328418,
+          "best": 0.058872984781556115
         },
         "excess": {
-          "n": 2,
-          "mean": -0.11333681832930037,
-          "median": -0.11333681832930037,
+          "n": 3,
+          "mean": -0.12871858348667964,
+          "median": -0.11131274384739376,
           "win_rate": 0.0,
-          "sd": 0.04421807614167553,
-          "worst": -0.14460371982010223,
+          "sd": 0.05736741727380104,
+          "worst": -0.19277308977414664,
           "best": -0.08206991683849851
         }
       },
@@ -2526,65 +2537,65 @@
         "entry": 14,
         "exit": 7,
         "return": {
-          "n": 2,
-          "mean": -0.07338801837909431,
-          "median": -0.07338801837909431,
-          "win_rate": 0.0,
-          "sd": 0.00019998251616561144,
-          "worst": -0.07352942737239376,
-          "best": -0.07324660938579486
+          "n": 3,
+          "mean": -0.006593903850120042,
+          "median": -0.017123352543991444,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.07249323201698109,
+          "worst": -0.07324660938579486,
+          "best": 0.07058825037942618
         },
         "excess": {
-          "n": 2,
-          "mean": -0.04403456568466163,
-          "median": -0.04403456568466163,
+          "n": 3,
+          "mean": -0.027095116600021247,
+          "median": -0.014458958898418972,
           "win_rate": 0.0,
-          "sd": 0.04182622423251812,
-          "worst": -0.07361017247090429,
-          "best": -0.014458958898418972
+          "sd": 0.02428182833767035,
+          "worst": -0.05508928426604154,
+          "best": -0.011737106635603234
         }
       },
       {
         "entry": 14,
         "exit": 3,
         "return": {
-          "n": 2,
-          "mean": -0.07988872859797214,
-          "median": -0.07988872859797214,
-          "win_rate": 0.0,
-          "sd": 0.050587894805967946,
-          "worst": -0.1156597720612238,
-          "best": -0.044117685134720475
+          "n": 3,
+          "mean": 0.02063089849676214,
+          "median": -0.038527461573784616,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.10734295819031968,
+          "worst": -0.044117685134720475,
+          "best": 0.1445378421987915
         },
         "excess": {
-          "n": 2,
-          "mean": -0.05947970684632514,
-          "median": -0.05947970684632514,
+          "n": 3,
+          "mean": -0.03151677496930124,
+          "median": -0.03227468122580257,
           "win_rate": 0.0,
-          "sd": 0.03847371619725055,
-          "worst": -0.08668473246684771,
-          "best": -0.03227468122580257
+          "sd": 0.010042967528517835,
+          "worst": -0.04115931775526571,
+          "best": -0.021116325926835433
         }
       },
       {
         "entry": 14,
         "exit": 1,
         "return": {
-          "n": 2,
-          "mean": -0.09603917593674366,
-          "median": -0.09603917593674366,
-          "win_rate": 0.0,
-          "sd": 0.05023121428974479,
-          "worst": -0.1315580081882568,
-          "best": -0.060520343685230515
+          "n": 3,
+          "mean": -0.021108258860340585,
+          "median": -0.060520343685230515,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.06849537766863856,
+          "worst": -0.06078767291062048,
+          "best": 0.05798324001482924
         },
         "excess": {
-          "n": 2,
-          "mean": -0.054758364628275935,
-          "median": -0.054758364628275935,
+          "n": 3,
+          "mean": -0.05334689849811847,
+          "median": -0.03630487280990391,
           "win_rate": 0.0,
-          "sd": 0.0588453463274374,
-          "worst": -0.09636830805767782,
+          "sd": 0.05090591026095562,
+          "worst": -0.11058740148557744,
           "best": -0.01314842119887405
         }
       },
@@ -2592,274 +2603,57 @@
         "entry": 7,
         "exit": 3,
         "return": {
-          "n": 2,
-          "mean": -0.007021437116582263,
-          "median": -0.007021437116582263,
-          "win_rate": 0.5,
-          "sd": 0.05438016931997673,
-          "worst": -0.045474023604810454,
-          "best": 0.03143114937164593
+          "n": 3,
+          "mean": 0.026242646200741276,
+          "median": 0.03143114937164593,
+          "win_rate": 0.6666666666666666,
+          "sd": 0.04564709514596368,
+          "worst": -0.021777004352676044,
+          "best": 0.06907379358325394
         },
         "excess": {
-          "n": 2,
-          "mean": -0.0174331105409532,
-          "median": -0.0174331105409532,
-          "win_rate": 0.0,
-          "sd": 0.0014319275860354697,
-          "worst": -0.018445636247206965,
-          "best": -0.016420584834699437
+          "n": 3,
+          "mean": -0.004907922573045694,
+          "median": -0.018445636247206965,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.03379804969475382,
+          "worst": -0.02983852779017615,
+          "best": 0.03356039631824603
         }
       },
       {
         "entry": 7,
         "exit": 1,
         "return": {
-          "n": 2,
-          "mean": -0.024450964843002854,
-          "median": -0.024450964843002854,
-          "win_rate": 0.5,
-          "sd": 0.053999001234069796,
-          "worst": -0.06263402479291436,
+          "n": 3,
+          "mean": -0.014155613750510073,
+          "median": -0.011773910614215621,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.0291516218896199,
+          "worst": -0.044425025744223245,
           "best": 0.013732095106908648
         },
         "excess": {
-          "n": 2,
-          "mean": -0.012881540389639179,
-          "median": -0.012881540389639179,
-          "win_rate": 0.5,
-          "sd": 0.020484723446602255,
-          "worst": -0.0273664272494627,
+          "n": 3,
+          "mean": -0.024499959208470406,
+          "median": -0.025225055792300166,
+          "win_rate": 0.3333333333333333,
+          "sd": 0.025748415769419955,
+          "worst": -0.04987816830329539,
           "best": 0.0016033464701843414
         }
       }
     ],
     "hold_through": {
       "stats": {
-        "n": 2,
-        "mean": 1.2215331353585894,
-        "median": 1.2215331353585894,
-        "win_rate": 1.0,
-        "sd": 0.8416826493818467,
-        "worst": 0.6263736263736264,
-        "best": 1.8166926443435525
+        "n": 0
       },
-      "rows": [
-        {
-          "id": "AKRO-2023-10",
-          "ticker": "AKRO",
-          "date": "2023-10-10",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "fail",
-          "available": false
-        },
-        {
-          "id": "ALNY-2024-06",
-          "ticker": "ALNY",
-          "date": "2024-06-24",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        },
-        {
-          "id": "ALT-2025-06",
-          "ticker": "ALT",
-          "date": "2025-06-26",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "mixed",
-          "available": false
-        },
-        {
-          "id": "AMLX-2024-03",
-          "ticker": "AMLX",
-          "date": "2024-03-08",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "fail",
-          "available": false
-        },
-        {
-          "id": "CYTK-2023-12",
-          "ticker": "CYTK",
-          "date": "2023-12-27",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        },
-        {
-          "id": "INSM-2024-05",
-          "ticker": "INSM",
-          "date": "2024-05-28",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        },
-        {
-          "id": "KOD-2026-03",
-          "ticker": "KOD",
-          "date": "2026-03-26",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": 0.6263736263736264,
-          "clinical": "success",
-          "available": true
-        },
-        {
-          "id": "KOD-2026-09",
-          "ticker": "KOD",
-          "date": "2026-09-28",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": 1.8166926443435525,
-          "clinical": "success",
-          "available": true
-        },
-        {
-          "id": "KRTX-2022-08",
-          "ticker": "KRTX",
-          "date": "2022-08-08",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        },
-        {
-          "id": "MDGL-2022-12",
-          "ticker": "MDGL",
-          "date": "2022-12-19",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        },
-        {
-          "id": "MDGL-2024-03",
-          "ticker": "MDGL",
-          "date": "2024-03-14",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        },
-        {
-          "id": "QURE-2025-09",
-          "ticker": "QURE",
-          "date": "2025-09-24",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        },
-        {
-          "id": "RPTX-2025-07",
-          "ticker": "RPTX",
-          "date": "2025-07-22",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "fail",
-          "available": false
-        },
-        {
-          "id": "SAGE-2023-08",
-          "ticker": "SAGE",
-          "date": "2023-08-07",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "fail",
-          "available": false
-        },
-        {
-          "id": "SAVA-2024-11",
-          "ticker": "SAVA",
-          "date": "2024-11-25",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "fail",
-          "available": false
-        },
-        {
-          "id": "SLRN-2023-09",
-          "ticker": "SLRN",
-          "date": "2023-09-11",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "fail",
-          "available": false
-        },
-        {
-          "id": "SRPT-2023-10",
-          "ticker": "SRPT",
-          "date": "2023-10-30",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "fail",
-          "available": false
-        },
-        {
-          "id": "SRPT-2024-06",
-          "ticker": "SRPT",
-          "date": "2024-06-21",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        },
-        {
-          "id": "SRRK-2024-10",
-          "ticker": "SRRK",
-          "date": "2024-10-07",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        },
-        {
-          "id": "VKTX-2024-02",
-          "ticker": "VKTX",
-          "date": "2024-02-27",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        },
-        {
-          "id": "VKTX-2025-08",
-          "ticker": "VKTX",
-          "date": "2025-08-19",
-          "session": "unknown",
-          "timing_uncertain": true,
-          "move": null,
-          "clinical": "success",
-          "available": false
-        }
-      ]
+      "rows": []
     },
     "warnings": [
       "No grid is a validated edge merely because it looks best in-sample.",
-      "Unknown announcement sessions use next-close and are flagged timing_uncertain.",
-      "Historical evidence annotations require blinded reconstruction before calibration.",
+      "Only non-legacy, case-attached runup-ready and hold-ready cases enter empirical statistics.",
+      "Unknown announcement sessions and legacy post-hoc events are excluded from empirical statistics.",
       "Transaction costs, borrow constraints and gap slippage must be modeled before capital deployment."
     ]
   },
@@ -3118,9 +2912,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3133,9 +2927,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3148,9 +2942,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3163,9 +2957,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3178,9 +2972,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3193,9 +2987,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3208,9 +3002,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3223,9 +3017,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3238,9 +3032,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3253,9 +3047,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3268,9 +3062,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3283,9 +3077,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3298,9 +3092,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3313,9 +3107,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3328,9 +3122,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3343,9 +3137,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3358,9 +3152,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3373,9 +3167,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3388,9 +3182,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3403,9 +3197,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {
@@ -3434,9 +3228,9 @@
             "announcement session unknown",
             "case provenance missing",
             "legacy post-hoc case is quarantined",
+            "missing case-bound price attachment or rows",
             "missing outcome label",
-            "missing point-in-time feature snapshot",
-            "missing price attachment"
+            "missing point-in-time feature snapshot"
           ]
         },
         {

@@ -5,9 +5,11 @@ for hold-through returns. No strategy gate is unlocked from in-sample results.
 """
 from __future__ import annotations
 
+import json
 from statistics import mean, median, stdev
 
 from . import db
+from .historical import attached_price_rows, readiness_for_case
 from .market import event_return, join_on_dates
 
 RUNUP_GRID = [(entry, exit_) for entry in (60,45,30,21,14,7) for exit_ in (14,7,3,1) if exit_ < entry]
@@ -65,42 +67,56 @@ def all_runup_grids(event_rows):
     return out
 
 
-def hold_through_rows(conn, historical_events):
-    outcomes = db.load_outcomes(conn)
+def hold_through_rows(conn, eligible_cases):
     rows = []
-    for e in historical_events:
-        state = db.event_state(conn, e["id"]) or {}
-        stock = db.load_prices(conn, e.get("ticker"))
-        r = event_return(stock, e.get("date"), state.get("event_session", "unknown"))
-        o = outcomes.get(e["id"], {})
+    for case in eligible_cases:
+        stock, _ = attached_price_rows(conn, case)
+        r = event_return(stock, case["event_at"][:10], case["announcement_session"])
+        labels = db.outcome_label_rows(conn, case["case_id"])
+        outcome = json.loads(labels[-1]["payload"]) if labels else {}
         rows.append({
-            "id": e["id"], "ticker": e.get("ticker"), "date": e.get("date"),
-            "session": state.get("event_session", "unknown"), "timing_uncertain": r.get("timing_uncertain", True),
+            "id": case["case_id"], "ticker": case["ticker"], "date": case["event_at"][:10],
+            "session": case["announcement_session"], "timing_uncertain": r.get("timing_uncertain", False),
             "move": r.get("return") if r.get("available") else None,
-            "clinical": o.get("clinical"), "available": r.get("available", False),
+            "clinical": outcome.get("clinical"), "regulatory": outcome.get("regulatory"),
+            "available": r.get("available", False),
         })
     return rows
 
 
 def report(conn):
-    hist = db.load_events(conn, "historical")
+    cases = db.historical_case_rows(conn)
+    clean = [case for case in cases if not case["legacy_post_hoc"]]
+    readiness = {case["case_id"]: readiness_for_case(conn, case["case_id"]) for case in clean}
+    runup_cases = [case for case in clean if readiness[case["case_id"]]["runup_ready"]]
+    hold_cases = [case for case in clean if readiness[case["case_id"]]["hold_ready"]]
     event_rows = []
-    for e in hist:
-        stock = db.load_prices(conn, e.get("ticker"), before=e.get("date"))
-        xbi = db.load_prices(conn, "XBI", before=e.get("date"))
+    for case in runup_cases:
+        stock, xbi = attached_price_rows(conn, case)
+        event_day = case["event_at"][:10]
+        stock = [row for row in stock if row["date"] < event_day]
+        xbi = [row for row in xbi if row["date"] < event_day]
         if stock:
-            event_rows.append({"id": e["id"], "stock": stock, "benchmark": xbi})
+            event_rows.append({"id": case["case_id"], "stock": stock, "benchmark": xbi})
     grids = all_runup_grids(event_rows)
-    hold = hold_through_rows(conn, hist)
+    hold = hold_through_rows(conn, hold_cases)
     moves = [r["move"] for r in hold if r["move"] is not None]
     return {
-        "coverage": {"historical_events": len(hist), "with_pre_event_prices": len(event_rows), "with_session_aware_event_move": len(moves)},
+        "coverage": {"historical_cases_total": len(cases),
+                     "legacy_quarantined": len(cases) - len(clean),
+                     "clean_cases_total": len(clean),
+                     "research_ready_cases": sum(r["research_ready"] for r in readiness.values()),
+                     "runup_ready_cases": len(runup_cases), "hold_ready_cases": len(hold_cases),
+                     "runup_case_ids": [case["case_id"] for case in runup_cases],
+                     "hold_case_ids": [case["case_id"] for case in hold_cases],
+                     "runup_with_attached_prices": len(event_rows),
+                     "hold_with_session_aware_move": len(moves)},
         "runup_all_grids": grids,
         "hold_through": {"stats": stats(moves), "rows": hold},
         "warnings": [
             "No grid is a validated edge merely because it looks best in-sample.",
-            "Unknown announcement sessions use next-close and are flagged timing_uncertain.",
-            "Historical evidence annotations require blinded reconstruction before calibration.",
+            "Only non-legacy, case-attached runup-ready and hold-ready cases enter empirical statistics.",
+            "Unknown announcement sessions and legacy post-hoc events are excluded from empirical statistics.",
             "Transaction costs, borrow constraints and gap slippage must be modeled before capital deployment.",
         ],
     }

@@ -82,6 +82,8 @@ mozes historical-export --file historical-status.json
 
 `research-ready` requires a non-legacy blinded snapshot, archived source provenance, a verified outcome, a known announcement session, and ticker/XBI price coverage. `hold-ready` additionally requires a measurable event return and prices through T+30. These dataset flags never open the independent RUN-UP/HOLD OOS validation gates.
 
+`backtest_v2.report()` uses only non-legacy `historical_cases`: RUN-UP rows require `runup_ready`, and HOLD rows require `hold_ready`. Each price attachment freezes case-specific ticker/XBI rows; shared ticker prices and the legacy catalog cannot populate empirical statistics. Existing databases with older attachments must run `mozes historical-prices` again for each clean case to create these case-bound rows. Legacy events remain visible only in audit/quarantine coverage.
+
 ### Starter batch and current-universe audit
 
 The checked-in starter bundle (`mozes/data/historical_starter.json`) contains three reconstructed point-in-time cases: KOD DAYBREAK, QTTB SIGNAL-AA, and PHAR's early Joenja pediatric approval. Source records store normalized fact extracts and their SHA-256 hashes, canonical primary URLs, publication-time basis, and retrieval timestamps. These are audit extracts, not full copies of the source pages. Pre-event snapshots cite only pre-event releases. The fixed CSV price capture in `mozes/data/starter_prices/` is adjusted daily Yahoo Chart data for KOD, QTTB, PHAR, and XBI; its manifest records capture time and file hashes, and `scripts/capture_starter_prices.py` reproduces the capture. The case-level price runs record CSV hashes and the original provider URL. Neither a clean case nor an imported label opens the independent OOS gates.

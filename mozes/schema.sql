@@ -200,6 +200,17 @@ CREATE TABLE IF NOT EXISTS historical_price_attachments (
   attached_at TEXT NOT NULL,
   PRIMARY KEY(case_id, ticker, benchmark)
 );
+-- Price values frozen for the attached case. Shared ticker prices are only an
+-- ingestion staging area and must never make another case backtest-eligible.
+CREATE TABLE IF NOT EXISTS historical_case_prices (
+  case_id TEXT NOT NULL REFERENCES historical_cases(case_id),
+  ticker TEXT NOT NULL,
+  date TEXT NOT NULL,
+  close REAL NOT NULL,
+  volume REAL,
+  source TEXT NOT NULL,
+  PRIMARY KEY(case_id, ticker, date)
+);
 CREATE TRIGGER IF NOT EXISTS trg_source_archive_no_update BEFORE UPDATE ON source_archive
 BEGIN SELECT RAISE(ABORT, 'source archive is immutable'); END;
 CREATE TRIGGER IF NOT EXISTS trg_source_archive_no_delete BEFORE DELETE ON source_archive

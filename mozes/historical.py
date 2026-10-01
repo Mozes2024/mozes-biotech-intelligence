@@ -119,26 +119,36 @@ def backfill_prices(conn, case_id: str, provider: str, *, stock_file: str | None
     return {**attached, "stock_rows": len(stock), "benchmark_rows": len(benchmark), "run_id": run_id}
 
 
-def _price_status(conn, case: dict) -> tuple[bool, str | None]:
-    a = conn.execute("SELECT * FROM historical_price_attachments WHERE case_id=? AND ticker=?", (case["case_id"], case["ticker"])).fetchone()
+def attached_price_rows(conn, case: dict) -> tuple[list[dict], list[dict]]:
+    """Read only the price values frozen under this case's XBI attachment."""
+    a = conn.execute("SELECT * FROM historical_price_attachments WHERE case_id=? AND ticker=? AND benchmark='XBI'",
+                     (case["case_id"], case["ticker"])).fetchone()
     if not a:
-        return False, "missing price attachment"
+        return [], []
+    def rows(ticker):
+        return [dict(r) for r in conn.execute(
+            "SELECT date,close,volume,source FROM historical_case_prices "
+            "WHERE case_id=? AND ticker=? AND date BETWEEN ? AND ? AND source=? ORDER BY date",
+            (case["case_id"], ticker, a["start_date"], a["end_date"], a["provider"])).fetchall()]
+    return rows(case["ticker"]), rows(a["benchmark"])
+
+
+def _price_status(conn, case: dict) -> tuple[bool, str | None]:
+    stock, benchmark = attached_price_rows(conn, case)
+    if not stock and not benchmark:
+        return False, "missing case-bound price attachment or rows"
     event_day = _timestamp(case["event_at"]).date().isoformat()
-    def coverage(ticker):
-        r = conn.execute("SELECT COUNT(*) AS n,MIN(date) AS first,MAX(date) AS last FROM prices WHERE ticker=? AND date BETWEEN ? AND ?", (ticker, a["start_date"], a["end_date"])).fetchone()
-        return r["n"] >= 100 and r["first"] <= (_timestamp(case["event_at"]).date() - timedelta(days=120)).isoformat() and r["last"] >= event_day
-    ok = coverage(case["ticker"]) and coverage(a["benchmark"])
+    first_needed = (_timestamp(case["event_at"]).date() - timedelta(days=120)).isoformat()
+    def coverage(rows):
+        return len(rows) >= 100 and rows[0]["date"] <= first_needed and rows[-1]["date"] >= event_day
+    ok = coverage(stock) and coverage(benchmark)
     return (ok, None if ok else "missing price coverage")
 
 
 def _hold_price_status(conn, case: dict) -> bool:
     event_day = _timestamp(case["event_at"]).date()
     target = (event_day + timedelta(days=30)).isoformat()
-    for ticker in (case["ticker"], "XBI"):
-        row = conn.execute("SELECT MAX(date) AS last FROM prices WHERE ticker=?", (ticker,)).fetchone()
-        if not row["last"] or row["last"] < target:
-            return False
-    return True
+    return all(rows and rows[-1]["date"] >= target for rows in attached_price_rows(conn, case))
 
 
 def _archived_provenance(conn, ids: list[str], cutoff: str | None = None) -> bool:

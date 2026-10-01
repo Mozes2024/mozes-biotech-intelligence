@@ -144,6 +144,12 @@ def attach_historical_prices(conn, case_id, ticker, start_date, end_date, provid
     with conn:
         conn.execute("INSERT INTO historical_price_attachments(case_id,ticker,benchmark,start_date,end_date,provider,run_id,attached_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(case_id,ticker,benchmark) DO UPDATE SET start_date=excluded.start_date,end_date=excluded.end_date,provider=excluded.provider,run_id=excluded.run_id,attached_at=excluded.attached_at",
                      (case_id, ticker, benchmark, start_date, end_date, provider, run_id, utcnow()))
+        conn.execute("DELETE FROM historical_case_prices WHERE case_id=?", (case_id,))
+        for symbol in {ticker, benchmark}:
+            conn.execute("INSERT INTO historical_case_prices(case_id,ticker,date,close,volume,source) "
+                         "SELECT ?,ticker,date,close,volume,source FROM prices "
+                         "WHERE ticker=? AND date BETWEEN ? AND ? AND source=?",
+                         (case_id, symbol, start_date, end_date, provider))
 
 
 def load_prices(conn, ticker, before=None, after=None):
