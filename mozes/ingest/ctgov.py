@@ -2,7 +2,7 @@
 so point-in-time integrity requires storing every fetch as a new version (trial_record_versions)."""
 import json
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 URL = "https://clinicaltrials.gov/api/v2/studies/{nct}"
 
@@ -31,8 +31,14 @@ def summarize(study):
 
 def store_version(conn, study):
     s = summarize(study)
+    retrieved = datetime.now(timezone.utc)
+    last = conn.execute("SELECT retrieved_at FROM trial_record_versions WHERE nct_id=? ORDER BY retrieved_at DESC LIMIT 1", (s["nct_id"],)).fetchone()
+    if last:
+        previous = datetime.fromisoformat(last["retrieved_at"])
+        if retrieved <= previous:
+            retrieved = previous + timedelta(microseconds=1)
     with conn:
         conn.execute("INSERT INTO trial_record_versions (nct_id, retrieved_at, last_update_posted, payload) VALUES (?,?,?,?)",
-                     (s["nct_id"], datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                     (s["nct_id"], retrieved.isoformat(timespec="microseconds"),
                       s["last_update_posted"], json.dumps(study)))
     return s

@@ -267,6 +267,23 @@ SEC provides keyless JSON APIs on `data.sec.gov`, while ClinicalTrials.gov v2 is
 
 These are examples of the lifecycle/provenance behavior, not hard-coded trading conclusions.
 
+## Live change monitoring
+
+`mozes monitor-live` runs the lightweight watch-universe listing audit, bounded
+ClinicalTrials.gov version polling (up to 100 near-term watched studies per pass),
+recent SEC financing/material filing checks, and state reconciliation. It does not
+run historical backfill or alter recommendation thresholds or validation gates.
+Use `SEC_USER_AGENT` for SEC access. A missing SEC identity skips that source and
+is reported in the command result. Registry changes are investigation signals;
+they never verify an actionable catalyst date.
+
+The `change_events` ledger is append-only. Stable IDs deduplicate the same
+source/change while retaining severity escalation. The six-hour GitHub Actions
+monitor (including weekends) carries its SQLite state in a rolling workflow
+artifact; Pages restores the latest available state before exporting the Hebrew
+“מה השתנה?” view. Artifacts expire after 90 days, so long-term archival of this
+live monitor ledger still needs a durable external or repository-backed store.
+
 ## Testing
 
 The delivered v0.2 passes its complete local test suite, including:

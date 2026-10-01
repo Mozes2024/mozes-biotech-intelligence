@@ -3,10 +3,11 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "45 5 * * 1-5"
+    - cron: "45 5 * * *"
   workflow_dispatch: {}
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 concurrency:
@@ -18,6 +19,7 @@ jobs:
     env:
       SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
       MOZES_DB_PATH: /tmp/mozes-pages.db
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,6 +27,16 @@ jobs:
           python-version: "3.11"
       - run: pip install -e ".[dev]"
       - run: pytest -q
+      - name: Restore latest lightweight monitor state
+        shell: bash
+        run: |
+          mkdir -p /tmp/mozes-monitor-snapshot
+          for run in $(gh run list --workflow lightweight-monitor.yml --branch main --status completed --limit 10 --json databaseId --jq '.[].databaseId'); do
+            if gh run download "$run" -n mozes-live-monitor -D /tmp/mozes-monitor-snapshot; then
+              cp /tmp/mozes-monitor-snapshot/mozes-live.db "$MOZES_DB_PATH"
+              break
+            fi
+          done
       - run: mozes bootstrap-v2
       - name: Refresh public snapshot
         shell: bash
@@ -36,6 +48,8 @@ jobs:
           fi
       - name: Audit current security listings
         run: mozes audit-securities --provider auto
+      - name: Capture lightweight changes in public snapshot
+        run: mozes monitor-live || echo "Live monitor incomplete; publishing the last captured state."
       - name: Import starter historical cases and fixed price capture
         run: |
           mozes historical-import --file mozes/data/historical_starter.json

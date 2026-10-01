@@ -12,6 +12,7 @@ from .paper import PaperBook
 from .radar import bootstrap_database, current_resolved_records, live_event_records, validation_status
 from .historical import readiness_summary
 from .security import tradability
+from .live_monitor import recent_changes
 
 VERSION = "0.3.0"
 
@@ -101,6 +102,7 @@ def build(conn, today: date):
         "paper": paper,
         "watch_universe": _watch_universe(conn),
         "refresh": _refresh_status(conn),
+        "changes": recent_changes(conn),
         "validation": validation,
         "backtest": backtest_report(conn),
         "historical_audit": audit_catalog(conn),

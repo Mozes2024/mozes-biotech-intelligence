@@ -157,6 +157,27 @@ CREATE TABLE IF NOT EXISTS outcome_labels (
   created_at TEXT NOT NULL,
   UNIQUE(case_id, labeled_at)
 );
+CREATE TABLE IF NOT EXISTS change_events (
+  change_id TEXT PRIMARY KEY, detected_at TEXT NOT NULL, ticker TEXT,
+  event_id TEXT, candidate_id TEXT, nct_id TEXT, asset TEXT,
+  change_type TEXT NOT NULL, previous_value TEXT, new_value TEXT,
+  severity TEXT NOT NULL, source_url TEXT, source_type TEXT,
+  verification_state TEXT NOT NULL, source_hash TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_change_events_detected ON change_events(detected_at DESC);
+CREATE TRIGGER IF NOT EXISTS trg_change_events_no_update BEFORE UPDATE ON change_events
+BEGIN SELECT RAISE(ABORT, 'change events are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS trg_change_events_no_delete BEFORE DELETE ON change_events
+BEGIN SELECT RAISE(ABORT, 'change events are append-only'); END;
+CREATE TABLE IF NOT EXISTS monitor_observations (
+  observation_key TEXT PRIMARY KEY, value_json TEXT NOT NULL, content_hash TEXT NOT NULL,
+  source_url TEXT, source_type TEXT, observed_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS monitor_runs (
+  run_id INTEGER PRIMARY KEY AUTOINCREMENT, started_at TEXT NOT NULL,
+  finished_at TEXT, status TEXT NOT NULL, details_json TEXT NOT NULL DEFAULT '{}'
+);
 CREATE TABLE IF NOT EXISTS security_lifecycle (
   ticker TEXT PRIMARY KEY, company TEXT, status TEXT NOT NULL CHECK(status IN ('ACTIVE','ACQUIRED','DELISTED','RENAMED','BANKRUPT','SUSPENDED','UNKNOWN')),
   effective_from TEXT, effective_to TEXT, successor_ticker TEXT, acquirer_ticker TEXT, reason TEXT,

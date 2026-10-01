@@ -1,0 +1,45 @@
+name: lightweight-live-monitor
+on:
+  schedule:
+    - cron: "20 */6 * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    env:
+      SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
+      MOZES_DB_PATH: .monitor/mozes-live.db
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e .
+      - name: Restore latest monitor state
+        shell: bash
+        run: |
+          mkdir -p .monitor
+          for run in $(gh run list --workflow lightweight-monitor.yml --branch main --status completed --limit 10 --json databaseId --jq '.[].databaseId'); do
+            if gh run download "$run" -n mozes-live-monitor -D .monitor; then break; fi
+          done
+          if [ ! -f "$MOZES_DB_PATH" ]; then
+            for run in $(gh run list --workflow nightly.yml --branch main --status completed --limit 10 --json databaseId --jq '.[].databaseId'); do
+              if gh run download "$run" -n mozes-biotech-radar-v3 -D .monitor; then
+                mv .monitor/mozes-nightly.db "$MOZES_DB_PATH"
+                break
+              fi
+            done
+          fi
+      - run: mozes bootstrap-v2
+      - name: Lightweight source checks
+        run: mozes monitor-live
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mozes-live-monitor
+          path: .monitor/mozes-live.db
+          retention-days: 90

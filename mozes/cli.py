@@ -341,6 +341,17 @@ def cmd_audit_securities(args):
     return 0
 
 
+def cmd_monitor_live(args):
+    from .radar import bootstrap_database
+    from .live_monitor import run_monitor
+    conn = db.connect(DB_PATH)
+    bootstrap_database(conn)
+    result = run_monitor(conn, audit=not args.no_audit, ctgov_diff=not args.no_ctgov,
+                         sec=not args.no_sec, filings_per_company=args.filings)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result["status"] == "OK" else 2
+
+
 def main(argv=None):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -425,6 +436,11 @@ def main(argv=None):
     s.add_argument("--source-url", default=None, help="original provider URL for CSV capture provenance")
     s = sp("audit-securities", cmd_audit_securities, "audit the live watch universe against official listing directories")
     s.add_argument("--provider", choices=["auto", "nasdaq", "sec"], default="auto")
+    s = sp("monitor-live", cmd_monitor_live, "lightweight listing, registry and SEC change monitor")
+    s.add_argument("--no-audit", action="store_true")
+    s.add_argument("--no-ctgov", action="store_true")
+    s.add_argument("--no-sec", action="store_true")
+    s.add_argument("--filings", type=int, default=12)
     args = p.parse_args(argv)
     return args.func(args) or 0
 
