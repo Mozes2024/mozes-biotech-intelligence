@@ -1,0 +1,15 @@
+{
+  "frame_id": "issuer-preannouncement-frame-2024-2026-v1b",
+  "frozen_at": "2026-10-01",
+  "selection_fields_only": ["candidate_id", "ticker", "catalyst_type", "planned_date", "pre_event_url"],
+  "candidates": [
+    {"candidate_id":"REPL-RP1-20260410","ticker":"REPL","catalyst_type":"PDUFA_NME","planned_date":"2026-04-10","pre_event_url":"https://www.globenewswire.com/news-release/2025/10/20/3169221/0/en/replimune-announces-fda-acceptance-of-bla-resubmission-of-rp1-for-the-treatment-of-advanced-melanoma.html"},
+    {"candidate_id":"CING-CTX1301-20260531","ticker":"CING","catalyst_type":"PDUFA_NME","planned_date":"2026-05-31","pre_event_url":"https://www.globenewswire.com/news-release/2025/10/14/3166151/0/en/FDA-Accepts-Cingulate-s-New-Drug-Application-for-CTx-1301-in-Attention-Deficit-Hyperactivity-Disorder-ADHD-and-sets-a-May-31-2026-PDUFA-Date.html"},
+    {"candidate_id":"LNTH-LNTH2501-20260329","ticker":"LNTH","catalyst_type":"PDUFA_NME","planned_date":"2026-03-29","pre_event_url":"https://www.globenewswire.com/news-release/2025/10/30/3177418/0/en/lantheus-announces-fda-grants-pdufa-date-for-lnth-2501-ga-68-edotreotide-a-pet-diagnostic-imaging-kit-targeting-somatostatin-receptor-positive-sstr-neuroendocrine-tumors-nets.html"},
+    {"candidate_id":"GRCE-GTX104-20260423","ticker":"GRCE","catalyst_type":"PDUFA_NME","planned_date":"2026-04-23","pre_event_url":"https://www.globenewswire.com/news-release/2025/08/27/3139943/0/en/Grace-Therapeutics-Announces-U-S-Food-and-Drug-Administration-Acceptance-for-Review-of-New-Drug-Application-for-GTx-104.html"},
+    {"candidate_id":"ATYR-EFZOFIT-20250915","ticker":"ATYR","catalyst_type":"P3_TOPLINE","planned_date":"2025-09-30","pre_event_url":"https://www.globenewswire.com/news-release/2025/05/07/3076532/0/en/aTyr-Pharma-Announces-First-Quarter-2025-Results-and-Provides-Corporate-Update.html"},
+    {"candidate_id":"AQST-ANAPHYLM-20260131","ticker":"AQST","catalyst_type":"PDUFA_NME","planned_date":"2026-01-31","pre_event_url":"https://www.globenewswire.com/news-release/2025/09/04/3144314/0/en/Aquestive-Therapeutics-Announces-that-FDA-Will-Not-Require-an-Advisory-Committee-Meeting-to-Discuss-New-Drug-Application-for-Anaphylm.html"},
+    {"candidate_id":"ACHV-CYTISINICLINE-20260620","ticker":"ACHV","catalyst_type":"PDUFA_NME","planned_date":"2026-06-20","pre_event_url":"https://www.globenewswire.com/news-release/2025/11/06/3182358/0/en/achieve-life-sciences-reports-third-quarter-2025-financial-results-provides-updates-on-cytisinicline-program.html"},
+    {"candidate_id":"AGIO-MITAPIVAT-20251207","ticker":"AGIO","catalyst_type":"PDUFA_SUPP","planned_date":"2025-12-07","pre_event_url":"https://www.globenewswire.com/news-release/2025/10/30/3177175/0/en/Agios-Reports-Third-Quarter-2025-Financial-Results-and-Provides-Business-Update.html"}
+  ]
+}

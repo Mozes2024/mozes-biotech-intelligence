@@ -2,6 +2,8 @@
 
 This is a **source-first convenience frame**, not a representative or randomized sample of all biotech catalysts. It is frozen in `mozes/data/historical_candidate_frame_2024_2026.json` before outcome labels or price returns are consulted. The fixed frame contains 25 issuer-announced 2024–2026 Phase 2/3 topline or FDA decision candidates. The three existing clean cases are retained separately. No candidate may be removed because its clinical outcome or stock move is unfavorable.
 
+A second, separately frozen source-first overflow frame is `mozes/data/historical_candidate_frame_2024_2026_b.json` (eight candidates). It is processed by the same rules and is not a replacement for missing cases in the first frame. It exists because several historical symbols in the first frame have no recoverable price history from the documented keyless adapter. Both frames and all exclusions remain visible in the ledger.
+
 ## Candidate construction
 
 1. Search issuer IR pages and issuer-distributed GlobeNewswire/PRNewswire releases for prospective phrases (`to announce topline`, `to report topline`, `FDA accepted`, `PDUFA target/action date`) with 2024–2026 event dates. Exclude Phase 1, interim-only, secondary analyses, non-US listings, and events already in the clean starter bundle. This first frame was assembled on 2026-10-01; its URLs, tickers, type and prospective date are frozen in the JSON file. Discovery through a search engine is not proof of completeness.
