@@ -84,6 +84,13 @@ mozes historical-export --file historical-status.json
 
 `backtest_v2.report()` uses only non-legacy `historical_cases`: RUN-UP rows require `runup_ready`, and HOLD rows require `hold_ready`. Each price attachment freezes case-specific ticker/XBI rows; shared ticker prices and the legacy catalog cannot populate empirical statistics. Existing databases with older attachments must run `mozes historical-prices` again for each clean case to create these case-bound rows. Legacy events remain visible only in audit/quarantine coverage.
 
+The source-first 2024–2026 expansion is defined by [the inclusion protocol](docs/historical_inclusion_protocol.md), two frozen outcome-free candidate frames, and an adjudication ledger. `mozes historical-batch-import` verifies checked-in bundle and price hashes, imports 27 additional cases, and freezes case-bound ticker/XBI rows. After importing the three starter cases too, `mozes historical-batch-status` reports catalyst/year/outcome/readiness counts and six evidence-availability exclusions. These 30 clean cases are a convenience sample, **not** a representative OOS validation cohort; HOLD and strategy validation gates remain locked. The archive stores hashed normalized fact extracts with primary URLs, not full publisher pages.
+
+```bash
+mozes historical-batch-import
+mozes historical-batch-status
+```
+
 ### Starter batch and current-universe audit
 
 The checked-in starter bundle (`mozes/data/historical_starter.json`) contains three reconstructed point-in-time cases: KOD DAYBREAK, QTTB SIGNAL-AA, and PHAR's early Joenja pediatric approval. Source records store normalized fact extracts and their SHA-256 hashes, canonical primary URLs, publication-time basis, and retrieval timestamps. These are audit extracts, not full copies of the source pages. Pre-event snapshots cite only pre-event releases. The fixed CSV price capture in `mozes/data/starter_prices/` is adjusted daily Yahoo Chart data for KOD, QTTB, PHAR, and XBI; its manifest records capture time and file hashes, and `scripts/capture_starter_prices.py` reproduces the capture. The case-level price runs record CSV hashes and the original provider URL. Neither a clean case nor an imported label opens the independent OOS gates.

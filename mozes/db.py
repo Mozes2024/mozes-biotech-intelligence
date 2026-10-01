@@ -112,10 +112,13 @@ def store_prices(conn, ticker, rows, source):
 def archive_source(conn, source_id, canonical_url, source_type, published_at, retrieved_at, content, metadata=None):
     """Store immutable source bytes; an idempotent re-import must be identical."""
     digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
-    existing = conn.execute("SELECT content_hash FROM source_archive WHERE source_id=?", (source_id,)).fetchone()
+    existing = conn.execute("SELECT content_hash,canonical_url,source_type,published_at,retrieved_at,metadata_json FROM source_archive WHERE source_id=?", (source_id,)).fetchone()
     if existing:
         if existing["content_hash"] != digest:
             raise ValueError(f"source_id {source_id} was already archived with different content")
+        if (existing["canonical_url"], existing["source_type"], existing["published_at"], existing["retrieved_at"], existing["metadata_json"]) != (
+            canonical_url, source_type, published_at, retrieved_at, json.dumps(metadata or {}, ensure_ascii=False, sort_keys=True)):
+            raise ValueError(f"source_id {source_id} was already archived with different provenance")
         return digest
     with conn:
         conn.execute("INSERT INTO source_archive(source_id,canonical_url,source_type,published_at,retrieved_at,content_hash,content,metadata_json) VALUES(?,?,?,?,?,?,?,?)",
@@ -141,10 +144,15 @@ def store_price_ingestion_run(conn, run_id, provider, metadata=None):
 
 
 def attach_historical_prices(conn, case_id, ticker, start_date, end_date, provider, run_id=None, benchmark="XBI"):
+    existing = conn.execute("SELECT start_date,end_date,provider,run_id FROM historical_price_attachments "
+                            "WHERE case_id=? AND ticker=? AND benchmark=?", (case_id, ticker, benchmark)).fetchone()
+    if existing:
+        if tuple(existing) != (start_date, end_date, provider, run_id):
+            raise ValueError(f"case {case_id} already has a different frozen price attachment")
+        return
     with conn:
-        conn.execute("INSERT INTO historical_price_attachments(case_id,ticker,benchmark,start_date,end_date,provider,run_id,attached_at) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(case_id,ticker,benchmark) DO UPDATE SET start_date=excluded.start_date,end_date=excluded.end_date,provider=excluded.provider,run_id=excluded.run_id,attached_at=excluded.attached_at",
+        conn.execute("INSERT INTO historical_price_attachments(case_id,ticker,benchmark,start_date,end_date,provider,run_id,attached_at) VALUES(?,?,?,?,?,?,?,?)",
                      (case_id, ticker, benchmark, start_date, end_date, provider, run_id, utcnow()))
-        conn.execute("DELETE FROM historical_case_prices WHERE case_id=?", (case_id,))
         for symbol in {ticker, benchmark}:
             conn.execute("INSERT INTO historical_case_prices(case_id,ticker,date,close,volume,source) "
                          "SELECT ?,ticker,date,close,volume,source FROM prices "

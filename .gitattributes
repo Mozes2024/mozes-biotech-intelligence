@@ -1,0 +1,3 @@
+# Frozen CSV hashes must match on Windows and Linux checkouts.
+mozes/data/starter_prices/*.csv text eol=lf
+mozes/data/candidate_prices_2024_2026/*.csv text eol=lf

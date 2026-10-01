@@ -312,6 +312,27 @@ def cmd_historical_prices(args):
     return 0
 
 
+def cmd_historical_batch_import(args):
+    from .historical_batch import import_checked_batch
+    from .radar import bootstrap_database
+    conn = db.connect(DB_PATH)
+    bootstrap_database(conn)
+    result = import_checked_batch(conn)
+    print(json.dumps({"imported_cases": result["cases"], "archived_sources": result["sources"],
+                      "readiness": {key: result["readiness"][key] for key in
+                                    ("cases", "research_ready", "runup_ready", "hold_ready", "legacy_quarantined")}}, indent=2))
+    return 0
+
+
+def cmd_historical_batch_status(args):
+    from .historical_batch import batch_status
+    from .radar import bootstrap_database
+    conn = db.connect(DB_PATH)
+    bootstrap_database(conn)
+    print(json.dumps(batch_status(conn), indent=2))
+    return 0
+
+
 def cmd_audit_securities(args):
     from .radar import bootstrap_database
     from .security import audit_current_universe
@@ -391,6 +412,8 @@ def main(argv=None):
     s = sp("historical-import", cmd_historical_import, "import a source-archived point-in-time historical bundle")
     s.add_argument("--file", required=True)
     s.add_argument("--fetch-sources", action="store_true", help="archive source URLs when bundle content is absent")
+    sp("historical-batch-import", cmd_historical_batch_import, "import the checked 2024-2026 case and price batch")
+    sp("historical-batch-status", cmd_historical_batch_status, "report frozen-frame inclusion, exclusions and strata")
     sp("historical-readiness", cmd_historical_readiness, "inspect historical research/run-up/hold readiness")
     s = sp("historical-export", cmd_historical_export, "export historical dataset status JSON")
     s.add_argument("--file", default=None)

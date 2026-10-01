@@ -1,0 +1,135 @@
+{
+  "captured_at": "2026-10-01T08:35:27+00:00",
+  "files": {
+    "ACHV": {
+      "rows": 689,
+      "sha256": "c599a7b8b142dce88d2be7acb485a3f96bb21014b9eff1c84d929bba7460d685"
+    },
+    "AGIO": {
+      "rows": 689,
+      "sha256": "53b5868cde5c42cb1cd907a4ee5afebff62248b3ea70854a1b1b1959596aaa26"
+    },
+    "AMLX": {
+      "rows": 689,
+      "sha256": "d31240fe7044f6bed48eb786e14c02ac702fb8dfc312e74bc0c29fefbf6be477"
+    },
+    "AQST": {
+      "rows": 689,
+      "sha256": "fb71e57f8e9a178007c853c6582dd16d57031d30b510ce77a1ba1912b727f29f"
+    },
+    "ARQT": {
+      "rows": 689,
+      "sha256": "d6647b35d32884ac533415281172942cf1c7e3ffc2f6e5fb6f0f6b204ffe8160"
+    },
+    "ASND": {
+      "rows": 689,
+      "sha256": "7abddedc64a7045d172e0e2807567cb5a88bccf916e76914323cdb46b0690af2"
+    },
+    "ATYR": {
+      "rows": 689,
+      "sha256": "0357ab74eaad9aedb19e3e5f39d245a69d49360efd42f1a35d64045a94e50878"
+    },
+    "AUTL": {
+      "rows": 689,
+      "sha256": "b86dc57bafcc10f525d28dc2d529ee1b3f09904b99d073121929f96547e04a6f"
+    },
+    "AXSM": {
+      "rows": 689,
+      "sha256": "5b413cd24178957e19ffab9386cd167badf07307deedd4258d458265f39567c7"
+    },
+    "BBIO": {
+      "rows": 689,
+      "sha256": "807e0470a7cd04056a0370af0c3aba981768521f213203298ccc72615c5bf153"
+    },
+    "BTAI": {
+      "rows": 9,
+      "sha256": "6d1710f1a45b3e2c770e497163c2909713fc7dc768c6e2d379f0892ff169cb51"
+    },
+    "CING": {
+      "rows": 689,
+      "sha256": "fef482a7d097c9887d6fa3dcee451e4617fe125e8dc95400c45d3774c4ae5d5c"
+    },
+    "CYTK": {
+      "rows": 689,
+      "sha256": "cc3b43876eb13a817966c65c3c2bd12867f6d505cefd1759f352d483f67a278c"
+    },
+    "DERM": {
+      "rows": 689,
+      "sha256": "d3dea2bd2b7fd3a7b2432960047c1b129f6b9b9c9121f21beac1ba16c51de5a0"
+    },
+    "GRCE": {
+      "rows": 689,
+      "sha256": "1b9562f8055c979a119f3e4f495c16b5448bad2fd1e0352bc32721a99c57a258"
+    },
+    "IMNN": {
+      "rows": 689,
+      "sha256": "b4f85f041752be6d8b420b70d0a2b0b7b656edb7bdb9d3b278afd9749354c6bd"
+    },
+    "LNTH": {
+      "rows": 689,
+      "sha256": "24f9ad2033d6a0a240461045f604e485f8c6c22da0b3ae59f9ce68cd234a1c59"
+    },
+    "MIST": {
+      "rows": 689,
+      "sha256": "8399229b56f6c5346de94766df47b74b14f757fd246fe0ed4832fcf8ec33bba3"
+    },
+    "NAMS": {
+      "rows": 689,
+      "sha256": "681b45f75dedf206bfd3baf11d5362c421b83c4e61886248b59cf689b151314f"
+    },
+    "OCUL": {
+      "rows": 689,
+      "sha256": "f9b3bc2cf619311a74c2f36b58db9dca312a7479467dd26b3c03d97c9aac7057"
+    },
+    "OTLK": {
+      "rows": 689,
+      "sha256": "e25dab3876b9279f49897e5aca976f46c125bcebc3143c471ccf92a6c0a652f4"
+    },
+    "PRAX": {
+      "rows": 689,
+      "sha256": "e84a8a4556d023052115a51989f205171ffbc9bee5dc40c486a3a15f1288313c"
+    },
+    "RAPP": {
+      "rows": 580,
+      "sha256": "9d545ed3cdf65a81fb89e066b0afd75f0cb071e70f9119392dabd00429823e2a"
+    },
+    "REPL": {
+      "rows": 689,
+      "sha256": "1022910fd8f0c30cf4dcda3497f222e5608593e1ee9395dde9f7265e92d1803a"
+    },
+    "RYTM": {
+      "rows": 689,
+      "sha256": "32334df65d95bbbfcc204d9f11a6d61bbac0053c0de01d4aa256a8fcf31d6979"
+    },
+    "TVTX": {
+      "rows": 689,
+      "sha256": "fd716d612e20ec4242b9b08579d890ec07e8f449025c9ac303c950714b865721"
+    },
+    "UNCY": {
+      "rows": 689,
+      "sha256": "92ad5fcdd3ff7467eef536ab2658c5c72c6211c2fe498ad130751cdcc9d08387"
+    },
+    "XBI": {
+      "rows": 689,
+      "sha256": "c9baa8f340a531c3dd3f28a2688a968f1de5ff4cecddf9d70295d66874c12350"
+    },
+    "XENE": {
+      "rows": 689,
+      "sha256": "54592f320540cc4f8990134dde9a7bcdec158b91cd6142f760d57adcf2bf9319"
+    }
+  },
+  "frame_ids": [
+    "issuer-preannouncement-frame-2024-2026-v1",
+    "issuer-preannouncement-frame-2024-2026-v1b"
+  ],
+  "provider": "Yahoo Chart keyless",
+  "provider_url": "https://query1.finance.yahoo.com/v8/finance/chart/",
+  "request_end_exclusive": "2026-10-02",
+  "request_start": "2024-01-01",
+  "unavailable": {
+    "APLT": "HTTPError: HTTP Error 404: Not Found",
+    "CKPT": "HTTPError: HTTP Error 404: Not Found",
+    "IOBT": "HTTPError: HTTP Error 404: Not Found",
+    "ITRM": "HTTPError: HTTP Error 404: Not Found"
+  }
+}

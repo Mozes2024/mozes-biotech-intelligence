@@ -1,0 +1,2981 @@
+{
+  "sources": [
+    {
+      "source_id": "NAMS-BROOKLYN-20240729-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/07/26/2919849/0/en/newamsterdam-pharma-to-announce-topline-data-from-pivotal-phase-3-brooklyn-clinical-trial-evaluating-obicetrapib-in-patients-with-heterozygous-familial-hypercholesterolemia-on-mond.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-07-26T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "NewAmsterdam scheduled Phase 3 BROOKLYN topline data for July 29, 2024.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "NAMS-BROOKLYN-20240729-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/07/29/2920256/0/en/NewAmsterdam-Pharma-Announces-Positive-Topline-Data-from-Pivotal-Phase-3-BROOKLYN-Clinical-Trial-Evaluating-Obicetrapib-in-Patients-with-Heterozygous-Familial-Hypercholesterolemia.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-07-29T12:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "BROOKLYN met its LDL-C primary endpoint.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "IMNN-OVATION2-20240731-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/06/24/2902981/0/en/imunon-announces-database-lock-for-phase-2-ovation-2-study-with-imnn-001-in-advanced-ovarian-cancer.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-06-24T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "IMUNON reported Phase 2 OVATION 2 database lock and expected topline by end of July 2024.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "IMNN-OVATION2-20240731-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/07/30/2920936/0/en/imunon-announces-11-1-month-increase-in-overall-survival-in-patients-with-newly-diagnosed-advanced-ovarian-cancer-treated-with-imnn-001.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-07-30T12:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "OVATION 2 reported a three-month improvement in the PFS primary endpoint; this Phase 2 study was not powered for statistical significance.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "PRAX-EMBOLD-20240903-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/09/02/2939234/0/en/praxis-precision-medicines-to-announce-topline-data-from-the-phase-2-embold-study-of-relutrigine-prax-562-in-scn2a-and-scn8a-developmental-and-epileptic-encephalopathies-on-septemb.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-09-02T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Praxis scheduled Phase 2 EMBOLD topline results for September 3, 2024.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "PRAX-EMBOLD-20240903-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/09/03/2939566/0/en/praxis-precision-medicines-announces-positive-topline-results-from-the-embold-study-in-scn2a-and-8a-developmental-epilepsies-highlighting-the-disease-modifying-potential-of-relutri.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-09-03T11:30:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Praxis reported positive Phase 2 EMBOLD topline findings for relutrigine.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "TVTX-SPARsentan-20240905-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/5/6/2876124/0/en/Travere-Therapeutics-Reports-First-Quarter-2024-Financial-Results.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-05-06T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Travere reported FDA priority review of the FILSPARI sNDA for full approval.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "TVTX-SPARsentan-20240905-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/09/05/2941872/0/en/travere-therapeutics-announces-full-fda-approval-of-filspari-sparsentan-the-only-non-immunosuppressive-treatment-that-significantly-slows-kidney-function-decline-in-iga-nephropathy.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-09-05T21:34:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA granted full approval to FILSPARI for IgA nephropathy.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "DERM-DFD29-20241104-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/05/13/2880852/0/en/Journey-Medical-Corporation-Reports-First-Quarter-2024-Financial-Results-and-Recent-Corporate-Highlights.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-05-13T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Journey Medical reported the DFD-29 regulatory application under FDA review.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "DERM-DFD29-20241104-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/11/04/2973917/0/en/journey-medical-corporation-announces-u-s-fda-approval-of-emrosi-minocycline-hydrochloride-extended-release-capsules-40-mg-for-the-treatment-of-rosacea.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-11-04T12:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA approved Emrosi, formerly DFD-29, for rosacea.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "AUTL-OBECEL-20241116-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/01/22/2812903/0/en/Autolus-Therapeutics-announces-acceptance-of-Biologics-License-Application-for-obecabtagene-autoleucel-obe-cel-as-a-potential-treatment-for-relapsed-refractory-Adult-B-cell-Acute-L.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-01-22T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Autolus reported FDA acceptance of the obe-cel BLA with November 16, 2024 target date.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "AUTL-OBECEL-20241116-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/11/08/2977884/0/en/index.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-11-08T21:23:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA approved AUCATZYL before the original target date.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "BBIO-ACORAMIDIS-20241129-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/2/5/2823433/0/en/BridgeBio-Pharma-Announces-U-S-Food-and-Drug-Administration-FDA-Acceptance-of-New-Drug-Application-NDA-for-Acoramidis-for-the-Treatment-of-Patients-with-Transthyretin-Amyloid-Cardi.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-02-05T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "BridgeBio reported FDA acceptance of the acoramidis NDA for ATTR-CM.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "BBIO-ACORAMIDIS-20241129-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2024/11/23/2986250/0/en/attruby-acoramidis-a-near-complete-ttr-stabilizer-90-approved-by-fda-to-reduce-cardiovascular-death-and-cardiovascular-related-hospitalization-in-attr-cm-patients.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2024-11-23T00:11:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA approved Attruby (acoramidis) for ATTR-CM.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "RYTM-TRANSCEND-20250407-pre",
+      "canonical_url": "https://www.globenewswire.com/fr/news-release/2025/4/6/3056373/0/en/Rhythm-Pharmaceuticals-to-Announce-Topline-Results-from-Pivotal-Phase-3-TRANSCEND-Trial-Evaluating-Setmelanotide-in-Patients-with-Acquired-Hypothalamic-Obesity.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-04-06T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Rhythm scheduled Phase 3 TRANSCEND topline results for April 7, 2025.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "RYTM-TRANSCEND-20250407-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/4/7/3056552/0/en/Rhythm-Pharmaceuticals-Announces-Pivotal-Phase-3-TRANSCEND-Trial-Meets-Primary-Endpoint-with-19-8-Placebo-adjusted-BMI-Reduction-in-Patients-N-120-with-Acquired-Hypothalamic-Obesit.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-04-07T11:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "TRANSCEND met its Phase 3 BMI primary endpoint.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "RYTM-BIVAMELAGON-20250709-pre",
+      "canonical_url": "https://ir.rhythmtx.com/news-releases/news-release-details/rhythm-pharmaceuticals-announce-topline-results-phase-2-trial",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-07-08T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Rhythm scheduled Phase 2 bivamelagon topline results for July 9, 2025.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "RYTM-BIVAMELAGON-20250709-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/07/09/3112491/0/en/Rhythm-Pharmaceuticals-Announces-Oral-MC4R-Agonist-Bivamelagon-Achieved-Statistically-Significant-Clinically-Meaningful-BMI-Reductions-in-Placebo-controlled-Phase-2-Trial-in-Acquir.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-07-09T12:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Phase 2 bivamelagon achieved statistically significant BMI reductions.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "UNCY-OLC-20250628-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/6/10/3096422/0/en/Unicycive-Provides-Update-on-New-Drug-Application-for-Oxylanthanum-Carbonate-to-Treat-Hyperphosphatemia-in-Patients-with-Chronic-Kidney-Disease-on-Dialysis.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-06-10T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Unicycive disclosed FDA-identified deficiencies at a third-party manufacturing vendor while OLC remained under review for the June 28 target.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "UNCY-OLC-20250628-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/06/30/3107365/0/en/unicycive-therapeutics-announces-receipt-of-complete-response-letter-for-oxylanthanum-carbonate-for-the-treatment-of-hyperphosphatemia-in-patients-with-chronic-kidney-disease-on-di.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-06-30T11:05:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA issued a CRL for oxylanthanum carbonate, citing third-party manufacturing deficiencies.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "RAPP-RAP219-20250908-pre",
+      "canonical_url": "https://investors.rapportrx.com/news-releases/news-release-details/rapport-therapeutics-announce-topline-results-rap-219-phase-2a",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-09-05T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Rapport scheduled Phase 2a RAP-219 topline results for September 8, 2025.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "RAPP-RAP219-20250908-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/09/08/3145917/0/en/index.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-09-08T10:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Phase 2a RAP-219 met its primary long-episode endpoint.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "ARQT-ZORYVE-20251013-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/02/26/3032866/0/en/u-s-fda-accepts-supplemental-new-drug-application-for-arcutis-zoryve-roflumilast-cream-0-05-for-the-treatment-of-children-aged-2-to-5-with-mild-to-moderate-atopic-dermatitis.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-02-26T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Arcutis reported FDA acceptance of the ZORYVE 0.05% pediatric sNDA with October 13 target date.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "ARQT-ZORYVE-20251013-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/10/06/3161656/0/en/fda-approves-arcutis-zoryve-roflumilast-cream-0-05-for-the-treatment-of-atopic-dermatitis-in-children-ages-2-to-5.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-10-06T12:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA approved ZORYVE cream 0.05% for children aged 2 to 5.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "ATYR-EFZOFIT-20250915-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/05/07/3076532/0/en/aTyr-Pharma-Announces-First-Quarter-2025-Results-and-Provides-Corporate-Update.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-05-07T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "aTyr expected Phase 3 EFZO-FIT topline data in Q3 2025.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "ATYR-EFZOFIT-20250915-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/09/15/3149882/0/en/aTyr-Pharma-Announces-Topline-Results-from-Phase-3-EFZO-FIT-Study-of-Efzofitimod-in-Pulmonary-Sarcoidosis.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-09-15T11:30:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "EFZO-FIT did not meet its primary steroid-dose endpoint (p=0.3313).",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "ASND-CNP-20251130-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/11/12/3186726/0/en/Ascendis-Pharma-Reports-Third-Quarter-2025-Financial-Results.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-11-12T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Ascendis reported TransCon CNP under FDA priority review; the original target date was November 30, 2025.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "ASND-CNP-20251130-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/02/27/3246848/0/en/FDA-Approves-Once-Weekly-YUVIWEL-navepegritide-for-Children-with-Achondroplasia-Aged-2-Years-and-Older.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-02-27T22:57:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA granted accelerated approval to YUVIWEL (navepegritide).",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "ASND-CNP-20251130-pre-update-1",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/11/25/3194804/0/en/Ascendis-Announces-Extension-of-FDA-Review-Period-for-TransCon-CNP-navepegritide-for-Children-with-Achondroplasia.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-11-25T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA extended TransCon CNP target action date to February 28, 2026.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "MIST-ETRIPAMIL-20251213-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/11/12/3186091/0/en/milestone-pharmaceuticals-reports-third-quarter-2025-financial-results-and-provides-regulatory-and-corporate-update.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-11-12T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Milestone reported etripamil under FDA review with December 2025 decision target.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "MIST-ETRIPAMIL-20251213-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/12/13/3204944/0/en/Milestone-Receives-FDA-Approval-of-CARDAMYST-etripamil-as-First-and-Only-Self-Administered-Nasal-Spray-for-Adults-with-Paroxysmal-Supraventricular-Tachycardia-PSVT.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-12-13T01:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA approved CARDAMYST (etripamil) for PSVT.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "OTLK-ONS5010-20251231-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/11/13/3187353/0/en/Outlook-Therapeutics-Announces-Acceptance-of-Biologics-License-Application-by-U-S-FDA-for-ONS-5010-as-a-Treatment-for-Wet-AMD.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-11-13T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Outlook reported FDA acceptance of the ONS-5010 BLA resubmission.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "OTLK-ONS5010-20251231-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/12/31/3211918/0/en/outlook-therapeutics-provides-regulatory-update-on-u-s-food-and-drug-administration-review-of-ons-5010-lytenava-bevacizumab-vikg-for-the-treatment-of-wet-amd.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-12-31T21:15:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA issued a CRL for resubmitted ONS-5010 BLA.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "AGIO-MITAPIVAT-20251207-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/10/30/3177175/0/en/Agios-Reports-Third-Quarter-2025-Financial-Results-and-Provides-Business-Update.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-10-30T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Agios reported FDA's extended December 7, 2025 target date for mitapivat thalassemia sNDA.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "AGIO-MITAPIVAT-20251207-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/12/08/3201402/31990/en/agios-provides-update-on-u-s-snda-for-mitapivat-in-thalassemia.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-12-08T12:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Agios said FDA had not issued a decision by the December 7 target and review remained active.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "AQST-ANAPHYLM-20260131-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/09/04/3144314/0/en/Aquestive-Therapeutics-Announces-that-FDA-Will-Not-Require-an-Advisory-Committee-Meeting-to-Discuss-New-Drug-Application-for-Anaphylm.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-09-04T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Aquestive said the Anaphylm NDA remained under FDA review for January 31, 2026 action.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "AQST-ANAPHYLM-20260131-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/02/02/3230115/0/en/Aquestive-Therapeutics-Announces-FDA-Issuance-of-Complete-Response-Letter-for-Anaphylm.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-02-02T12:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Aquestive disclosed FDA's January 30 CRL for Anaphylm on February 2.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "OCUL-SOL1-20260217-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/02/13/3238349/0/en/Ocular-Therapeutix-to-Announce-Topline-Data-for-SOL-1-Phase-3-Superiority-Trial-in-Wet-AMD-on-Tuesday-February-17-2026.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-02-13T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Ocular scheduled Phase 3 SOL-1 topline data for February 17, 2026.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "OCUL-SOL1-20260217-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/02/17/3239086/0/en/ocular-therapeutix-reports-positive-results-from-landmark-sol-1-phase-3-superiority-trial-in-wet-amd.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-02-17T12:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "SOL-1 met its superiority primary endpoint at week 36.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "XENE-XTOLE2-20260309-pre",
+      "canonical_url": "https://investor.xenon-pharma.com/news-releases/news-release-details/xenon-announce-topline-results-phase-3-x-tole2-study-azetukalner",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-03-08T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Xenon scheduled Phase 3 X-TOLE2 topline results for March 9, 2026.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "XENE-XTOLE2-20260309-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/03/09/3251686/0/en/xenon-announces-positive-topline-data-from-phase-3-x-tole2-study-of-azetukalner-in-focal-onset-seizures-fos.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-03-09T11:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "X-TOLE2 met its primary endpoint in both azetukalner dose groups.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "LNTH-LNTH2501-20260329-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/10/30/3177418/0/en/lantheus-announces-fda-grants-pdufa-date-for-lnth-2501-ga-68-edotreotide-a-pet-diagnostic-imaging-kit-targeting-somatostatin-receptor-positive-sstr-neuroendocrine-tumors-nets.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-10-30T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Lantheus reported FDA review of the LNTH-2501 NDA; original target was March 29, 2026.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "LNTH-LNTH2501-20260329-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/06/26/3318445/0/en/lantheus-receives-complete-response-letter-from-fda-for-lnth-2501-ga-68-edotreotide.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-06-26T20:01:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA issued a CRL for LNTH-2501 over third-party manufacturing conditions.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "LNTH-LNTH2501-20260329-pre-update-1",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/03/17/3257632/0/en/lantheus-announces-three-month-extension-of-pdufa-date-for-lnth-2501-ga-68-edotreotide-a-pet-diagnostic-imaging-kit-targeting-somatostatin-receptor-positive-sstr-neuroendocrine-tum.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-03-17T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA extended the LNTH-2501 target action date to June 29, 2026.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "REPL-RP1-20260410-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/10/20/3169221/0/en/replimune-announces-fda-acceptance-of-bla-resubmission-of-rp1-for-the-treatment-of-advanced-melanoma.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-10-20T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Replimune reported FDA acceptance of its RP1 BLA resubmission and April 10, 2026 target.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "REPL-RP1-20260410-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/4/10/3272063/0/en/replimune-receives-complete-response-letter-from-the-fda-for-rp1-biologics-license-application-for-the-treatment-of-advanced-melanoma.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-04-10T21:02:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA issued a CRL for RP1 in advanced melanoma.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "GRCE-GTX104-20260423-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/08/27/3139943/0/en/Grace-Therapeutics-Announces-U-S-Food-and-Drug-Administration-Acceptance-for-Review-of-New-Drug-Application-for-GTx-104.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-08-27T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Grace reported FDA acceptance of the GTx-104 NDA with April 23, 2026 target.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "GRCE-GTX104-20260423-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/04/23/3280288/0/en/grace-therapeutics-provides-regulatory-update-on-new-drug-application-for-gtx-104.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-04-23T17:13:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA issued a CRL for GTx-104 citing CMC and nonclinical deficiencies.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "AXSM-AXS05-20260430-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/12/31/3211743/33090/en/index.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-12-31T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Axsome reported FDA acceptance and priority review of AXS-05 sNDA with April 30, 2026 target.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "AXSM-AXS05-20260430-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/04/30/3285345/33090/en/Axsome-Therapeutics-Announces-FDA-Approval-of-AUVELITY-dextromethorphan-HBr-and-bupropion-HCl-for-the-Treatment-of-Agitation-Associated-with-Dementia-due-to-Alzheimer-s-Disease.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-04-30T18:06:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA approved AUVELITY for Alzheimer's disease agitation.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "CYTK-ACACIA-20260505-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/5/4/3287103/35409/en/cytokinetics-to-announce-topline-results-from-acacia-hcm-the-pivotal-phase-3-clinical-trial-of-aficamten-in-patients-with-non-obstructive-hypertrophic-cardiomyopathy-on-may-5-2026.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-05-04T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Cytokinetics scheduled ACACIA-HCM Phase 3 topline for May 5, 2026.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "CYTK-ACACIA-20260505-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/05/05/3287549/0/en/cytokinetics-announces-positive-topline-results-from-acacia-hcm-the-pivotal-phase-3-clinical-trial-of-aficamten-in-patients-with-non-obstructive-hypertrophic-cardiomyopathy.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-05-05T11:30:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "ACACIA-HCM met both co-primary endpoints.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "CING-CTX1301-20260531-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/10/14/3166151/0/en/FDA-Accepts-Cingulate-s-New-Drug-Application-for-CTx-1301-in-Attention-Deficit-Hyperactivity-Disorder-ADHD-and-sets-a-May-31-2026-PDUFA-Date.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-10-14T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Cingulate reported FDA acceptance of CTx-1301 NDA with May 31, 2026 target.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "CING-CTX1301-20260531-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/06/02/3305119/0/en/cingulate-receives-complete-response-letter-from-fda-for-ctx-1301.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-06-02T12:00:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA issued a CRL for CTx-1301 citing CMC information requests.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "ACHV-CYTISINICLINE-20260620-pre",
+      "canonical_url": "https://www.globenewswire.com/news-release/2025/11/06/3182358/0/en/achieve-life-sciences-reports-third-quarter-2025-financial-results-provides-updates-on-cytisinicline-program.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2025-11-06T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Achieve reported FDA acceptance of cytisinicline NDA with June 20, 2026 target.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "ACHV-CYTISINICLINE-20260620-outcome",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/06/22/3315277/0/en/achieve-life-sciences-receives-complete-response-letter-from-fda-for-cytisinicline-nda.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-06-22T12:30:00Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "FDA issued a CRL for cytisinicline over third-party manufacturing deficiencies.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer-distributed release minute in ET converted to UTC",
+        "candidate_frame": "source-first"
+      }
+    },
+    {
+      "source_id": "ACHV-CYTISINICLINE-20260620-pre-update-1",
+      "canonical_url": "https://www.globenewswire.com/news-release/2026/4/15/3274367/0/en/achieve-life-sciences-announces-operational-progress-including-completion-of-technology-transfer-to-adare-pharma-solutions.html",
+      "source_type": "issuer_distributed_release",
+      "published_at": "2026-04-15T23:59:59Z",
+      "retrieved_at": "2026-10-01T08:51:00Z",
+      "content": "Achieve said it expected a CRL on or before June 20 due to third-party manufacturing issues, and reported manufacturing transfer progress.",
+      "metadata": {
+        "archive_scope": "normalized_fact_extract",
+        "timestamp_basis": "issuer release date; conservative UTC end-of-day",
+        "candidate_frame": "source-first"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "PIT-NAMS-BROOKLYN-20240729",
+      "ticker": "NAMS",
+      "catalyst_type": "P3_TOPLINE",
+      "event_at": "2024-07-29T12:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "NAMS-BROOKLYN-20240729-pre",
+        "NAMS-BROOKLYN-20240729-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-NAMS-BROOKLYN-20240729-T-3",
+          "horizon": "T-3",
+          "as_of": "2024-07-26T23:59:59Z",
+          "source_ids": [
+            "NAMS-BROOKLYN-20240729-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "NewAmsterdam scheduled Phase 3 BROOKLYN topline data for July 29, 2024."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-NAMS-BROOKLYN-20240729-T-1",
+          "horizon": "T-1",
+          "as_of": "2024-07-28T23:59:59Z",
+          "source_ids": [
+            "NAMS-BROOKLYN-20240729-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "NewAmsterdam scheduled Phase 3 BROOKLYN topline data for July 29, 2024."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-NAMS-BROOKLYN-20240729-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "NAMS-BROOKLYN-20240729-outcome"
+        ],
+        "label": {
+          "clinical": "success",
+          "source_fact": "BROOKLYN met its LDL-C primary endpoint."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-IMNN-OVATION2-20240731",
+      "ticker": "IMNN",
+      "catalyst_type": "P2_TOPLINE",
+      "event_at": "2024-07-30T12:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "IMNN-OVATION2-20240731-pre",
+        "IMNN-OVATION2-20240731-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-IMNN-OVATION2-20240731-T-30",
+          "horizon": "T-30",
+          "as_of": "2024-06-30T23:59:59Z",
+          "source_ids": [
+            "IMNN-OVATION2-20240731-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "IMUNON reported Phase 2 OVATION 2 database lock and expected topline by end of July 2024."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-IMNN-OVATION2-20240731-T-14",
+          "horizon": "T-14",
+          "as_of": "2024-07-16T23:59:59Z",
+          "source_ids": [
+            "IMNN-OVATION2-20240731-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "IMUNON reported Phase 2 OVATION 2 database lock and expected topline by end of July 2024."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-IMNN-OVATION2-20240731-T-7",
+          "horizon": "T-7",
+          "as_of": "2024-07-23T23:59:59Z",
+          "source_ids": [
+            "IMNN-OVATION2-20240731-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "IMUNON reported Phase 2 OVATION 2 database lock and expected topline by end of July 2024."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-IMNN-OVATION2-20240731-T-3",
+          "horizon": "T-3",
+          "as_of": "2024-07-27T23:59:59Z",
+          "source_ids": [
+            "IMNN-OVATION2-20240731-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "IMUNON reported Phase 2 OVATION 2 database lock and expected topline by end of July 2024."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-IMNN-OVATION2-20240731-T-1",
+          "horizon": "T-1",
+          "as_of": "2024-07-29T23:59:59Z",
+          "source_ids": [
+            "IMNN-OVATION2-20240731-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "IMUNON reported Phase 2 OVATION 2 database lock and expected topline by end of July 2024."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-IMNN-OVATION2-20240731-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "IMNN-OVATION2-20240731-outcome"
+        ],
+        "label": {
+          "clinical": "mixed",
+          "source_fact": "OVATION 2 reported a three-month improvement in the PFS primary endpoint; this Phase 2 study was not powered for statistical significance."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-PRAX-EMBOLD-20240903",
+      "ticker": "PRAX",
+      "catalyst_type": "P2_TOPLINE",
+      "event_at": "2024-09-03T11:30:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "PRAX-EMBOLD-20240903-pre",
+        "PRAX-EMBOLD-20240903-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-PRAX-EMBOLD-20240903-T-1",
+          "horizon": "T-1",
+          "as_of": "2024-09-02T23:59:59Z",
+          "source_ids": [
+            "PRAX-EMBOLD-20240903-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Praxis scheduled Phase 2 EMBOLD topline results for September 3, 2024."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-PRAX-EMBOLD-20240903-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "PRAX-EMBOLD-20240903-outcome"
+        ],
+        "label": {
+          "clinical": "success",
+          "source_fact": "Praxis reported positive Phase 2 EMBOLD topline findings for relutrigine."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-TVTX-SPARsentan-20240905",
+      "ticker": "TVTX",
+      "catalyst_type": "PDUFA_SUPP",
+      "event_at": "2024-09-05T21:34:00Z",
+      "announcement_session": "afterhours",
+      "source_ids": [
+        "TVTX-SPARsentan-20240905-pre",
+        "TVTX-SPARsentan-20240905-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-TVTX-SPARsentan-20240905-T-60",
+          "horizon": "T-60",
+          "as_of": "2024-07-07T23:59:59Z",
+          "source_ids": [
+            "TVTX-SPARsentan-20240905-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Travere reported FDA priority review of the FILSPARI sNDA for full approval."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-TVTX-SPARsentan-20240905-T-30",
+          "horizon": "T-30",
+          "as_of": "2024-08-06T23:59:59Z",
+          "source_ids": [
+            "TVTX-SPARsentan-20240905-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Travere reported FDA priority review of the FILSPARI sNDA for full approval."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-TVTX-SPARsentan-20240905-T-14",
+          "horizon": "T-14",
+          "as_of": "2024-08-22T23:59:59Z",
+          "source_ids": [
+            "TVTX-SPARsentan-20240905-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Travere reported FDA priority review of the FILSPARI sNDA for full approval."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-TVTX-SPARsentan-20240905-T-7",
+          "horizon": "T-7",
+          "as_of": "2024-08-29T23:59:59Z",
+          "source_ids": [
+            "TVTX-SPARsentan-20240905-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Travere reported FDA priority review of the FILSPARI sNDA for full approval."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-TVTX-SPARsentan-20240905-T-3",
+          "horizon": "T-3",
+          "as_of": "2024-09-02T23:59:59Z",
+          "source_ids": [
+            "TVTX-SPARsentan-20240905-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Travere reported FDA priority review of the FILSPARI sNDA for full approval."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-TVTX-SPARsentan-20240905-T-1",
+          "horizon": "T-1",
+          "as_of": "2024-09-04T23:59:59Z",
+          "source_ids": [
+            "TVTX-SPARsentan-20240905-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Travere reported FDA priority review of the FILSPARI sNDA for full approval."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-TVTX-SPARsentan-20240905-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "TVTX-SPARsentan-20240905-outcome"
+        ],
+        "label": {
+          "regulatory": "approve",
+          "source_fact": "FDA granted full approval to FILSPARI for IgA nephropathy."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-DERM-DFD29-20241104",
+      "ticker": "DERM",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2024-11-04T12:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "DERM-DFD29-20241104-pre",
+        "DERM-DFD29-20241104-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-DERM-DFD29-20241104-T-60",
+          "horizon": "T-60",
+          "as_of": "2024-09-05T23:59:59Z",
+          "source_ids": [
+            "DERM-DFD29-20241104-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Journey Medical reported the DFD-29 regulatory application under FDA review."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-DERM-DFD29-20241104-T-30",
+          "horizon": "T-30",
+          "as_of": "2024-10-05T23:59:59Z",
+          "source_ids": [
+            "DERM-DFD29-20241104-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Journey Medical reported the DFD-29 regulatory application under FDA review."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-DERM-DFD29-20241104-T-14",
+          "horizon": "T-14",
+          "as_of": "2024-10-21T23:59:59Z",
+          "source_ids": [
+            "DERM-DFD29-20241104-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Journey Medical reported the DFD-29 regulatory application under FDA review."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-DERM-DFD29-20241104-T-7",
+          "horizon": "T-7",
+          "as_of": "2024-10-28T23:59:59Z",
+          "source_ids": [
+            "DERM-DFD29-20241104-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Journey Medical reported the DFD-29 regulatory application under FDA review."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-DERM-DFD29-20241104-T-3",
+          "horizon": "T-3",
+          "as_of": "2024-11-01T23:59:59Z",
+          "source_ids": [
+            "DERM-DFD29-20241104-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Journey Medical reported the DFD-29 regulatory application under FDA review."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-DERM-DFD29-20241104-T-1",
+          "horizon": "T-1",
+          "as_of": "2024-11-03T23:59:59Z",
+          "source_ids": [
+            "DERM-DFD29-20241104-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Journey Medical reported the DFD-29 regulatory application under FDA review."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-DERM-DFD29-20241104-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "DERM-DFD29-20241104-outcome"
+        ],
+        "label": {
+          "regulatory": "approve",
+          "source_fact": "FDA approved Emrosi, formerly DFD-29, for rosacea."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-AUTL-OBECEL-20241116",
+      "ticker": "AUTL",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2024-11-08T21:23:00Z",
+      "announcement_session": "afterhours",
+      "source_ids": [
+        "AUTL-OBECEL-20241116-pre",
+        "AUTL-OBECEL-20241116-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-AUTL-OBECEL-20241116-T-60",
+          "horizon": "T-60",
+          "as_of": "2024-09-09T23:59:59Z",
+          "source_ids": [
+            "AUTL-OBECEL-20241116-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Autolus reported FDA acceptance of the obe-cel BLA with November 16, 2024 target date."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AUTL-OBECEL-20241116-T-30",
+          "horizon": "T-30",
+          "as_of": "2024-10-09T23:59:59Z",
+          "source_ids": [
+            "AUTL-OBECEL-20241116-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Autolus reported FDA acceptance of the obe-cel BLA with November 16, 2024 target date."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AUTL-OBECEL-20241116-T-14",
+          "horizon": "T-14",
+          "as_of": "2024-10-25T23:59:59Z",
+          "source_ids": [
+            "AUTL-OBECEL-20241116-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Autolus reported FDA acceptance of the obe-cel BLA with November 16, 2024 target date."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AUTL-OBECEL-20241116-T-7",
+          "horizon": "T-7",
+          "as_of": "2024-11-01T23:59:59Z",
+          "source_ids": [
+            "AUTL-OBECEL-20241116-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Autolus reported FDA acceptance of the obe-cel BLA with November 16, 2024 target date."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AUTL-OBECEL-20241116-T-3",
+          "horizon": "T-3",
+          "as_of": "2024-11-05T23:59:59Z",
+          "source_ids": [
+            "AUTL-OBECEL-20241116-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Autolus reported FDA acceptance of the obe-cel BLA with November 16, 2024 target date."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AUTL-OBECEL-20241116-T-1",
+          "horizon": "T-1",
+          "as_of": "2024-11-07T23:59:59Z",
+          "source_ids": [
+            "AUTL-OBECEL-20241116-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Autolus reported FDA acceptance of the obe-cel BLA with November 16, 2024 target date."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-AUTL-OBECEL-20241116-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "AUTL-OBECEL-20241116-outcome"
+        ],
+        "label": {
+          "regulatory": "approve",
+          "source_fact": "FDA approved AUCATZYL before the original target date."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-BBIO-ACORAMIDIS-20241129",
+      "ticker": "BBIO",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2024-11-23T00:11:00Z",
+      "announcement_session": "afterhours",
+      "source_ids": [
+        "BBIO-ACORAMIDIS-20241129-pre",
+        "BBIO-ACORAMIDIS-20241129-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-BBIO-ACORAMIDIS-20241129-T-60",
+          "horizon": "T-60",
+          "as_of": "2024-09-23T23:59:59Z",
+          "source_ids": [
+            "BBIO-ACORAMIDIS-20241129-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "BridgeBio reported FDA acceptance of the acoramidis NDA for ATTR-CM."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-BBIO-ACORAMIDIS-20241129-T-30",
+          "horizon": "T-30",
+          "as_of": "2024-10-23T23:59:59Z",
+          "source_ids": [
+            "BBIO-ACORAMIDIS-20241129-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "BridgeBio reported FDA acceptance of the acoramidis NDA for ATTR-CM."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-BBIO-ACORAMIDIS-20241129-T-14",
+          "horizon": "T-14",
+          "as_of": "2024-11-08T23:59:59Z",
+          "source_ids": [
+            "BBIO-ACORAMIDIS-20241129-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "BridgeBio reported FDA acceptance of the acoramidis NDA for ATTR-CM."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-BBIO-ACORAMIDIS-20241129-T-7",
+          "horizon": "T-7",
+          "as_of": "2024-11-15T23:59:59Z",
+          "source_ids": [
+            "BBIO-ACORAMIDIS-20241129-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "BridgeBio reported FDA acceptance of the acoramidis NDA for ATTR-CM."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-BBIO-ACORAMIDIS-20241129-T-3",
+          "horizon": "T-3",
+          "as_of": "2024-11-19T23:59:59Z",
+          "source_ids": [
+            "BBIO-ACORAMIDIS-20241129-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "BridgeBio reported FDA acceptance of the acoramidis NDA for ATTR-CM."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-BBIO-ACORAMIDIS-20241129-T-1",
+          "horizon": "T-1",
+          "as_of": "2024-11-21T23:59:59Z",
+          "source_ids": [
+            "BBIO-ACORAMIDIS-20241129-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "BridgeBio reported FDA acceptance of the acoramidis NDA for ATTR-CM."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-BBIO-ACORAMIDIS-20241129-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "BBIO-ACORAMIDIS-20241129-outcome"
+        ],
+        "label": {
+          "regulatory": "approve",
+          "source_fact": "FDA approved Attruby (acoramidis) for ATTR-CM."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-RYTM-TRANSCEND-20250407",
+      "ticker": "RYTM",
+      "catalyst_type": "P3_TOPLINE",
+      "event_at": "2025-04-07T11:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "RYTM-TRANSCEND-20250407-pre",
+        "RYTM-TRANSCEND-20250407-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-RYTM-TRANSCEND-20250407-T-1",
+          "horizon": "T-1",
+          "as_of": "2025-04-06T23:59:59Z",
+          "source_ids": [
+            "RYTM-TRANSCEND-20250407-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Rhythm scheduled Phase 3 TRANSCEND topline results for April 7, 2025."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-RYTM-TRANSCEND-20250407-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "RYTM-TRANSCEND-20250407-outcome"
+        ],
+        "label": {
+          "clinical": "success",
+          "source_fact": "TRANSCEND met its Phase 3 BMI primary endpoint."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-RYTM-BIVAMELAGON-20250709",
+      "ticker": "RYTM",
+      "catalyst_type": "P2_TOPLINE",
+      "event_at": "2025-07-09T12:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "RYTM-BIVAMELAGON-20250709-pre",
+        "RYTM-BIVAMELAGON-20250709-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-RYTM-BIVAMELAGON-20250709-T-1",
+          "horizon": "T-1",
+          "as_of": "2025-07-08T23:59:59Z",
+          "source_ids": [
+            "RYTM-BIVAMELAGON-20250709-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Rhythm scheduled Phase 2 bivamelagon topline results for July 9, 2025."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-RYTM-BIVAMELAGON-20250709-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "RYTM-BIVAMELAGON-20250709-outcome"
+        ],
+        "label": {
+          "clinical": "success",
+          "source_fact": "Phase 2 bivamelagon achieved statistically significant BMI reductions."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-UNCY-OLC-20250628",
+      "ticker": "UNCY",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2025-06-30T11:05:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "UNCY-OLC-20250628-pre",
+        "UNCY-OLC-20250628-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-UNCY-OLC-20250628-T-14",
+          "horizon": "T-14",
+          "as_of": "2025-06-16T23:59:59Z",
+          "source_ids": [
+            "UNCY-OLC-20250628-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Unicycive disclosed FDA-identified deficiencies at a third-party manufacturing vendor while OLC remained under review for the June 28 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-UNCY-OLC-20250628-T-7",
+          "horizon": "T-7",
+          "as_of": "2025-06-23T23:59:59Z",
+          "source_ids": [
+            "UNCY-OLC-20250628-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Unicycive disclosed FDA-identified deficiencies at a third-party manufacturing vendor while OLC remained under review for the June 28 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-UNCY-OLC-20250628-T-3",
+          "horizon": "T-3",
+          "as_of": "2025-06-27T23:59:59Z",
+          "source_ids": [
+            "UNCY-OLC-20250628-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Unicycive disclosed FDA-identified deficiencies at a third-party manufacturing vendor while OLC remained under review for the June 28 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-UNCY-OLC-20250628-T-1",
+          "horizon": "T-1",
+          "as_of": "2025-06-29T23:59:59Z",
+          "source_ids": [
+            "UNCY-OLC-20250628-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Unicycive disclosed FDA-identified deficiencies at a third-party manufacturing vendor while OLC remained under review for the June 28 target."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-UNCY-OLC-20250628-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "UNCY-OLC-20250628-outcome"
+        ],
+        "label": {
+          "regulatory": "crl",
+          "source_fact": "FDA issued a CRL for oxylanthanum carbonate, citing third-party manufacturing deficiencies."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-RAPP-RAP219-20250908",
+      "ticker": "RAPP",
+      "catalyst_type": "P2_TOPLINE",
+      "event_at": "2025-09-08T10:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "RAPP-RAP219-20250908-pre",
+        "RAPP-RAP219-20250908-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-RAPP-RAP219-20250908-T-3",
+          "horizon": "T-3",
+          "as_of": "2025-09-05T23:59:59Z",
+          "source_ids": [
+            "RAPP-RAP219-20250908-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Rapport scheduled Phase 2a RAP-219 topline results for September 8, 2025."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-RAPP-RAP219-20250908-T-1",
+          "horizon": "T-1",
+          "as_of": "2025-09-07T23:59:59Z",
+          "source_ids": [
+            "RAPP-RAP219-20250908-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Rapport scheduled Phase 2a RAP-219 topline results for September 8, 2025."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-RAPP-RAP219-20250908-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "RAPP-RAP219-20250908-outcome"
+        ],
+        "label": {
+          "clinical": "success",
+          "source_fact": "Phase 2a RAP-219 met its primary long-episode endpoint."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-ARQT-ZORYVE-20251013",
+      "ticker": "ARQT",
+      "catalyst_type": "PDUFA_SUPP",
+      "event_at": "2025-10-06T12:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "ARQT-ZORYVE-20251013-pre",
+        "ARQT-ZORYVE-20251013-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-ARQT-ZORYVE-20251013-T-60",
+          "horizon": "T-60",
+          "as_of": "2025-08-07T23:59:59Z",
+          "source_ids": [
+            "ARQT-ZORYVE-20251013-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Arcutis reported FDA acceptance of the ZORYVE 0.05% pediatric sNDA with October 13 target date."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ARQT-ZORYVE-20251013-T-30",
+          "horizon": "T-30",
+          "as_of": "2025-09-06T23:59:59Z",
+          "source_ids": [
+            "ARQT-ZORYVE-20251013-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Arcutis reported FDA acceptance of the ZORYVE 0.05% pediatric sNDA with October 13 target date."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ARQT-ZORYVE-20251013-T-14",
+          "horizon": "T-14",
+          "as_of": "2025-09-22T23:59:59Z",
+          "source_ids": [
+            "ARQT-ZORYVE-20251013-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Arcutis reported FDA acceptance of the ZORYVE 0.05% pediatric sNDA with October 13 target date."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ARQT-ZORYVE-20251013-T-7",
+          "horizon": "T-7",
+          "as_of": "2025-09-29T23:59:59Z",
+          "source_ids": [
+            "ARQT-ZORYVE-20251013-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Arcutis reported FDA acceptance of the ZORYVE 0.05% pediatric sNDA with October 13 target date."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ARQT-ZORYVE-20251013-T-3",
+          "horizon": "T-3",
+          "as_of": "2025-10-03T23:59:59Z",
+          "source_ids": [
+            "ARQT-ZORYVE-20251013-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Arcutis reported FDA acceptance of the ZORYVE 0.05% pediatric sNDA with October 13 target date."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ARQT-ZORYVE-20251013-T-1",
+          "horizon": "T-1",
+          "as_of": "2025-10-05T23:59:59Z",
+          "source_ids": [
+            "ARQT-ZORYVE-20251013-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Arcutis reported FDA acceptance of the ZORYVE 0.05% pediatric sNDA with October 13 target date."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-ARQT-ZORYVE-20251013-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "ARQT-ZORYVE-20251013-outcome"
+        ],
+        "label": {
+          "regulatory": "approve",
+          "source_fact": "FDA approved ZORYVE cream 0.05% for children aged 2 to 5."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-ATYR-EFZOFIT-20250915",
+      "ticker": "ATYR",
+      "catalyst_type": "P3_TOPLINE",
+      "event_at": "2025-09-15T11:30:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "ATYR-EFZOFIT-20250915-pre",
+        "ATYR-EFZOFIT-20250915-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-ATYR-EFZOFIT-20250915-T-60",
+          "horizon": "T-60",
+          "as_of": "2025-07-17T23:59:59Z",
+          "source_ids": [
+            "ATYR-EFZOFIT-20250915-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "aTyr expected Phase 3 EFZO-FIT topline data in Q3 2025."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ATYR-EFZOFIT-20250915-T-30",
+          "horizon": "T-30",
+          "as_of": "2025-08-16T23:59:59Z",
+          "source_ids": [
+            "ATYR-EFZOFIT-20250915-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "aTyr expected Phase 3 EFZO-FIT topline data in Q3 2025."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ATYR-EFZOFIT-20250915-T-14",
+          "horizon": "T-14",
+          "as_of": "2025-09-01T23:59:59Z",
+          "source_ids": [
+            "ATYR-EFZOFIT-20250915-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "aTyr expected Phase 3 EFZO-FIT topline data in Q3 2025."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ATYR-EFZOFIT-20250915-T-7",
+          "horizon": "T-7",
+          "as_of": "2025-09-08T23:59:59Z",
+          "source_ids": [
+            "ATYR-EFZOFIT-20250915-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "aTyr expected Phase 3 EFZO-FIT topline data in Q3 2025."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ATYR-EFZOFIT-20250915-T-3",
+          "horizon": "T-3",
+          "as_of": "2025-09-12T23:59:59Z",
+          "source_ids": [
+            "ATYR-EFZOFIT-20250915-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "aTyr expected Phase 3 EFZO-FIT topline data in Q3 2025."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ATYR-EFZOFIT-20250915-T-1",
+          "horizon": "T-1",
+          "as_of": "2025-09-14T23:59:59Z",
+          "source_ids": [
+            "ATYR-EFZOFIT-20250915-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "aTyr expected Phase 3 EFZO-FIT topline data in Q3 2025."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-ATYR-EFZOFIT-20250915-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "ATYR-EFZOFIT-20250915-outcome"
+        ],
+        "label": {
+          "clinical": "fail",
+          "source_fact": "EFZO-FIT did not meet its primary steroid-dose endpoint (p=0.3313)."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-ASND-CNP-20251130",
+      "ticker": "ASND",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2026-02-27T22:57:00Z",
+      "announcement_session": "afterhours",
+      "source_ids": [
+        "ASND-CNP-20251130-pre",
+        "ASND-CNP-20251130-pre-update-1",
+        "ASND-CNP-20251130-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-ASND-CNP-20251130-T-60",
+          "horizon": "T-60",
+          "as_of": "2025-12-29T23:59:59Z",
+          "source_ids": [
+            "ASND-CNP-20251130-pre",
+            "ASND-CNP-20251130-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Ascendis reported TransCon CNP under FDA priority review; the original target date was November 30, 2025.",
+              "FDA extended TransCon CNP target action date to February 28, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ASND-CNP-20251130-T-30",
+          "horizon": "T-30",
+          "as_of": "2026-01-28T23:59:59Z",
+          "source_ids": [
+            "ASND-CNP-20251130-pre",
+            "ASND-CNP-20251130-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Ascendis reported TransCon CNP under FDA priority review; the original target date was November 30, 2025.",
+              "FDA extended TransCon CNP target action date to February 28, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ASND-CNP-20251130-T-14",
+          "horizon": "T-14",
+          "as_of": "2026-02-13T23:59:59Z",
+          "source_ids": [
+            "ASND-CNP-20251130-pre",
+            "ASND-CNP-20251130-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Ascendis reported TransCon CNP under FDA priority review; the original target date was November 30, 2025.",
+              "FDA extended TransCon CNP target action date to February 28, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ASND-CNP-20251130-T-7",
+          "horizon": "T-7",
+          "as_of": "2026-02-20T23:59:59Z",
+          "source_ids": [
+            "ASND-CNP-20251130-pre",
+            "ASND-CNP-20251130-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Ascendis reported TransCon CNP under FDA priority review; the original target date was November 30, 2025.",
+              "FDA extended TransCon CNP target action date to February 28, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ASND-CNP-20251130-T-3",
+          "horizon": "T-3",
+          "as_of": "2026-02-24T23:59:59Z",
+          "source_ids": [
+            "ASND-CNP-20251130-pre",
+            "ASND-CNP-20251130-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Ascendis reported TransCon CNP under FDA priority review; the original target date was November 30, 2025.",
+              "FDA extended TransCon CNP target action date to February 28, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ASND-CNP-20251130-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-02-26T23:59:59Z",
+          "source_ids": [
+            "ASND-CNP-20251130-pre",
+            "ASND-CNP-20251130-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Ascendis reported TransCon CNP under FDA priority review; the original target date was November 30, 2025.",
+              "FDA extended TransCon CNP target action date to February 28, 2026."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-ASND-CNP-20251130-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "ASND-CNP-20251130-outcome"
+        ],
+        "label": {
+          "regulatory": "approve",
+          "source_fact": "FDA granted accelerated approval to YUVIWEL (navepegritide)."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-MIST-ETRIPAMIL-20251213",
+      "ticker": "MIST",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2025-12-13T01:00:00Z",
+      "announcement_session": "afterhours",
+      "source_ids": [
+        "MIST-ETRIPAMIL-20251213-pre",
+        "MIST-ETRIPAMIL-20251213-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-MIST-ETRIPAMIL-20251213-T-30",
+          "horizon": "T-30",
+          "as_of": "2025-11-12T23:59:59Z",
+          "source_ids": [
+            "MIST-ETRIPAMIL-20251213-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Milestone reported etripamil under FDA review with December 2025 decision target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-MIST-ETRIPAMIL-20251213-T-14",
+          "horizon": "T-14",
+          "as_of": "2025-11-28T23:59:59Z",
+          "source_ids": [
+            "MIST-ETRIPAMIL-20251213-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Milestone reported etripamil under FDA review with December 2025 decision target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-MIST-ETRIPAMIL-20251213-T-7",
+          "horizon": "T-7",
+          "as_of": "2025-12-05T23:59:59Z",
+          "source_ids": [
+            "MIST-ETRIPAMIL-20251213-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Milestone reported etripamil under FDA review with December 2025 decision target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-MIST-ETRIPAMIL-20251213-T-3",
+          "horizon": "T-3",
+          "as_of": "2025-12-09T23:59:59Z",
+          "source_ids": [
+            "MIST-ETRIPAMIL-20251213-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Milestone reported etripamil under FDA review with December 2025 decision target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-MIST-ETRIPAMIL-20251213-T-1",
+          "horizon": "T-1",
+          "as_of": "2025-12-11T23:59:59Z",
+          "source_ids": [
+            "MIST-ETRIPAMIL-20251213-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Milestone reported etripamil under FDA review with December 2025 decision target."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-MIST-ETRIPAMIL-20251213-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "MIST-ETRIPAMIL-20251213-outcome"
+        ],
+        "label": {
+          "regulatory": "approve",
+          "source_fact": "FDA approved CARDAMYST (etripamil) for PSVT."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-OTLK-ONS5010-20251231",
+      "ticker": "OTLK",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2025-12-31T21:15:00Z",
+      "announcement_session": "afterhours",
+      "source_ids": [
+        "OTLK-ONS5010-20251231-pre",
+        "OTLK-ONS5010-20251231-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-OTLK-ONS5010-20251231-T-30",
+          "horizon": "T-30",
+          "as_of": "2025-12-01T23:59:59Z",
+          "source_ids": [
+            "OTLK-ONS5010-20251231-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Outlook reported FDA acceptance of the ONS-5010 BLA resubmission."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-OTLK-ONS5010-20251231-T-14",
+          "horizon": "T-14",
+          "as_of": "2025-12-17T23:59:59Z",
+          "source_ids": [
+            "OTLK-ONS5010-20251231-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Outlook reported FDA acceptance of the ONS-5010 BLA resubmission."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-OTLK-ONS5010-20251231-T-7",
+          "horizon": "T-7",
+          "as_of": "2025-12-24T23:59:59Z",
+          "source_ids": [
+            "OTLK-ONS5010-20251231-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Outlook reported FDA acceptance of the ONS-5010 BLA resubmission."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-OTLK-ONS5010-20251231-T-3",
+          "horizon": "T-3",
+          "as_of": "2025-12-28T23:59:59Z",
+          "source_ids": [
+            "OTLK-ONS5010-20251231-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Outlook reported FDA acceptance of the ONS-5010 BLA resubmission."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-OTLK-ONS5010-20251231-T-1",
+          "horizon": "T-1",
+          "as_of": "2025-12-30T23:59:59Z",
+          "source_ids": [
+            "OTLK-ONS5010-20251231-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Outlook reported FDA acceptance of the ONS-5010 BLA resubmission."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-OTLK-ONS5010-20251231-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "OTLK-ONS5010-20251231-outcome"
+        ],
+        "label": {
+          "regulatory": "crl",
+          "source_fact": "FDA issued a CRL for resubmitted ONS-5010 BLA."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-AGIO-MITAPIVAT-20251207",
+      "ticker": "AGIO",
+      "catalyst_type": "PDUFA_SUPP",
+      "event_at": "2025-12-08T12:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "AGIO-MITAPIVAT-20251207-pre",
+        "AGIO-MITAPIVAT-20251207-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-AGIO-MITAPIVAT-20251207-T-30",
+          "horizon": "T-30",
+          "as_of": "2025-11-08T23:59:59Z",
+          "source_ids": [
+            "AGIO-MITAPIVAT-20251207-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Agios reported FDA's extended December 7, 2025 target date for mitapivat thalassemia sNDA."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AGIO-MITAPIVAT-20251207-T-14",
+          "horizon": "T-14",
+          "as_of": "2025-11-24T23:59:59Z",
+          "source_ids": [
+            "AGIO-MITAPIVAT-20251207-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Agios reported FDA's extended December 7, 2025 target date for mitapivat thalassemia sNDA."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AGIO-MITAPIVAT-20251207-T-7",
+          "horizon": "T-7",
+          "as_of": "2025-12-01T23:59:59Z",
+          "source_ids": [
+            "AGIO-MITAPIVAT-20251207-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Agios reported FDA's extended December 7, 2025 target date for mitapivat thalassemia sNDA."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AGIO-MITAPIVAT-20251207-T-3",
+          "horizon": "T-3",
+          "as_of": "2025-12-05T23:59:59Z",
+          "source_ids": [
+            "AGIO-MITAPIVAT-20251207-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Agios reported FDA's extended December 7, 2025 target date for mitapivat thalassemia sNDA."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AGIO-MITAPIVAT-20251207-T-1",
+          "horizon": "T-1",
+          "as_of": "2025-12-07T23:59:59Z",
+          "source_ids": [
+            "AGIO-MITAPIVAT-20251207-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Agios reported FDA's extended December 7, 2025 target date for mitapivat thalassemia sNDA."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-AGIO-MITAPIVAT-20251207-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "AGIO-MITAPIVAT-20251207-outcome"
+        ],
+        "label": {
+          "regulatory": "delay",
+          "source_fact": "Agios said FDA had not issued a decision by the December 7 target and review remained active."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-AQST-ANAPHYLM-20260131",
+      "ticker": "AQST",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2026-02-02T12:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "AQST-ANAPHYLM-20260131-pre",
+        "AQST-ANAPHYLM-20260131-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-AQST-ANAPHYLM-20260131-T-60",
+          "horizon": "T-60",
+          "as_of": "2025-12-04T23:59:59Z",
+          "source_ids": [
+            "AQST-ANAPHYLM-20260131-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Aquestive said the Anaphylm NDA remained under FDA review for January 31, 2026 action."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AQST-ANAPHYLM-20260131-T-30",
+          "horizon": "T-30",
+          "as_of": "2026-01-03T23:59:59Z",
+          "source_ids": [
+            "AQST-ANAPHYLM-20260131-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Aquestive said the Anaphylm NDA remained under FDA review for January 31, 2026 action."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AQST-ANAPHYLM-20260131-T-14",
+          "horizon": "T-14",
+          "as_of": "2026-01-19T23:59:59Z",
+          "source_ids": [
+            "AQST-ANAPHYLM-20260131-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Aquestive said the Anaphylm NDA remained under FDA review for January 31, 2026 action."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AQST-ANAPHYLM-20260131-T-7",
+          "horizon": "T-7",
+          "as_of": "2026-01-26T23:59:59Z",
+          "source_ids": [
+            "AQST-ANAPHYLM-20260131-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Aquestive said the Anaphylm NDA remained under FDA review for January 31, 2026 action."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AQST-ANAPHYLM-20260131-T-3",
+          "horizon": "T-3",
+          "as_of": "2026-01-30T23:59:59Z",
+          "source_ids": [
+            "AQST-ANAPHYLM-20260131-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Aquestive said the Anaphylm NDA remained under FDA review for January 31, 2026 action."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AQST-ANAPHYLM-20260131-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-02-01T23:59:59Z",
+          "source_ids": [
+            "AQST-ANAPHYLM-20260131-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Aquestive said the Anaphylm NDA remained under FDA review for January 31, 2026 action."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-AQST-ANAPHYLM-20260131-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "AQST-ANAPHYLM-20260131-outcome"
+        ],
+        "label": {
+          "regulatory": "crl",
+          "source_fact": "Aquestive disclosed FDA's January 30 CRL for Anaphylm on February 2."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-OCUL-SOL1-20260217",
+      "ticker": "OCUL",
+      "catalyst_type": "P3_TOPLINE",
+      "event_at": "2026-02-17T12:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "OCUL-SOL1-20260217-pre",
+        "OCUL-SOL1-20260217-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-OCUL-SOL1-20260217-T-3",
+          "horizon": "T-3",
+          "as_of": "2026-02-14T23:59:59Z",
+          "source_ids": [
+            "OCUL-SOL1-20260217-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Ocular scheduled Phase 3 SOL-1 topline data for February 17, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-OCUL-SOL1-20260217-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-02-16T23:59:59Z",
+          "source_ids": [
+            "OCUL-SOL1-20260217-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Ocular scheduled Phase 3 SOL-1 topline data for February 17, 2026."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-OCUL-SOL1-20260217-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "OCUL-SOL1-20260217-outcome"
+        ],
+        "label": {
+          "clinical": "success",
+          "source_fact": "SOL-1 met its superiority primary endpoint at week 36."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-XENE-XTOLE2-20260309",
+      "ticker": "XENE",
+      "catalyst_type": "P3_TOPLINE",
+      "event_at": "2026-03-09T11:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "XENE-XTOLE2-20260309-pre",
+        "XENE-XTOLE2-20260309-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-XENE-XTOLE2-20260309-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-03-08T23:59:59Z",
+          "source_ids": [
+            "XENE-XTOLE2-20260309-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Xenon scheduled Phase 3 X-TOLE2 topline results for March 9, 2026."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-XENE-XTOLE2-20260309-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "XENE-XTOLE2-20260309-outcome"
+        ],
+        "label": {
+          "clinical": "success",
+          "source_fact": "X-TOLE2 met its primary endpoint in both azetukalner dose groups."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-LNTH-LNTH2501-20260329",
+      "ticker": "LNTH",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2026-06-26T20:01:00Z",
+      "announcement_session": "afterhours",
+      "source_ids": [
+        "LNTH-LNTH2501-20260329-pre",
+        "LNTH-LNTH2501-20260329-pre-update-1",
+        "LNTH-LNTH2501-20260329-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-LNTH-LNTH2501-20260329-T-60",
+          "horizon": "T-60",
+          "as_of": "2026-04-27T23:59:59Z",
+          "source_ids": [
+            "LNTH-LNTH2501-20260329-pre",
+            "LNTH-LNTH2501-20260329-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Lantheus reported FDA review of the LNTH-2501 NDA; original target was March 29, 2026.",
+              "FDA extended the LNTH-2501 target action date to June 29, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-LNTH-LNTH2501-20260329-T-30",
+          "horizon": "T-30",
+          "as_of": "2026-05-27T23:59:59Z",
+          "source_ids": [
+            "LNTH-LNTH2501-20260329-pre",
+            "LNTH-LNTH2501-20260329-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Lantheus reported FDA review of the LNTH-2501 NDA; original target was March 29, 2026.",
+              "FDA extended the LNTH-2501 target action date to June 29, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-LNTH-LNTH2501-20260329-T-14",
+          "horizon": "T-14",
+          "as_of": "2026-06-12T23:59:59Z",
+          "source_ids": [
+            "LNTH-LNTH2501-20260329-pre",
+            "LNTH-LNTH2501-20260329-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Lantheus reported FDA review of the LNTH-2501 NDA; original target was March 29, 2026.",
+              "FDA extended the LNTH-2501 target action date to June 29, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-LNTH-LNTH2501-20260329-T-7",
+          "horizon": "T-7",
+          "as_of": "2026-06-19T23:59:59Z",
+          "source_ids": [
+            "LNTH-LNTH2501-20260329-pre",
+            "LNTH-LNTH2501-20260329-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Lantheus reported FDA review of the LNTH-2501 NDA; original target was March 29, 2026.",
+              "FDA extended the LNTH-2501 target action date to June 29, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-LNTH-LNTH2501-20260329-T-3",
+          "horizon": "T-3",
+          "as_of": "2026-06-23T23:59:59Z",
+          "source_ids": [
+            "LNTH-LNTH2501-20260329-pre",
+            "LNTH-LNTH2501-20260329-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Lantheus reported FDA review of the LNTH-2501 NDA; original target was March 29, 2026.",
+              "FDA extended the LNTH-2501 target action date to June 29, 2026."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-LNTH-LNTH2501-20260329-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-06-25T23:59:59Z",
+          "source_ids": [
+            "LNTH-LNTH2501-20260329-pre",
+            "LNTH-LNTH2501-20260329-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Lantheus reported FDA review of the LNTH-2501 NDA; original target was March 29, 2026.",
+              "FDA extended the LNTH-2501 target action date to June 29, 2026."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-LNTH-LNTH2501-20260329-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "LNTH-LNTH2501-20260329-outcome"
+        ],
+        "label": {
+          "regulatory": "crl",
+          "source_fact": "FDA issued a CRL for LNTH-2501 over third-party manufacturing conditions."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-REPL-RP1-20260410",
+      "ticker": "REPL",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2026-04-10T21:02:00Z",
+      "announcement_session": "afterhours",
+      "source_ids": [
+        "REPL-RP1-20260410-pre",
+        "REPL-RP1-20260410-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-REPL-RP1-20260410-T-60",
+          "horizon": "T-60",
+          "as_of": "2026-02-09T23:59:59Z",
+          "source_ids": [
+            "REPL-RP1-20260410-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Replimune reported FDA acceptance of its RP1 BLA resubmission and April 10, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-REPL-RP1-20260410-T-30",
+          "horizon": "T-30",
+          "as_of": "2026-03-11T23:59:59Z",
+          "source_ids": [
+            "REPL-RP1-20260410-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Replimune reported FDA acceptance of its RP1 BLA resubmission and April 10, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-REPL-RP1-20260410-T-14",
+          "horizon": "T-14",
+          "as_of": "2026-03-27T23:59:59Z",
+          "source_ids": [
+            "REPL-RP1-20260410-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Replimune reported FDA acceptance of its RP1 BLA resubmission and April 10, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-REPL-RP1-20260410-T-7",
+          "horizon": "T-7",
+          "as_of": "2026-04-03T23:59:59Z",
+          "source_ids": [
+            "REPL-RP1-20260410-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Replimune reported FDA acceptance of its RP1 BLA resubmission and April 10, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-REPL-RP1-20260410-T-3",
+          "horizon": "T-3",
+          "as_of": "2026-04-07T23:59:59Z",
+          "source_ids": [
+            "REPL-RP1-20260410-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Replimune reported FDA acceptance of its RP1 BLA resubmission and April 10, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-REPL-RP1-20260410-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-04-09T23:59:59Z",
+          "source_ids": [
+            "REPL-RP1-20260410-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Replimune reported FDA acceptance of its RP1 BLA resubmission and April 10, 2026 target."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-REPL-RP1-20260410-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "REPL-RP1-20260410-outcome"
+        ],
+        "label": {
+          "regulatory": "crl",
+          "source_fact": "FDA issued a CRL for RP1 in advanced melanoma."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-GRCE-GTX104-20260423",
+      "ticker": "GRCE",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2026-04-23T17:13:00Z",
+      "announcement_session": "intraday",
+      "source_ids": [
+        "GRCE-GTX104-20260423-pre",
+        "GRCE-GTX104-20260423-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-GRCE-GTX104-20260423-T-60",
+          "horizon": "T-60",
+          "as_of": "2026-02-22T23:59:59Z",
+          "source_ids": [
+            "GRCE-GTX104-20260423-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Grace reported FDA acceptance of the GTx-104 NDA with April 23, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-GRCE-GTX104-20260423-T-30",
+          "horizon": "T-30",
+          "as_of": "2026-03-24T23:59:59Z",
+          "source_ids": [
+            "GRCE-GTX104-20260423-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Grace reported FDA acceptance of the GTx-104 NDA with April 23, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-GRCE-GTX104-20260423-T-14",
+          "horizon": "T-14",
+          "as_of": "2026-04-09T23:59:59Z",
+          "source_ids": [
+            "GRCE-GTX104-20260423-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Grace reported FDA acceptance of the GTx-104 NDA with April 23, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-GRCE-GTX104-20260423-T-7",
+          "horizon": "T-7",
+          "as_of": "2026-04-16T23:59:59Z",
+          "source_ids": [
+            "GRCE-GTX104-20260423-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Grace reported FDA acceptance of the GTx-104 NDA with April 23, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-GRCE-GTX104-20260423-T-3",
+          "horizon": "T-3",
+          "as_of": "2026-04-20T23:59:59Z",
+          "source_ids": [
+            "GRCE-GTX104-20260423-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Grace reported FDA acceptance of the GTx-104 NDA with April 23, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-GRCE-GTX104-20260423-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-04-22T23:59:59Z",
+          "source_ids": [
+            "GRCE-GTX104-20260423-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Grace reported FDA acceptance of the GTx-104 NDA with April 23, 2026 target."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-GRCE-GTX104-20260423-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "GRCE-GTX104-20260423-outcome"
+        ],
+        "label": {
+          "regulatory": "crl",
+          "source_fact": "FDA issued a CRL for GTx-104 citing CMC and nonclinical deficiencies."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-AXSM-AXS05-20260430",
+      "ticker": "AXSM",
+      "catalyst_type": "PDUFA_SUPP",
+      "event_at": "2026-04-30T18:06:00Z",
+      "announcement_session": "intraday",
+      "source_ids": [
+        "AXSM-AXS05-20260430-pre",
+        "AXSM-AXS05-20260430-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-AXSM-AXS05-20260430-T-60",
+          "horizon": "T-60",
+          "as_of": "2026-03-01T23:59:59Z",
+          "source_ids": [
+            "AXSM-AXS05-20260430-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Axsome reported FDA acceptance and priority review of AXS-05 sNDA with April 30, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AXSM-AXS05-20260430-T-30",
+          "horizon": "T-30",
+          "as_of": "2026-03-31T23:59:59Z",
+          "source_ids": [
+            "AXSM-AXS05-20260430-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Axsome reported FDA acceptance and priority review of AXS-05 sNDA with April 30, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AXSM-AXS05-20260430-T-14",
+          "horizon": "T-14",
+          "as_of": "2026-04-16T23:59:59Z",
+          "source_ids": [
+            "AXSM-AXS05-20260430-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Axsome reported FDA acceptance and priority review of AXS-05 sNDA with April 30, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AXSM-AXS05-20260430-T-7",
+          "horizon": "T-7",
+          "as_of": "2026-04-23T23:59:59Z",
+          "source_ids": [
+            "AXSM-AXS05-20260430-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Axsome reported FDA acceptance and priority review of AXS-05 sNDA with April 30, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AXSM-AXS05-20260430-T-3",
+          "horizon": "T-3",
+          "as_of": "2026-04-27T23:59:59Z",
+          "source_ids": [
+            "AXSM-AXS05-20260430-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Axsome reported FDA acceptance and priority review of AXS-05 sNDA with April 30, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-AXSM-AXS05-20260430-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-04-29T23:59:59Z",
+          "source_ids": [
+            "AXSM-AXS05-20260430-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Axsome reported FDA acceptance and priority review of AXS-05 sNDA with April 30, 2026 target."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-AXSM-AXS05-20260430-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "AXSM-AXS05-20260430-outcome"
+        ],
+        "label": {
+          "regulatory": "approve",
+          "source_fact": "FDA approved AUVELITY for Alzheimer's disease agitation."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-CYTK-ACACIA-20260505",
+      "ticker": "CYTK",
+      "catalyst_type": "P3_TOPLINE",
+      "event_at": "2026-05-05T11:30:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "CYTK-ACACIA-20260505-pre",
+        "CYTK-ACACIA-20260505-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-CYTK-ACACIA-20260505-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-05-04T23:59:59Z",
+          "source_ids": [
+            "CYTK-ACACIA-20260505-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Cytokinetics scheduled ACACIA-HCM Phase 3 topline for May 5, 2026."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-CYTK-ACACIA-20260505-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "CYTK-ACACIA-20260505-outcome"
+        ],
+        "label": {
+          "clinical": "success",
+          "source_fact": "ACACIA-HCM met both co-primary endpoints."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-CING-CTX1301-20260531",
+      "ticker": "CING",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2026-06-02T12:00:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "CING-CTX1301-20260531-pre",
+        "CING-CTX1301-20260531-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-CING-CTX1301-20260531-T-60",
+          "horizon": "T-60",
+          "as_of": "2026-04-03T23:59:59Z",
+          "source_ids": [
+            "CING-CTX1301-20260531-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Cingulate reported FDA acceptance of CTx-1301 NDA with May 31, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-CING-CTX1301-20260531-T-30",
+          "horizon": "T-30",
+          "as_of": "2026-05-03T23:59:59Z",
+          "source_ids": [
+            "CING-CTX1301-20260531-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Cingulate reported FDA acceptance of CTx-1301 NDA with May 31, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-CING-CTX1301-20260531-T-14",
+          "horizon": "T-14",
+          "as_of": "2026-05-19T23:59:59Z",
+          "source_ids": [
+            "CING-CTX1301-20260531-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Cingulate reported FDA acceptance of CTx-1301 NDA with May 31, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-CING-CTX1301-20260531-T-7",
+          "horizon": "T-7",
+          "as_of": "2026-05-26T23:59:59Z",
+          "source_ids": [
+            "CING-CTX1301-20260531-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Cingulate reported FDA acceptance of CTx-1301 NDA with May 31, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-CING-CTX1301-20260531-T-3",
+          "horizon": "T-3",
+          "as_of": "2026-05-30T23:59:59Z",
+          "source_ids": [
+            "CING-CTX1301-20260531-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Cingulate reported FDA acceptance of CTx-1301 NDA with May 31, 2026 target."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-CING-CTX1301-20260531-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-06-01T23:59:59Z",
+          "source_ids": [
+            "CING-CTX1301-20260531-pre"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Cingulate reported FDA acceptance of CTx-1301 NDA with May 31, 2026 target."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-CING-CTX1301-20260531-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "CING-CTX1301-20260531-outcome"
+        ],
+        "label": {
+          "regulatory": "crl",
+          "source_fact": "FDA issued a CRL for CTx-1301 citing CMC information requests."
+        }
+      }
+    },
+    {
+      "case_id": "PIT-ACHV-CYTISINICLINE-20260620",
+      "ticker": "ACHV",
+      "catalyst_type": "PDUFA_NME",
+      "event_at": "2026-06-22T12:30:00Z",
+      "announcement_session": "premarket",
+      "source_ids": [
+        "ACHV-CYTISINICLINE-20260620-pre",
+        "ACHV-CYTISINICLINE-20260620-pre-update-1",
+        "ACHV-CYTISINICLINE-20260620-outcome"
+      ],
+      "feature_snapshots": [
+        {
+          "snapshot_id": "PIT-ACHV-CYTISINICLINE-20260620-T-60",
+          "horizon": "T-60",
+          "as_of": "2026-04-23T23:59:59Z",
+          "source_ids": [
+            "ACHV-CYTISINICLINE-20260620-pre",
+            "ACHV-CYTISINICLINE-20260620-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Achieve reported FDA acceptance of cytisinicline NDA with June 20, 2026 target.",
+              "Achieve said it expected a CRL on or before June 20 due to third-party manufacturing issues, and reported manufacturing transfer progress."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ACHV-CYTISINICLINE-20260620-T-30",
+          "horizon": "T-30",
+          "as_of": "2026-05-23T23:59:59Z",
+          "source_ids": [
+            "ACHV-CYTISINICLINE-20260620-pre",
+            "ACHV-CYTISINICLINE-20260620-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Achieve reported FDA acceptance of cytisinicline NDA with June 20, 2026 target.",
+              "Achieve said it expected a CRL on or before June 20 due to third-party manufacturing issues, and reported manufacturing transfer progress."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ACHV-CYTISINICLINE-20260620-T-14",
+          "horizon": "T-14",
+          "as_of": "2026-06-08T23:59:59Z",
+          "source_ids": [
+            "ACHV-CYTISINICLINE-20260620-pre",
+            "ACHV-CYTISINICLINE-20260620-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Achieve reported FDA acceptance of cytisinicline NDA with June 20, 2026 target.",
+              "Achieve said it expected a CRL on or before June 20 due to third-party manufacturing issues, and reported manufacturing transfer progress."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ACHV-CYTISINICLINE-20260620-T-7",
+          "horizon": "T-7",
+          "as_of": "2026-06-15T23:59:59Z",
+          "source_ids": [
+            "ACHV-CYTISINICLINE-20260620-pre",
+            "ACHV-CYTISINICLINE-20260620-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Achieve reported FDA acceptance of cytisinicline NDA with June 20, 2026 target.",
+              "Achieve said it expected a CRL on or before June 20 due to third-party manufacturing issues, and reported manufacturing transfer progress."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ACHV-CYTISINICLINE-20260620-T-3",
+          "horizon": "T-3",
+          "as_of": "2026-06-19T23:59:59Z",
+          "source_ids": [
+            "ACHV-CYTISINICLINE-20260620-pre",
+            "ACHV-CYTISINICLINE-20260620-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Achieve reported FDA acceptance of cytisinicline NDA with June 20, 2026 target.",
+              "Achieve said it expected a CRL on or before June 20 due to third-party manufacturing issues, and reported manufacturing transfer progress."
+            ]
+          }
+        },
+        {
+          "snapshot_id": "PIT-ACHV-CYTISINICLINE-20260620-T-1",
+          "horizon": "T-1",
+          "as_of": "2026-06-21T23:59:59Z",
+          "source_ids": [
+            "ACHV-CYTISINICLINE-20260620-pre",
+            "ACHV-CYTISINICLINE-20260620-pre-update-1"
+          ],
+          "features": {
+            "known_pre_event_facts": [
+              "Achieve reported FDA acceptance of cytisinicline NDA with June 20, 2026 target.",
+              "Achieve said it expected a CRL on or before June 20 due to third-party manufacturing issues, and reported manufacturing transfer progress."
+            ]
+          }
+        }
+      ],
+      "outcome_label": {
+        "label_id": "PIT-ACHV-CYTISINICLINE-20260620-RESULT",
+        "labeled_at": "2026-10-01T08:51:00Z",
+        "source_ids": [
+          "ACHV-CYTISINICLINE-20260620-outcome"
+        ],
+        "label": {
+          "regulatory": "crl",
+          "source_fact": "FDA issued a CRL for cytisinicline over third-party manufacturing deficiencies."
+        }
+      }
+    }
+  ]
+}

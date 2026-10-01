@@ -3,13 +3,25 @@ from __future__ import annotations
 
 import json
 import hashlib
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
 
 from . import db
 
 HORIZONS = ("T-60", "T-30", "T-14", "T-7", "T-3", "T-1")
+
+
+def market_event_date(event_at: str) -> date:
+    """New York date of a UTC announcement, including post-close UTC rollover."""
+    stamp = _timestamp(event_at)
+    year = stamp.year
+    march, november = date(year, 3, 1), date(year, 11, 1)
+    second_sunday_march = march + timedelta(days=(6 - march.weekday()) % 7 + 7)
+    first_sunday_november = november + timedelta(days=(6 - november.weekday()) % 7)
+    dst_start = datetime.combine(second_sunday_march, datetime.min.time(), timezone.utc) + timedelta(hours=7)
+    dst_end = datetime.combine(first_sunday_november, datetime.min.time(), timezone.utc) + timedelta(hours=6)
+    return (stamp - timedelta(hours=4 if dst_start <= stamp < dst_end else 5)).date()
 
 
 def _timestamp(value: str) -> datetime:
@@ -26,8 +38,10 @@ def _archive_sources(conn, rows, fetch: bool) -> None:
                 content = response.read().decode("utf-8", errors="replace")
         if content is None:
             raise ValueError(f"source {source['source_id']} needs archived content (or --fetch-sources)")
+        existing = db.source_archive_row(conn, source["source_id"])
+        retrieved_at = source.get("retrieved_at") or (existing["retrieved_at"] if existing else db.utcnow())
         db.archive_source(conn, source["source_id"], source["canonical_url"], source["source_type"], source.get("published_at"),
-                          source.get("retrieved_at") or db.utcnow(), content, source.get("metadata"))
+                          retrieved_at, content, source.get("metadata"))
 
 
 def _prove_pre_event(conn, source_ids: list[str], cutoff: str) -> None:
@@ -56,7 +70,7 @@ def import_bundle(conn, path: str | Path, *, fetch_sources: bool = False) -> dic
             if _timestamp(snap["as_of"]) >= event_time:
                 raise ValueError(f"snapshot {snap['snapshot_id']} is not strictly before event")
             horizon = snap.get("horizon")
-            if horizon in HORIZONS and (event_time.date() - _timestamp(snap["as_of"]).date()).days != int(horizon[2:]):
+            if horizon in HORIZONS and (market_event_date(event_at) - _timestamp(snap["as_of"]).date()).days != int(horizon[2:]):
                 raise ValueError(f"snapshot {snap['snapshot_id']} horizon does not match its as_of date")
             sources = list(snap.get("source_ids", []))
             _prove_pre_event(conn, sources, snap["as_of"])
@@ -80,7 +94,7 @@ def import_bundle(conn, path: str | Path, *, fetch_sources: bool = False) -> dic
 
 
 def event_price_window(event_at: str) -> tuple[str, str]:
-    day = _timestamp(event_at).date()
+    day = market_event_date(event_at)
     return ((day - timedelta(days=180)).isoformat(), (day + timedelta(days=45)).isoformat())
 
 
@@ -92,7 +106,7 @@ def attach_price_coverage(conn, case_id: str, provider: str, run_id: str | None 
 
 
 def backfill_prices(conn, case_id: str, provider: str, *, stock_file: str | None = None, benchmark_file: str | None = None,
-                    source_url: str | None = None) -> dict:
+                    source_url: str | None = None, capture_metadata: dict | None = None) -> dict:
     """Fetch or load ticker and XBI prices and bind their provenance to one case."""
     case = next(row for row in db.historical_case_rows(conn) if row["case_id"] == case_id)
     start, end = event_price_window(case["event_at"])
@@ -105,6 +119,8 @@ def backfill_prices(conn, case_id: str, provider: str, *, stock_file: str | None
                     "stock_sha256": hashlib.sha256(Path(stock_file).read_bytes()).hexdigest(),
                     "benchmark_sha256": hashlib.sha256(Path(benchmark_file).read_bytes()).hexdigest(),
                     "source_url": source_url or "user-supplied CSV; origin unspecified"}
+        if capture_metadata:
+            metadata["capture"] = capture_metadata
     elif provider == "yahoo":
         from .ingest.prices import fetch_yahoo_chart
         stock, benchmark = fetch_yahoo_chart(case["ticker"], start, end), fetch_yahoo_chart("XBI", start, end)
@@ -137,8 +153,8 @@ def _price_status(conn, case: dict) -> tuple[bool, str | None]:
     stock, benchmark = attached_price_rows(conn, case)
     if not stock and not benchmark:
         return False, "missing case-bound price attachment or rows"
-    event_day = _timestamp(case["event_at"]).date().isoformat()
-    first_needed = (_timestamp(case["event_at"]).date() - timedelta(days=120)).isoformat()
+    event_day = market_event_date(case["event_at"]).isoformat()
+    first_needed = (market_event_date(case["event_at"]) - timedelta(days=120)).isoformat()
     def coverage(rows):
         return len(rows) >= 100 and rows[0]["date"] <= first_needed and rows[-1]["date"] >= event_day
     ok = coverage(stock) and coverage(benchmark)
@@ -146,7 +162,7 @@ def _price_status(conn, case: dict) -> tuple[bool, str | None]:
 
 
 def _hold_price_status(conn, case: dict) -> bool:
-    event_day = _timestamp(case["event_at"]).date()
+    event_day = market_event_date(case["event_at"])
     target = (event_day + timedelta(days=30)).isoformat()
     return all(rows and rows[-1]["date"] >= target for rows in attached_price_rows(conn, case))
 
