@@ -84,6 +84,12 @@ def operation_start(conn, name):
 
 
 def operation_finish(conn, run_id, status, payload):
+    from .source_observability import snapshot
+    metrics = snapshot()
+    if metrics is not None:
+        payload = {**payload, 'source_operations': metrics}
+        if status == 'OK' and any(row['errors'] for row in metrics['sources'].values()):
+            status = 'PARTIAL'
     with conn:
         conn.execute('UPDATE v2c_operation_runs SET finished_at=?,status=?,payload=? WHERE run_id=?',
                      (utcnow(), status, encode(payload), run_id))

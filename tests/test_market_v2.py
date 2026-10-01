@@ -19,7 +19,7 @@ def test_premarket_and_afterhours_use_different_post_close():
     assert pre["to_date"] == "2026-01-05"
     assert ah["to_date"] == "2026-01-06"
     assert pre["return"] == 0.5
-    assert ah["return"] == 1.0
+    assert abs(ah["return"] - (20 / 15 - 1)) < 1e-12
 
 
 def test_unknown_session_is_flagged():

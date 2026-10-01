@@ -205,6 +205,10 @@ def financial_context(conn, ticker, *, as_of):
     return result
 
 
+from .source_observability import observed
+
+
+@observed
 def refresh_financials(conn, *, as_of=None, fetcher=None, budget_seconds=120):
     as_of = as_of or date.today()
     fetcher = fetcher or (lambda cik: json.loads(get_text(

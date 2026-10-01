@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from . import db
+from .session import session_from_publication
 
 HORIZONS = ("T-60", "T-30", "T-14", "T-7", "T-3", "T-1")
 
@@ -60,12 +61,25 @@ def import_bundle(conn, path: str | Path, *, fetch_sources: bool = False) -> dic
     for case in bundle.get("cases", []):
         if "T" not in case["event_at"]:
             raise ValueError(f"case {case['case_id']} needs an announcement timestamp, not only a date")
-        event_at, event_time = case["event_at"], _timestamp(case["event_at"])
+        # Explicit issuer/wire outcome publication wins over manually supplied time.
+        # Never infer actual announcement time from an SEC acceptance timestamp.
+        publication = case.get("primary_publication_at")
+        event_at = publication or case["event_at"]
+        event_time = _timestamp(event_at)
+        session = session_from_publication(publication) if publication else case.get("announcement_session", "unknown")
+        if case.get("timestamp_source") == "sec_acceptance" and not publication:
+            session = "unknown"
         case_sources = list(case.get("source_ids", []))
         if not case_sources or any(not db.source_archive_row(conn, s) for s in case_sources):
             raise ValueError(f"case {case['case_id']} has unarchived source provenance")
+        if publication:
+            from .source_quality import is_primary
+            archives = [db.source_archive_row(conn, source_id) for source_id in case_sources]
+            if not any(is_primary(source['source_type']) and source['published_at']
+                       and _timestamp(source['published_at']) == event_time for source in archives):
+                raise ValueError('primary publication timestamp requires matching archived primary evidence')
         db.upsert_historical_case(conn, case["case_id"], case["ticker"], case["catalyst_type"], event_at,
-                                  announcement_session=case.get("announcement_session", "unknown"), provenance=case_sources)
+                                  announcement_session=session, provenance=case_sources)
         for snap in case.get("feature_snapshots", []):
             if _timestamp(snap["as_of"]) >= event_time:
                 raise ValueError(f"snapshot {snap['snapshot_id']} is not strictly before event")
@@ -188,7 +202,7 @@ def readiness_for_case(conn, case_id: str) -> dict:
     if not _archived_provenance(conn, json.loads(case["provenance_json"] or "[]")): reasons.append("case provenance missing")
     if not snapshots: reasons.append("missing point-in-time feature snapshot")
     for snap in snapshots:
-        if snap["as_of"] >= case["event_at"]: reasons.append("feature snapshot is not strictly before event")
+        if _timestamp(snap["as_of"]) >= _timestamp(case["event_at"]): reasons.append("feature snapshot is not strictly before event")
         if not snap["blinded"]: reasons.append("feature snapshot was not blinded")
         if not _archived_provenance(conn, json.loads(snap["provenance_json"] or "[]"), snap["as_of"]):
             reasons.append("feature provenance missing or late")

@@ -10,7 +10,7 @@ from statistics import mean, median, stdev
 
 from . import db
 from .historical import attached_price_rows, market_event_date, readiness_for_case
-from .market import event_return, join_on_dates
+from .market import event_return, join_on_dates, pre_event_prices
 
 RUNUP_GRID = [(entry, exit_) for entry in (60,45,30,21,14,7) for exit_ in (14,7,3,1) if exit_ < entry]
 
@@ -95,8 +95,8 @@ def report(conn):
     for case in runup_cases:
         stock, xbi = attached_price_rows(conn, case)
         event_day = market_event_date(case["event_at"]).isoformat()
-        stock = [row for row in stock if row["date"] < event_day]
-        xbi = [row for row in xbi if row["date"] < event_day]
+        stock = pre_event_prices(stock, event_day, case["announcement_session"])
+        xbi = pre_event_prices(xbi, event_day, case["announcement_session"])
         if stock:
             event_rows.append({"id": case["case_id"], "stock": stock, "benchmark": xbi})
     grids = all_runup_grids(event_rows)

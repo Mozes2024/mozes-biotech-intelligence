@@ -6,12 +6,14 @@ shared `prices` staging table used for current market context in the live UI.
 from __future__ import annotations
 
 import json
+import time
 from datetime import date, timedelta
 
 from . import db
 from .config import DB_PATH
 from .ingest.prices import fetch_yahoo_chart
 from .radar import bootstrap_database
+from .source_observability import Metrics
 
 
 def refresh_live_prices(conn, *, today: date | None = None, lookback_days: int = 120, fetcher=fetch_yahoo_chart) -> dict:
@@ -21,20 +23,27 @@ def refresh_live_prices(conn, *, today: date | None = None, lookback_days: int =
     tickers = sorted({row["ticker"].upper() for row in db.watch_rows(conn) if row.get("ticker")} | {"XBI"})
     updated, errors = [], []
     latest = {}
+    metrics = Metrics()
 
     for ticker in tickers:
+        started = time.monotonic()
         try:
             rows = fetcher(ticker, start, end)
             if not rows:
+                metrics.record('yahoo', error=True, duration_ms=(time.monotonic() - started) * 1000)
                 errors.append({"ticker": ticker, "error": "provider returned no rows"})
                 continue
             db.store_prices(conn, ticker, rows, "yahoo-chart-keyless-live")
             updated.append(ticker)
             latest[ticker] = rows[-1]["date"]
+            metrics.record('yahoo', duration_ms=(time.monotonic() - started) * 1000)
         except Exception as exc:  # best effort; do not break the primary monitor
+            metrics.record('yahoo', error=True, duration_ms=(time.monotonic() - started) * 1000)
             errors.append({"ticker": ticker, "error": str(exc)})
 
     return {
+        "status": "PARTIAL" if errors and updated else "FAILED" if errors else "OK",
+        "source_operations": metrics.snapshot(),
         "provider": "yahoo-chart-keyless",
         "start": start,
         "end": end,

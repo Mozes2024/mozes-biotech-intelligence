@@ -199,7 +199,7 @@ class Handler(BaseHTTPRequestHandler):
         body = self._body_json()
         if body == "too_large":
             self._send_json({"error": "request body too large"}, 413); return
-        if body is None:
+        if not isinstance(body, dict):
             self._send_json({"error": "invalid JSON"}, 400); return
         if u.path == "/api/paper":
             event_id = body.get("event_id")
@@ -207,8 +207,10 @@ class Handler(BaseHTTPRequestHandler):
             if not event:
                 self._send_json({"error": "event not found"}, 404); return
             as_of = body.get("as_of") or date.today().isoformat()
+            if as_of != date.today().isoformat():
+                self._send_json({"error": "paper signals require the current snapshot; backdating is not allowed"}, 400); return
             analysis = score_event(self.conn, event, as_of)
-            sid = PaperBook(self.conn).record(analysis, price=body.get("price"))
+            sid = PaperBook(self.conn).record(analysis, price=body.get("price"), idempotency_key=body.get("idempotency_key"))
             self._send_json({"ok": True, "signal_id": sid}, 201)
             return
         if u.path == "/api/refresh":

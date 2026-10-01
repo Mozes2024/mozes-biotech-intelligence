@@ -6,6 +6,7 @@ from dataclasses import asdict
 from datetime import date
 
 from .dates import normalize_date_text
+from .timing import parse_trigger, PROGRESS
 
 CATALYST_KW = re.compile(
     r"(topline|top-line|results expected|readout|pivotal|registrational|phase\s?(?:3|iii|2b|2|ii|1/2)"
@@ -13,7 +14,7 @@ CATALYST_KW = re.compile(
     r"|data presentation|late-breaking|target action date)",
     re.I,
 )
-SPLIT = re.compile(r"\n+|(?<=[.;!?])\s+")
+SPLIT = re.compile(r"\n+|(?<=[.!?])\s+")
 
 
 def classify_statement(s: str) -> str:
@@ -40,13 +41,32 @@ def classify_statement(s: str) -> str:
 def extract_catalyst_statements(text: str, ref: date, source_id=None, reliability="primary"):
     """ref = publication date of the document (relative expressions resolve against it)."""
     out = []
-    for sent in SPLIT.split(text or ""):
+    # Preserve independent calendar statements. Only attach an adjacent progress
+    # sentence to a trigger, never an unrelated catalyst or financial statement.
+    spans = []
+    for paragraph in re.split(r"\n+", text or ""):
+        paragraph_start = len(spans)
+        sentences = SPLIT.split(paragraph)
+        for sent in sentences:
+            if (len(spans) > paragraph_start and PROGRESS.search(sent) and not CATALYST_KW.search(sent)
+                    and parse_trigger(spans[-1]) and len(spans[-1]) + len(sent) < 2000):
+                spans[-1] += " " + sent
+            else:
+                spans.append(sent)
+    for sent in spans:
         s = sent.strip()
-        if not s or not CATALYST_KW.search(s):
+        trigger = parse_trigger(s)
+        if not s or not (CATALYST_KW.search(s) or trigger):
             continue
         w = normalize_date_text(s, ref, confirmed_by_company=(reliability == "primary"),
                                 secondary_source=(reliability != "primary"))
-        if w.precision == "unknown":
+        if w.precision == "unknown" and not trigger:
             continue
-        out.append({"statement": s, "catalyst_type": classify_statement(s), "window": asdict(w), "source_id": source_id})
+        window = asdict(w)
+        if trigger:
+            window.update(start=None, end=None, precision="unknown")
+        out.append({"statement": s, "catalyst_type": classify_statement(s), "window": window,
+                    "source_id": source_id, "source_url": source_id, "reliability": reliability,
+                    "published_at": ref.isoformat(), "timing_mode": "CALENDAR",
+                    **(trigger or {})})
     return out

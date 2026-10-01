@@ -50,10 +50,10 @@ def _is_us_market_open(now_utc: datetime, latest_day: date) -> bool:
     try:
         eastern = ZoneInfo("America/New_York")
     except ZoneInfoNotFoundError:
-        # Minimal Windows/Python environments may lack the IANA zone database.
-        # US DST dates keep this fallback correct for supported current-era runs.
-        eastern = timezone(timedelta(hours=-4))
-    ny = now_utc.astimezone(eastern)
+        from .session import new_york_time
+        ny = new_york_time(now_utc.isoformat())
+    else:
+        ny = now_utc.astimezone(eastern)
     return latest_day == ny.date() and ny.weekday() < 5 and time(9, 30) <= ny.time() < time(16, 0)
 
 
@@ -273,6 +273,9 @@ def _chain_entry(row: dict) -> dict:
         "days_to": row.get("days_to"),
         "recommendation": (row.get("recommendation") or {}).get("status"),
         "verification_state": (row.get("state") or {}).get("verification_state"),
+        "timing_mode": row.get("timing_mode", "CALENDAR"),
+        "trigger_current": row.get("trigger_current"), "trigger_target": row.get("trigger_target"),
+        "monitoring_state": row.get("monitoring_state"),
     }
 
 

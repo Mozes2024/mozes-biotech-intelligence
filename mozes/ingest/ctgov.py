@@ -8,8 +8,8 @@ URL = "https://clinicaltrials.gov/api/v2/studies/{nct}"
 
 
 def fetch_study(nct):
-    with urllib.request.urlopen(URL.format(nct=nct), timeout=30) as r:
-        return json.loads(r.read().decode())
+    from ..discovery import cached_fetch_json
+    return cached_fetch_json(URL.format(nct=nct))
 
 
 def summarize(study):

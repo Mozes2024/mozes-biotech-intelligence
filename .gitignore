@@ -9,3 +9,4 @@ web/data.json
 .pytest_cache/
 dist/
 build/
+.monitor/

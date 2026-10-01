@@ -164,13 +164,15 @@ def reconcile_states(conn, *, today=None):
             "stale": (result.get("classification") or {}).get("class") == "STALE_UNRESOLVED",
             "recommendation": (result.get("recommendation") or {}).get("status"),
             "security": (result.get("security") or {}).get("status"),
+            "review_state": state.get("verification_state"),
         }
         prior = observe(conn, "event:" + event_id, current, source_url=source_url, source_type=source_type)
         if prior is None:
             continue
         mapping = {"date": "catalyst_date_changed", "verified": "catalyst_verified",
                    "resolved": "catalyst_resolved", "stale": "catalyst_became_stale",
-                   "recommendation": "recommendation_changed", "security": "security_status_changed"}
+                   "recommendation": "recommendation_changed", "security": "security_status_changed",
+                   "review_state": "review_state_changed"}
         for field, change_type in mapping.items():
             if prior.get(field) == current[field] or (field in {"verified", "resolved", "stale"} and not current[field]):
                 continue
@@ -201,6 +203,10 @@ def recent_changes(conn, limit=100):
             for r in conn.execute(sql, args)]
 
 
+from .source_observability import observed, snapshot
+
+
+@observed
 def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_company=12):
     from .security import audit_current_universe, audit_watch_universe, NON_TRADABLE
     started = _now()
@@ -272,6 +278,9 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
     except Exception as exc:
         details["errors"].append({"fatal": str(exc)})
         status = "FAILED"
+    details['source_operations'] = snapshot()
+    if status == 'OK' and any(row['errors'] for row in details['source_operations']['sources'].values()):
+        status = 'PARTIAL'
     with conn:
         conn.execute("UPDATE monitor_runs SET finished_at=?,status=?,details_json=? WHERE run_id=?",
                      (_now(), status, _json(details), rid))

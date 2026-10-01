@@ -14,6 +14,7 @@ from pathlib import Path
 from . import db
 from .config import DB_PATH
 from .data_loader import load_live, load_sources
+from .source_observability import observed
 from .intelligence_store import (digest, encode, ensure_schema, operation_finish,
                                  operation_start, state_get, state_put, utcnow)
 
@@ -101,6 +102,7 @@ def import_local_research(conn):
             'research_ready': ready['research_ready'], 'runup_ready': ready['runup_ready'], 'hold_ready': ready['hold_ready']}
 
 
+@observed
 def identity_audit(conn):
     from .ingest.nasdaq_trader import fetch_current_listings
     from .ingest.edgar import fetch_company_ticker_map
@@ -128,6 +130,7 @@ def semantic_fingerprint(payload):
     for row in sorted(payload.get('live', []), key=lambda r: r['id']):
         financial = row.get('financial_context') or {}
         live.append({'id': row['id'], 'date': (row.get('date') or {}).get('window'),
+                     'timing': [row.get(k) for k in ('timing_mode', 'trigger_current', 'trigger_target', 'trigger_as_of', 'monitoring_state')],
                      'recommendation': row.get('recommendation'), 'security': (row.get('security') or {}).get('status'),
                      'close': (row.get('market') or {}).get('last_close'),
                      'financial_source': financial.get('source_hash'), 'runway_band': financial.get('runway_band'),
@@ -142,7 +145,7 @@ def semantic_fingerprint(payload):
 def export_payload(conn, destination):
     from .payload_v3 import build
     payload = build(conn, date.today())
-    payload['build'] = {'extension': 'v2C', 'source_sha': os.environ.get('GITHUB_SHA'),
+    payload['build'] = {'extension': 'v2E', 'source_sha': os.environ.get('GITHUB_SHA'),
                         'source_of_truth': 'runtime_export_not_checked_in_web_data_json',
                         'change_cursor': None}
     latest_change = conn.execute('SELECT change_id,detected_at FROM change_events ORDER BY detected_at DESC,change_id DESC LIMIT 1').fetchone()
@@ -192,8 +195,20 @@ def run_pipeline(conn, *, deep=False):
             status, report = 'PARTIAL', {'reason': '480_second_budget_exhausted'}
         operation_finish(conn, deep_id, status, report)
         details['deep_refresh'] = {**report, 'status': status}
-    details['prices'] = refresh_live_prices(conn)
+        from .coverage import audit_coverage
+        details['coverage_audit'] = audit_coverage(conn)
+    price_id = operation_start(conn, 'prices')
+    try:
+        details['prices'] = refresh_live_prices(conn)
+    except Exception as exc:
+        details['prices'] = {'status': 'FAILED', 'best_effort': True, 'error': type(exc).__name__}
+    operation_finish(conn, price_id, details['prices'].get('status', 'OK'), details['prices'])
     details['monitor'] = run_monitor(conn, audit=False, sec=False)
+    from .engine_v2 import score_event
+    from .radar import live_event_records
+    from .paper import PaperBook
+    details['forward_candidates_added'] = PaperBook(conn).queue_candidates(
+        [score_event(conn, event, date.today().isoformat()) for event in live_event_records(conn)])
     if os.environ.get('SEC_USER_AGENT'):
         details['financing'] = refresh_financing(conn)
         details['financials'] = refresh_financials(conn)

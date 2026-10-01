@@ -151,6 +151,10 @@ def financing_context(conn, ticker, *, as_of):
     return out[:12]
 
 
+from .source_observability import observed
+
+
+@observed
 def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, recorder=None):
     from .ingest import edgar
     today = today or date.today()

@@ -12,6 +12,7 @@ from datetime import date
 
 from ..config import SEC_USER_AGENT
 from ..extract import extract_catalyst_statements
+from ..db import utcnow
 
 SUBMISSIONS = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 
@@ -113,6 +114,8 @@ def extract_from_filing_v2(filing):
             s["form"] = filing["form"]
             s["filed"] = filing["filed"]
             s["accepted"] = filing.get("accepted")
+            s["accession"] = filing.get("accession")
+            s["retrieved_at"] = utcnow()
             rows.append(s)
     return rows
 

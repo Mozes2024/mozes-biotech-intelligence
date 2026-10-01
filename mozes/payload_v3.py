@@ -157,6 +157,7 @@ def _health(conn, live, refresh, monitor):
     return {
         "status": "ok" if not warnings else "degraded",
         "warnings": warnings,
+        "coverage": (operations.get("coverage_audit") or {}).get("details"),
         "sec_monitoring_enabled": bool(os.environ.get("SEC_USER_AGENT")),
         "latest_monitor": monitor,
         "latest_refresh": refresh,
@@ -206,6 +207,9 @@ def build(conn, today: date):
         "health": _health(conn, live, refresh, monitor),
         "intelligence_v2c": operation_health(conn),
         "validation": validation,
+        "coverage": (operation_health(conn).get("modules", {}).get("coverage_audit") or {}).get("details"),
+        "paper_integrity": PaperBook(conn).verify(),
+        "forward_candidates": [dict(row) for row in conn.execute("SELECT candidate_key,event_id,first_observed_at FROM forward_candidates ORDER BY first_observed_at DESC LIMIT 100")],
         "backtest": backtest_report(conn),
         "historical_audit": audit_catalog(conn),
         "principles": {

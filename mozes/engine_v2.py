@@ -181,6 +181,10 @@ def classify_v2(event, state, impact, evidence, flags, market, date_conf, gates,
     stale = window and window.get("end") and window["end"] < today
     if stale:
         return {"class": "STALE_UNRESOLVED", "actionable": False, "reasons": ["expected window passed without a resolved lifecycle update"]}
+    if event.get("timing_mode") == "EVENT_DRIVEN":
+        risky = any(f.get("sev") == "critical" for f in flags) or (evidence.get("score") is not None and evidence["score"] < 45)
+        return {"class": "AVOID_BINARY" if risky else "REVIEW", "actionable": False,
+                "reasons": ["event_driven_calendar_unknown"] + (["critical risk flag or weak evidence"] if risky else [])}
     if any(f.get("sev") == "critical" for f in flags):
         return {"class": "AVOID_BINARY", "actionable": True, "reasons": ["critical risk flag"]}
     if evidence.get("score") is not None and evidence["score"] < 45:
@@ -220,6 +224,11 @@ def recommendation_status(state, impact, evidence, flags, market, classification
 def score_event(conn, event: dict, today: str) -> dict:
     sources = load_sources()
     di = date_info(event.get("chronology", []), sources)
+    if event.get("timing_mode") == "EVENT_DRIVEN":
+        di.update(window=None, precision="unknown", confidence=0)
+    elif event.get("verified_window"):
+        di.update(window=event["verified_window"], precision=event["verified_window"].get("precision"),
+                  confidence=event["verified_window"].get("confidence", 0))
     state = db.event_state(conn, event["id"]) or {}
     security = __import__('mozes.security', fromlist=['tradability']).tradability(conn, event.get("ticker"))
     impact = catalyst_impact(event)
@@ -250,4 +259,6 @@ def score_event(conn, event: dict, today: str) -> dict:
         "impact": impact, "evidence": evidence, "market": market, "risk_flags": flags,
         "classification": classification, "recommendation": recommendation, "gates": gates, "sources": db.load_event_sources(conn, event["id"]),
         "features": event.get("features") or {}, "security": security,
+        "timing_mode": event.get("timing_mode", "CALENDAR"), "provenance": event.get("provenance"),
+        **{key: value for key, value in event.items() if key.startswith("trigger_") or key == "monitoring_state"},
     }

@@ -13,7 +13,6 @@ from .discovery import discover, store_candidates
 from .ingest.edgar import fetch_company_ticker_map, recent_filings_v2, extract_from_filing_v2
 from .promotion import promote_candidate
 from .universe import normalize_org
-from .session import session_from_sec_acceptance
 from .source_observability import capture
 
 
@@ -33,7 +32,8 @@ def discover_registry(conn, start=None, end=None, months=6):
 
 def _candidates_for_ticker(conn, ticker):
     return [dict(r) for r in conn.execute(
-        "SELECT * FROM discovery_candidates WHERE ticker=? AND promoted_event_id IS NULL ORDER BY primary_completion", (ticker,)
+        "SELECT d.* FROM discovery_candidates d LEFT JOIN event_state s ON s.event_id=d.promoted_event_id "
+        "WHERE d.ticker=? AND (s.status IS NULL OR s.status IN ('VERIFIED','SCHEDULED','DISCOVERED','REVIEW_REQUIRED')) ORDER BY d.discovered_at DESC LIMIT 100", (ticker,)
     ).fetchall()]
 
 
@@ -41,7 +41,10 @@ def verify_candidates_from_sec(conn, filings_per_company=12):
     """Scan recent filings/EX-99 for mapped CT.gov candidates and promote only primary-source matches."""
     maps = [dict(r) for r in conn.execute("SELECT * FROM sponsor_ticker_map WHERE cik IS NOT NULL AND confidence>=0.85 AND (source NOT LIKE 'SEC %' OR source='SEC-v2C-equity')").fetchall()]
     by_ticker = {r["ticker"]: r for r in maps}
-    tickers = [r["ticker"] for r in conn.execute("SELECT DISTINCT ticker FROM discovery_candidates WHERE ticker IS NOT NULL AND promoted_event_id IS NULL").fetchall()]
+    tickers = [r["ticker"] for r in conn.execute(
+        "SELECT DISTINCT d.ticker,COALESCE(m.observed_at,'') last_check FROM discovery_candidates d "
+        "LEFT JOIN monitor_observations m ON m.observation_key='coverage_scan:'||d.ticker "
+        "WHERE d.ticker IS NOT NULL ORDER BY last_check,d.ticker LIMIT 25").fetchall()]
     promoted, scanned, errors = [], 0, []
     for ticker in tickers:
         m = by_ticker.get(ticker)
@@ -61,11 +64,23 @@ def verify_candidates_from_sec(conn, filings_per_company=12):
                 errors.append({"ticker": ticker, "filing": filing.get("url"), "error": str(exc)})
                 continue
             for stmt in statements:
-                for cand in candidates:
+                from .intelligence_store import digest, encode
+                from .promotion import candidate_matches_statement
+                evidence_id = digest([ticker, stmt.get("source_url"), stmt.get("statement")])
+                with conn:
+                    conn.execute("INSERT OR IGNORE INTO catalyst_evidence VALUES(?,?,?,?,?,?)",
+                                 (evidence_id, ticker, stmt.get("source_url") or stmt["source_id"],
+                                  stmt.get("published_at") or stmt.get("filed"), db.utcnow(), encode(stmt)))
+                matches = [cand for cand in candidates if candidate_matches_statement(cand, stmt.get("statement", ""))[0]]
+                # One statement mentioning multiple studies cannot safely pick a study.
+                if len({cand.get("nct_id") or cand["candidate_id"] for cand in matches}) != 1:
+                    continue
+                for cand in matches[:1]:
                     eid = promote_candidate(conn, cand, stmt, ticker, source_type="sec")
                     if eid:
                         promoted.append(eid)
-                        candidates = [c for c in candidates if c["candidate_id"] != cand["candidate_id"]]
+        from .live_monitor import observe
+        observe(conn, "coverage_scan:" + ticker, db.utcnow(), source_type="sec")
     return {"filings_scanned": scanned, "promoted": sorted(set(promoted)), "errors": errors}
 
 
@@ -93,7 +108,13 @@ def refresh_live(conn, start=None, end=None, months=6, do_sec_map=True, do_sec_v
                 details["sec_verification"] = verify_candidates_from_sec(conn)
                 details["sec_regulatory_discovery"] = scan_watch_universe_regulatory(conn)
             details["source_operations"] = metrics.snapshot()
+            from .coverage import audit_coverage
+            details["coverage_audit"] = audit_coverage(conn)
             status = "PARTIAL" if any(isinstance(v, dict) and v.get("errors") for v in details.values()) else "OK"
+            if details.get("sec_skipped"):
+                status = "PARTIAL"
+            if any(row["errors"] for row in details["source_operations"]["sources"].values()):
+                status = "PARTIAL"
     except Exception as exc:
         if metrics is not None:
             details["source_operations"] = metrics.snapshot()

@@ -1,10 +1,36 @@
-# MOZES Biotech Catalyst Intelligence v2D / v0.3
+# MOZES Biotech Catalyst Intelligence v2E / v0.3
 
 A skeptical, point-in-time research system for discovering, verifying, scoring and forward-testing biotech catalysts.
 
 The project is designed around one rule: **an upcoming catalyst is not a bullish signal**. The system separates event importance, clinical/regulatory evidence, market setup, provenance and lifecycle state. It does not unlock RUN-UP or HOLD-through classifications until an out-of-sample validation gate is satisfied.
 
 The user interface is Hebrew RTL. Code and engineering documentation are English.
+
+## v2E — Catalyst Coverage, Provenance & Forward Testing
+
+- `EVENT_DRIVEN` preserves milestone/count targets and dated progress evidence without
+  inventing a readout date or `days_to`. Monitoring states are not trading signals.
+- Registry discovery checks the forward window plus a bounded two-year completion
+  lookback (recently updated completed studies included). At most three pages per
+  window, 100 studies per page, one-day cache, NCT deduplication. Registry dates never
+  verify a catalyst; ambiguous primary-statement matches remain for review.
+- Existing deep refresh performs a bounded Coverage Audit. Health exposes missing,
+  unmapped, unpromoted and unresolved event-driven coverage, including scan truncation.
+- Verified changes are shown at the top of the dashboard. Quick-open provenance
+  includes source, quote, publication/retrieval dates, verification method and precision.
+- Static Pages explicitly identifies its read-only mode and disables local mutations.
+- Paper signals have immutable hash-linked audit records and optional API idempotency
+  keys. A fixed `research65-v1` queue retains the first verified REVIEW/WATCH snapshot
+  with both impact and evidence >=65; it is not a buy list or calibrated model.
+- Validation reports separate P2, P3, PDUFA and ADCOM cohorts with descriptive stock,
+  XBI-relative and, with sufficient history, beta-adjusted returns. Reconstructed
+  history is **not prospective OOS**: OOS remains zero until a registered prospective
+  strategy/evaluation contract exists. No evaluator changes a gate's enabled state.
+- Source failures are distinct from empty successful scans. Price failures degrade
+  health but do not stop SEC/registry monitoring. AI is unchanged and non-authoritative.
+
+No workflow changes or new schedules accompany v2E; push CI remains Python 3.11.
+See [v2E acceptance and limitations](docs/V2E_ACCEPTANCE.md).
 
 ## v0.3 product layer
 

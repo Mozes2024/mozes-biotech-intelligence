@@ -47,7 +47,7 @@ def enrich_financial_context(conn, rows, today):
 def operation_health(conn):
     ensure_schema(conn)
     out = {}
-    for operation in ('identity', 'financials', 'financing', 'pipeline', 'deep_refresh'):
+    for operation in ('identity', 'financials', 'financing', 'pipeline', 'deep_refresh', 'coverage_audit', 'prices'):
         row = conn.execute('SELECT * FROM v2c_operation_runs WHERE operation=? ORDER BY run_id DESC LIMIT 1', (operation,)).fetchone()
         if row:
             item = dict(row)

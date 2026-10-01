@@ -37,6 +37,25 @@ CREATE TABLE IF NOT EXISTS paper_outcomes (
   signal_id TEXT PRIMARY KEY REFERENCES paper_signals(signal_id), attached_at TEXT NOT NULL,
   clinical TEXT NOT NULL, move REAL, note TEXT
 );
+CREATE TABLE IF NOT EXISTS paper_audit (
+  sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+  signal_id TEXT NOT NULL UNIQUE REFERENCES paper_signals(signal_id),
+  idempotency_key TEXT NOT NULL UNIQUE,
+  recorded_at TEXT NOT NULL, source_hash TEXT NOT NULL, input_hash TEXT NOT NULL,
+  previous_hash TEXT NOT NULL, record_hash TEXT NOT NULL, metadata_json TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS paper_audit_no_update BEFORE UPDATE ON paper_audit
+BEGIN SELECT RAISE(ABORT, 'paper audit is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS paper_audit_no_delete BEFORE DELETE ON paper_audit
+BEGIN SELECT RAISE(ABORT, 'paper audit is immutable'); END;
+CREATE TABLE IF NOT EXISTS forward_candidates (
+  candidate_key TEXT PRIMARY KEY, event_id TEXT NOT NULL,
+  first_observed_at TEXT NOT NULL, snapshot_json TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS forward_candidates_no_update BEFORE UPDATE ON forward_candidates
+BEGIN SELECT RAISE(ABORT, 'forward candidate is immutable'); END;
+CREATE TRIGGER IF NOT EXISTS forward_candidates_no_delete BEFORE DELETE ON forward_candidates
+BEGIN SELECT RAISE(ABORT, 'forward candidate is immutable'); END;
 
 CREATE TRIGGER IF NOT EXISTS trg_score_runs_no_update BEFORE UPDATE ON score_runs
 BEGIN SELECT RAISE(ABORT, 'score_runs is append-only'); END;
@@ -114,6 +133,11 @@ CREATE TABLE IF NOT EXISTS refresh_runs (
   finished_at TEXT,
   status TEXT NOT NULL,
   details_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE IF NOT EXISTS catalyst_evidence (
+  evidence_id TEXT PRIMARY KEY, ticker TEXT NOT NULL,
+  source_url TEXT NOT NULL, published_at TEXT, retrieved_at TEXT NOT NULL,
+  payload TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS watch_universe (
   ticker TEXT PRIMARY KEY,

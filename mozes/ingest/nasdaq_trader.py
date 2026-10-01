@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import csv
 import io
+import time
+from ..source_observability import record
 from urllib.request import Request, urlopen
 
 NASDAQ_URL = "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
@@ -29,9 +31,18 @@ def parse_directory(content: str, source_url: str) -> list[dict]:
 
 def fetch_directory(source_url: str) -> list[dict]:
     request = Request(source_url, headers={"User-Agent": "MOZES Biotech Intelligence listing audit"})
-    with urlopen(request, timeout=30) as response:
-        content = response.read().decode("utf-8-sig")
-    return parse_directory(content, source_url)
+    started = time.monotonic()
+    try:
+        with urlopen(request, timeout=30) as response:
+            content = response.read().decode("utf-8-sig")
+        rows = parse_directory(content, source_url)
+        if not rows:
+            raise ValueError('empty listing directory')
+    except Exception:
+        record('nasdaq', error=True, duration_ms=(time.monotonic() - started) * 1000)
+        raise
+    record('nasdaq', duration_ms=(time.monotonic() - started) * 1000)
+    return rows
 
 
 def fetch_current_listings() -> list[dict]:

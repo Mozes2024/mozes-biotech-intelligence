@@ -23,7 +23,7 @@ def _candidate_id(nct_id: str, primary_completion: str | None) -> str:
     return "CTGOV-" + hashlib.sha1(raw).hexdigest()[:16]
 
 
-def query_url(start: str, end: str, page_size=1000, page_token=None):
+def query_url(start: str, end: str, page_size=1000, page_token=None, statuses=ACTIVE):
     advanced = (
         f"AREA[PrimaryCompletionDate]RANGE[{start},{end}] AND "
         "AREA[Phase](PHASE2 OR PHASE3) AND AREA[LeadSponsorClass]INDUSTRY AND AREA[StudyType]INTERVENTIONAL"
@@ -32,9 +32,9 @@ def query_url(start: str, end: str, page_size=1000, page_token=None):
         "format": "json",
         "pageSize": str(page_size),
         "countTotal": "true",
-        "filter.overallStatus": ACTIVE,
+        "filter.overallStatus": statuses,
         "filter.advanced": advanced,
-        "fields": "NCTId,BriefTitle,OverallStatus,Phase,LeadSponsorName,LeadSponsorClass,PrimaryCompletionDate,LastUpdatePostDate,EnrollmentCount,Condition,InterventionName",
+        "fields": "NCTId,BriefTitle,Acronym,OverallStatus,Phase,LeadSponsorName,LeadSponsorClass,PrimaryCompletionDate,LastUpdatePostDate,EnrollmentCount,Condition,InterventionName",
     }
     if page_token:
         params["pageToken"] = page_token
@@ -92,28 +92,67 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
     }
 
 
-def discover(start: str | None = None, end: str | None = None, months=6, sponsor_map=None, fetcher=fetch_json):
-    today = date.today()
+def discover(start: str | None = None, end: str | None = None, months=6, sponsor_map=None, fetcher=None,
+             lookback_days=730, max_pages=3, today=None):
+    fetcher = fetcher or cached_fetch_json
+    today = today or date.today()
     start = start or today.isoformat()
     end = end or (today + timedelta(days=31 * months)).isoformat()
-    out, token = [], None
-    while True:
-        payload = fetcher(query_url(start, end, page_token=token))
-        out.extend(study_to_candidate(s, sponsor_map) for s in payload.get("studies", []))
-        token = payload.get("nextPageToken")
-        if not token:
-            break
+    out, seen = [], set()
+    windows = [(start, end, ACTIVE)]
+    if lookback_days:
+        windows.append(((today - timedelta(days=min(lookback_days, 1095))).isoformat(), today.isoformat(),
+                        ACTIVE + ",COMPLETED"))
+    for lo, hi, statuses in windows:
+        token = None
+        for _ in range(max_pages):
+            payload = fetcher(query_url(lo, hi, page_size=100, page_token=token, statuses=statuses))
+            for study in payload.get("studies", []):
+                candidate = study_to_candidate(study, sponsor_map)
+                if statuses != ACTIVE and candidate["status"] == "COMPLETED" and (candidate.get("last_update_posted") or "") < (today - timedelta(days=180)).isoformat():
+                    continue
+                if candidate["nct_id"] and candidate["nct_id"] not in seen:
+                    seen.add(candidate["nct_id"])
+                    out.append(candidate)
+            token = payload.get("nextPageToken")
+            if not token:
+                break
+        if token:
+            record("clinicaltrials.gov", error=True)
     return out
+
+
+def cached_fetch_json(url):
+    """One-day public registry cache; pagination remains bounded by discover()."""
+    import os
+    import time
+    from pathlib import Path
+    from .sec_http import _atomic
+    root = Path(os.environ.get("MOZES_HTTP_CACHE", ".monitor/http-cache"))
+    path = root / ("ctgov-" + hashlib.sha256(url.encode()).hexdigest() + ".json")
+    try:
+        cached = json.loads(path.read_text(encoding="utf-8"))
+        if 0 <= time.time() - cached["at"] < 86400:
+            record("clinicaltrials.gov", cache=True)
+            return cached["data"]
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    data = fetch_json(url)
+    _atomic(path, json.dumps({"at": time.time(), "data": data}).encode())
+    return data
 
 
 def store_candidates(conn, candidates: list[dict], discovered_at=None):
     discovered_at = discovered_at or datetime.now(timezone.utc).isoformat(timespec="seconds")
     with conn:
         for c in candidates:
+            # Retain the original row and promotion when registry estimates move.
+            prior = conn.execute("SELECT candidate_id FROM discovery_candidates WHERE nct_id=? ORDER BY (promoted_event_id IS NOT NULL) DESC,discovered_at DESC LIMIT 1", (c.get("nct_id"),)).fetchone()
+            candidate_id = prior["candidate_id"] if prior else c["candidate_id"]
             conn.execute(
                 "INSERT INTO discovery_candidates(candidate_id,nct_id,sponsor,ticker,ticker_confidence,phase,title,primary_completion,last_update_posted,status,raw_json,discovered_at,promoted_event_id) "
                 "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(candidate_id) DO UPDATE SET sponsor=excluded.sponsor,ticker=excluded.ticker,ticker_confidence=excluded.ticker_confidence,"
                 "phase=excluded.phase,title=excluded.title,primary_completion=excluded.primary_completion,last_update_posted=excluded.last_update_posted,status=excluded.status,raw_json=excluded.raw_json,discovered_at=excluded.discovered_at",
-                (c["candidate_id"], c.get("nct_id"), c.get("sponsor"), c.get("ticker"), c.get("ticker_confidence"), c.get("phase"), c.get("title"),
+                (candidate_id, c.get("nct_id"), c.get("sponsor"), c.get("ticker"), c.get("ticker_confidence"), c.get("phase"), c.get("title"),
                  c.get("primary_completion"), c.get("last_update_posted"), c.get("status"), json.dumps(c.get("raw") or {}, ensure_ascii=False), discovered_at, None),
             )
