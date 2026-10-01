@@ -20,7 +20,7 @@ mozes = "mozes.cli:main"
 include = ["mozes*"]
 
 [tool.setuptools.package-data]
-mozes = ["data/*.json", "schema.sql"]
+mozes = ["data/*.json", "data/starter_prices/*.csv", "data/starter_prices/*.json", "schema.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

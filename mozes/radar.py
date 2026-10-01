@@ -89,10 +89,13 @@ def bootstrap_database(conn):
         for extra in ov.get("sources", []):
             db.add_event_source(conn, event["id"], extra["source_id"], extra["source_type"], extra.get("url"), extra.get("published_at"), extra.get("statement"), extra.get("supports_date", True))
 
-    # Seed a conservative watch universe from every ticker already represented in the curated catalog.
-    for event in db.load_events(conn):
+    # Historical tickers are retained in historical evidence, not current monitoring.
+    for event in db.load_events(conn, "live"):
         if event.get("ticker"):
             db.upsert_watch(conn, event["ticker"], event.get("company"), source="curated-catalog")
+    with conn:
+        conn.execute("UPDATE watch_universe SET active=0 WHERE source='curated-catalog' AND ticker NOT IN "
+                     "(SELECT DISTINCT json_extract(payload,'$.ticker') FROM events WHERE kind='live')")
     for ticker, rec in _load_security_overrides().items():
         db.upsert_security_lifecycle(conn, ticker, **{k: v for k, v in rec.items() if k != "asset"})
         if rec.get("asset"):
@@ -119,7 +122,7 @@ def live_event_records(conn, include_quarantined=True):
     out = []
     for e in events:
         security = __import__('mozes.security', fromlist=['tradability']).tradability(conn, e.get("ticker"))
-        if security["status"] in {"ACQUIRED", "DELISTED", "SUSPENDED", "BANKRUPT"}:
+        if security["status"] in {"ACQUIRED", "DELISTED", "SUSPENDED", "BANKRUPT", "RENAMED"}:
             continue
         s = db.event_state(conn, e["id"]) or {}
         if is_resolved(s.get("status", "")):
@@ -140,7 +143,7 @@ def current_resolved_records(conn):
     for e in db.load_events(conn, "live"):
         s = db.event_state(conn, e["id"]) or {}
         security = __import__('mozes.security', fromlist=['tradability']).tradability(conn, e.get("ticker"))
-        if is_resolved(s.get("status", "")) or security["status"] in {"ACQUIRED", "DELISTED", "SUSPENDED", "BANKRUPT"}:
+        if is_resolved(s.get("status", "")) or security["status"] in {"ACQUIRED", "DELISTED", "SUSPENDED", "BANKRUPT", "RENAMED"}:
             out.append({**e, "state": s, "security": security, "sources_v2": db.load_event_sources(conn, e["id"])})
     return out
 

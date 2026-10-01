@@ -10,6 +10,8 @@ from .backtest_v2 import report as backtest_report
 from .engine_v2 import score_event
 from .paper import PaperBook
 from .radar import bootstrap_database, current_resolved_records, live_event_records, validation_status
+from .historical import readiness_summary
+from .security import tradability
 
 VERSION = "0.3.0"
 
@@ -29,12 +31,12 @@ def _refresh_status(conn):
 
 
 def _watch_universe(conn):
-    return [dict(r) for r in conn.execute(
-        "SELECT ticker,company,cik,source,active,updated_at FROM watch_universe ORDER BY ticker"
+    return [{**dict(r), "security": tradability(conn, r["ticker"])} for r in conn.execute(
+        "SELECT ticker,company,cik,source,active,updated_at FROM watch_universe WHERE active=1 ORDER BY ticker"
     ).fetchall()]
 
 
-def _summary(live, resolved, candidates, validation, paper):
+def _summary(conn, live, stale, resolved, candidates, validation, paper, historical):
     classes = Counter((x.get("classification") or {}).get("class", "UNKNOWN") for x in live)
     states = Counter((x.get("state") or {}).get("status", "UNKNOWN") for x in live)
     verified = sum(1 for x in live if (x.get("state") or {}).get("verification_state") == "VERIFIED")
@@ -44,6 +46,14 @@ def _summary(live, resolved, candidates, validation, paper):
     mapped = sum(1 for c in candidates if c.get("ticker"))
     return {
         "live_events": len(live),
+        "stale_events": len(stale),
+        "tradable_verified_tickers": sum(tradability(conn, row["ticker"])["tradable"] for row in db.watch_rows(conn)),
+        "unknown_tradability_tickers": sum(tradability(conn, row["ticker"])["status"] == "UNKNOWN" for row in db.watch_rows(conn)),
+        "primary_verified_live": verified,
+        "historical_cases": historical["cases"],
+        "historical_research_ready": historical["research_ready"],
+        "historical_runup_ready": historical["runup_ready"],
+        "historical_hold_ready": historical["hold_ready"],
         "verified": verified,
         "quarantined": quarantined,
         "high_impact": high_impact,
@@ -62,7 +72,13 @@ def _summary(live, resolved, candidates, validation, paper):
 def build(conn, today: date):
     bootstrap_database(conn)
     t = today.isoformat()
-    live = [score_event(conn, e, t) for e in live_event_records(conn, include_quarantined=True)]
+    scored = [score_event(conn, e, t) for e in live_event_records(conn, include_quarantined=True)]
+    stale = [row for row in scored if row["classification"]["class"] == "STALE_UNRESOLVED"]
+    for row in stale:
+        window = (row.get("date") or {}).get("window") or {}
+        row["stale_reason"] = row["classification"]["reasons"][0]
+        row["age_days"] = (today - date.fromisoformat(window["start"])).days if window.get("start") else None
+    live = [row for row in scored if row["classification"]["class"] != "STALE_UNRESOLVED"]
     live.sort(key=lambda x: (((x.get("date") or {}).get("window") or {}).get("start") or "9999", -(x.get("impact") or {}).get("score", 0)))
     resolved = current_resolved_records(conn)
     resolved.sort(key=lambda x: ((x.get("state") or {}).get("resolved_at") or "", x.get("ticker") or ""), reverse=True)
@@ -72,12 +88,14 @@ def build(conn, today: date):
     ).fetchall()]
     validation = validation_status(conn)
     paper = PaperBook(conn).list()
+    historical = readiness_summary(conn)
     return {
         "version": VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "today": t,
-        "summary": _summary(live, resolved, candidates, validation, paper),
+        "summary": _summary(conn, live, stale, resolved, candidates, validation, paper, historical),
         "live": live,
+        "stale": stale,
         "resolved": resolved,
         "candidates": candidates,
         "paper": paper,

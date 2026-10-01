@@ -34,6 +34,15 @@ jobs:
           else
             mozes discover-v2 --months 9 || echo "CT.gov discovery failed; deploying the verified local snapshot."
           fi
+      - name: Audit current security listings
+        run: mozes audit-securities --provider auto
+      - name: Import starter historical cases and fixed price capture
+        run: |
+          mozes historical-import --file mozes/data/historical_starter.json
+          for ticker_case in 'KOD PIT-KOD-DAYBREAK-20260928' 'QTTB PIT-QTTB-SIGNALAA-20260713' 'PHAR PIT-PHAR-JOENJA-20260911'; do
+            set -- $ticker_case
+            mozes historical-prices --case "$2" --provider csv --stock-file "mozes/data/starter_prices/$1.csv" --benchmark-file mozes/data/starter_prices/XBI.csv --source-url https://query1.finance.yahoo.com/v8/finance/chart/
+          done
       - run: mozes export-v3
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

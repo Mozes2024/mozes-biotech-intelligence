@@ -55,6 +55,9 @@ def import_bundle(conn, path: str | Path, *, fetch_sources: bool = False) -> dic
         for snap in case.get("feature_snapshots", []):
             if _timestamp(snap["as_of"]) >= event_time:
                 raise ValueError(f"snapshot {snap['snapshot_id']} is not strictly before event")
+            horizon = snap.get("horizon")
+            if horizon in HORIZONS and (event_time.date() - _timestamp(snap["as_of"]).date()).days != int(horizon[2:]):
+                raise ValueError(f"snapshot {snap['snapshot_id']} horizon does not match its as_of date")
             sources = list(snap.get("source_ids", []))
             _prove_pre_event(conn, sources, snap["as_of"])
             if not sources:
@@ -68,6 +71,10 @@ def import_bundle(conn, path: str | Path, *, fetch_sources: bool = False) -> dic
             sources = list(outcome.get("source_ids", []))
             if not sources or any(not db.source_archive_row(conn, s) for s in sources):
                 raise ValueError(f"outcome {outcome['label_id']} has unarchived source provenance")
+            for source_id in sources:
+                published = db.source_archive_row(conn, source_id)["published_at"]
+                if not published or _timestamp(published) > _timestamp(outcome["labeled_at"]):
+                    raise ValueError(f"outcome source {source_id} was unavailable when label was attached")
             db.store_outcome_label(conn, outcome["label_id"], case["case_id"], outcome["labeled_at"], outcome.get("label", {}), provenance=sources, verified=True)
     return {"cases": len(bundle.get("cases", [])), "sources": len(bundle.get("sources", []))}
 
@@ -84,7 +91,8 @@ def attach_price_coverage(conn, case_id: str, provider: str, run_id: str | None 
     return {"case_id": case_id, "ticker": case["ticker"], "benchmark": benchmark, "start": start, "end": end}
 
 
-def backfill_prices(conn, case_id: str, provider: str, *, stock_file: str | None = None, benchmark_file: str | None = None) -> dict:
+def backfill_prices(conn, case_id: str, provider: str, *, stock_file: str | None = None, benchmark_file: str | None = None,
+                    source_url: str | None = None) -> dict:
     """Fetch or load ticker and XBI prices and bind their provenance to one case."""
     case = next(row for row in db.historical_case_rows(conn) if row["case_id"] == case_id)
     start, end = event_price_window(case["event_at"])
@@ -93,14 +101,17 @@ def backfill_prices(conn, case_id: str, provider: str, *, stock_file: str | None
             raise ValueError("csv backfill requires --stock-file and --benchmark-file")
         from .ingest.prices import load_csv
         stock, benchmark = load_csv(stock_file), load_csv(benchmark_file)
-        metadata = {"stock_file": Path(stock_file).name, "benchmark_file": Path(benchmark_file).name}
+        metadata = {"stock_file": Path(stock_file).name, "benchmark_file": Path(benchmark_file).name,
+                    "stock_sha256": hashlib.sha256(Path(stock_file).read_bytes()).hexdigest(),
+                    "benchmark_sha256": hashlib.sha256(Path(benchmark_file).read_bytes()).hexdigest(),
+                    "source_url": source_url or "user-supplied CSV; origin unspecified"}
     elif provider == "yahoo":
         from .ingest.prices import fetch_yahoo_chart
         stock, benchmark = fetch_yahoo_chart(case["ticker"], start, end), fetch_yahoo_chart("XBI", start, end)
         metadata = {"adapter": "yahoo-chart-keyless", "start": start, "end": end}
     else:
         raise ValueError(f"unsupported historical price provider: {provider}")
-    run_id = "price-" + hashlib.sha256(f"{case_id}|{provider}|{start}|{end}".encode()).hexdigest()[:16]
+    run_id = "price-" + hashlib.sha256(f"{case_id}|{provider}|{start}|{end}|{json.dumps(metadata,sort_keys=True)}".encode()).hexdigest()[:16]
     db.store_price_ingestion_run(conn, run_id, provider, metadata)
     db.store_prices(conn, case["ticker"], stock, provider)
     db.store_prices(conn, "XBI", benchmark, provider)
@@ -112,9 +123,34 @@ def _price_status(conn, case: dict) -> tuple[bool, str | None]:
     a = conn.execute("SELECT * FROM historical_price_attachments WHERE case_id=? AND ticker=?", (case["case_id"], case["ticker"])).fetchone()
     if not a:
         return False, "missing price attachment"
-    stock = conn.execute("SELECT COUNT(*) AS n FROM prices WHERE ticker=? AND date BETWEEN ? AND ?", (case["ticker"], a["start_date"], a["end_date"])).fetchone()["n"]
-    bench = conn.execute("SELECT COUNT(*) AS n FROM prices WHERE ticker=? AND date BETWEEN ? AND ?", (a["benchmark"], a["start_date"], a["end_date"])).fetchone()["n"]
-    return (stock >= 100 and bench >= 100, None if stock >= 100 and bench >= 100 else "missing price coverage")
+    event_day = _timestamp(case["event_at"]).date().isoformat()
+    def coverage(ticker):
+        r = conn.execute("SELECT COUNT(*) AS n,MIN(date) AS first,MAX(date) AS last FROM prices WHERE ticker=? AND date BETWEEN ? AND ?", (ticker, a["start_date"], a["end_date"])).fetchone()
+        return r["n"] >= 100 and r["first"] <= (_timestamp(case["event_at"]).date() - timedelta(days=120)).isoformat() and r["last"] >= event_day
+    ok = coverage(case["ticker"]) and coverage(a["benchmark"])
+    return (ok, None if ok else "missing price coverage")
+
+
+def _hold_price_status(conn, case: dict) -> bool:
+    event_day = _timestamp(case["event_at"]).date()
+    target = (event_day + timedelta(days=30)).isoformat()
+    for ticker in (case["ticker"], "XBI"):
+        row = conn.execute("SELECT MAX(date) AS last FROM prices WHERE ticker=?", (ticker,)).fetchone()
+        if not row["last"] or row["last"] < target:
+            return False
+    return True
+
+
+def _archived_provenance(conn, ids: list[str], cutoff: str | None = None) -> bool:
+    if not ids:
+        return False
+    for source_id in ids:
+        source = db.source_archive_row(conn, source_id)
+        if not source or not source["content_hash"] or not source["published_at"]:
+            return False
+        if cutoff and _timestamp(source["published_at"]) > _timestamp(cutoff):
+            return False
+    return True
 
 
 def readiness_for_case(conn, case_id: str) -> dict:
@@ -123,21 +159,23 @@ def readiness_for_case(conn, case_id: str) -> dict:
         raise KeyError(case_id)
     snapshots, labels, reasons = db.feature_snapshot_rows(conn, case_id), db.outcome_label_rows(conn, case_id), []
     if case["legacy_post_hoc"]: reasons.append("legacy post-hoc case is quarantined")
-    if not json.loads(case["provenance_json"] or "[]"): reasons.append("case provenance missing")
+    if not _archived_provenance(conn, json.loads(case["provenance_json"] or "[]")): reasons.append("case provenance missing")
     if not snapshots: reasons.append("missing point-in-time feature snapshot")
     for snap in snapshots:
         if snap["as_of"] >= case["event_at"]: reasons.append("feature snapshot is not strictly before event")
         if not snap["blinded"]: reasons.append("feature snapshot was not blinded")
-        if not json.loads(snap["provenance_json"] or "[]"): reasons.append("feature provenance missing")
+        if not _archived_provenance(conn, json.loads(snap["provenance_json"] or "[]"), snap["as_of"]):
+            reasons.append("feature provenance missing or late")
     if not labels: reasons.append("missing outcome label")
     elif not labels[-1]["verified"]: reasons.append("outcome label is not verified")
-    elif not json.loads(labels[-1]["provenance_json"] or "[]"): reasons.append("outcome provenance missing")
+    elif not _archived_provenance(conn, json.loads(labels[-1]["provenance_json"] or "[]"), labels[-1]["labeled_at"]):
+        reasons.append("outcome provenance missing or late")
     prices_ok, price_reason = _price_status(conn, case)
     if price_reason: reasons.append(price_reason)
     if case["announcement_session"] == "unknown": reasons.append("announcement session unknown")
-    research_ready = not any(x in " ".join(reasons) for x in ("legacy", "snapshot", "provenance", "outcome"))
-    runup_ready = research_ready and prices_ok and case["announcement_session"] != "unknown"
-    hold_ready = runup_ready and bool(labels and json.loads(labels[-1]["payload"]).get("event_return") is not None)
+    research_ready = not reasons
+    runup_ready = research_ready
+    hold_ready = runup_ready and _hold_price_status(conn, case) and bool(labels and json.loads(labels[-1]["payload"]).get("event_return") is not None)
     return {"case_id": case_id, "research_ready": research_ready, "runup_ready": runup_ready, "hold_ready": hold_ready, "prices_ok": prices_ok, "reasons": sorted(set(reasons))}
 
 

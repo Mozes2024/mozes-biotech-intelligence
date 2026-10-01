@@ -228,6 +228,15 @@ def score_event(conn, event: dict, today: str) -> dict:
     market = market_setup_from_db(conn, event.get("ticker"), (date.fromisoformat(today) + timedelta(days=1)).isoformat()) if event.get("ticker") else {"available": False}
     gates = __import__('mozes.radar', fromlist=['validation_status']).validation_status(conn)
     classification = classify_v2(event, state, impact, evidence, flags, market, state.get("verification_confidence", di.get("confidence", 0)), gates, today, di.get("window"))
+    # An imprecise conference window that began >90 days ago is an overdue
+    # reconciliation item, even while the broad half-year window remains open.
+    window = di.get("window") or {}
+    overdue_conference = (event.get("type") == "CONFERENCE" and window.get("start")
+                          and (date.fromisoformat(today) - date.fromisoformat(window["start"])).days > 90
+                          and not state.get("event_timestamp"))
+    if overdue_conference and classification["class"] != "RESOLVED":
+        classification = {"class": "STALE_UNRESOLVED", "actionable": False,
+                          "reasons": ["conference window began over 90 days ago without an exact verified event timestamp"]}
     recommendation = recommendation_status(state, impact, evidence, flags, market, classification, gates, security)
     days_to = None
     if di.get("window") and di["window"].get("start"):

@@ -1,0 +1,25 @@
+{
+  "provider": "Yahoo Chart keyless",
+  "provider_url": "https://query1.finance.yahoo.com/v8/finance/chart/",
+  "captured_at": "2026-10-01T07:46:34+00:00",
+  "request_start": "2026-01-01",
+  "request_end_exclusive": "2026-10-02",
+  "files": {
+    "KOD": {
+      "rows": 187,
+      "sha256": "5331a7706d47d9c49a695f33a125bdb0831be80fcce8cec3fa6fa6138f5fbc8f"
+    },
+    "QTTB": {
+      "rows": 187,
+      "sha256": "871faad5dc7fd77a35c89dd6bd9ac25f9f9e62eac848097763bdea111dc66cf3"
+    },
+    "PHAR": {
+      "rows": 187,
+      "sha256": "7db1fafeee1eb463f6ff9ab593a2cfd5ef7d274f97fa1eb2ef146dbfa2c8e845"
+    },
+    "XBI": {
+      "rows": 187,
+      "sha256": "735b97d94e95ce1d3a25cbc81d2611e44bd3dafd20677e56cba0122574b6bbad"
+    }
+  }
+}

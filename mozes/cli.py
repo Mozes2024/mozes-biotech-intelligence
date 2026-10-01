@@ -307,17 +307,16 @@ def cmd_historical_prices(args):
     from .radar import bootstrap_database
     conn = db.connect(DB_PATH)
     bootstrap_database(conn)
-    print(json.dumps(backfill_prices(conn, args.case, args.provider, stock_file=args.stock_file, benchmark_file=args.benchmark_file), indent=2))
+    print(json.dumps(backfill_prices(conn, args.case, args.provider, stock_file=args.stock_file, benchmark_file=args.benchmark_file,
+                                     source_url=args.source_url), indent=2))
     return 0
 
 
 def cmd_audit_securities(args):
-    from .ingest.edgar import fetch_company_ticker_map
     from .radar import bootstrap_database
-    from .security import audit_watch_universe
+    from .security import audit_current_universe
     conn = db.connect(DB_PATH); bootstrap_database(conn)
-    rows = audit_watch_universe(conn, fetch_company_ticker_map())
-    print(json.dumps({"audited": len(rows), "active": sum(x["status"] == "ACTIVE" for x in rows), "unknown": sum(x["status"] == "UNKNOWN" for x in rows)}, indent=2))
+    print(json.dumps(audit_current_universe(conn, provider=args.provider), indent=2))
     return 0
 
 
@@ -400,7 +399,9 @@ def main(argv=None):
     s.add_argument("--provider", choices=["csv", "yahoo"], default="csv")
     s.add_argument("--stock-file", default=None)
     s.add_argument("--benchmark-file", default=None)
-    sp("audit-securities", cmd_audit_securities, "audit every watch-universe ticker against the current SEC universe")
+    s.add_argument("--source-url", default=None, help="original provider URL for CSV capture provenance")
+    s = sp("audit-securities", cmd_audit_securities, "audit the live watch universe against official listing directories")
+    s.add_argument("--provider", choices=["auto", "nasdaq", "sec"], default="auto")
     args = p.parse_args(argv)
     return args.func(args) or 0
 

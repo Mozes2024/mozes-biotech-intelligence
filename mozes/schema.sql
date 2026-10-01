@@ -162,6 +162,10 @@ CREATE TABLE IF NOT EXISTS security_lifecycle (
   effective_from TEXT, effective_to TEXT, successor_ticker TEXT, acquirer_ticker TEXT, reason TEXT,
   source_url TEXT, source_type TEXT, published_at TEXT, verified_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS security_listing_audit (
+  ticker TEXT PRIMARY KEY REFERENCES security_lifecycle(ticker),
+  exchange TEXT, financial_status TEXT, source_url TEXT NOT NULL, checked_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS asset_ownership (
   asset_id TEXT NOT NULL, owner_ticker TEXT NOT NULL, effective_from TEXT NOT NULL, effective_to TEXT,
   relationship TEXT NOT NULL, source_url TEXT NOT NULL, source_type TEXT NOT NULL, published_at TEXT, verified_at TEXT NOT NULL,

@@ -1,10 +1,18 @@
 {
   "version": "0.3.0",
-  "generated_at": "2026-09-30T20:58:32+00:00",
-  "today": "2026-09-30",
+  "generated_at": "2026-10-01T07:52:08+00:00",
+  "today": "2026-10-01",
   "summary": {
-    "live_events": 8,
-    "verified": 7,
+    "live_events": 7,
+    "stale_events": 1,
+    "tradable_verified_tickers": 7,
+    "unknown_tradability_tickers": 0,
+    "primary_verified_live": 6,
+    "historical_cases": 24,
+    "historical_research_ready": 3,
+    "historical_runup_ready": 3,
+    "historical_hold_ready": 0,
+    "verified": 6,
     "quarantined": 1,
     "high_impact": 2,
     "next_30_days": 2,
@@ -13,13 +21,13 @@
     "mapped_candidates": 0,
     "paper_signals": 0,
     "class_counts": {
-      "WATCH": 2,
+      "WATCH": 1,
       "QUARANTINED": 1,
       "AVOID_BINARY": 2,
       "REVIEW": 3
     },
     "state_counts": {
-      "VERIFIED": 3,
+      "VERIFIED": 2,
       "QUARANTINED": 1,
       "SCHEDULED": 4
     },
@@ -40,165 +48,6 @@
   },
   "live": [
     {
-      "id": "QTTB-CONF",
-      "ticker": "QTTB",
-      "company": "Q32 Bio",
-      "program": "bempikibart — SIGNAL-AA Part B (נתוני 36/52 שבועות)",
-      "indication": "התקרחות (alopecia areata)",
-      "ta": "immunology",
-      "type": "CONFERENCE",
-      "phase": "2a",
-      "dependency": "lead",
-      "commercial": false,
-      "pivotal": false,
-      "today": "2026-09-30",
-      "as_of": "2026-09-30",
-      "state": {
-        "event_id": "QTTB-CONF",
-        "status": "VERIFIED",
-        "verification_state": "VERIFIED",
-        "verification_confidence": 93,
-        "event_timestamp": null,
-        "event_session": "unknown",
-        "resolved_at": null,
-        "updated_at": "2026-09-30T20:58:32+00:00",
-        "note": "primary source: sec"
-      },
-      "date": {
-        "window": {
-          "start": "2026-07-01",
-          "end": "2026-12-31"
-        },
-        "precision": "half",
-        "confidence": 35,
-        "original": "second half of 2026",
-        "changes": [],
-        "timeline": [
-          {
-            "date": "2026-08-05",
-            "text": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026",
-            "src": "qttb-8k",
-            "date_text": "second half of 2026",
-            "superseded": null,
-            "norm": {
-              "original": "second half of 2026",
-              "precision": "half",
-              "start": "2026-07-01",
-              "end": "2026-12-31",
-              "confidence": 35,
-              "inferred_year": false
-            }
-          }
-        ]
-      },
-      "days_to": -91,
-      "impact": {
-        "score": 46,
-        "contributions": [
-          {
-            "code": "type",
-            "points": 10,
-            "why": "סוג אירוע: הצגה בכנס"
-          },
-          {
-            "code": "dependency",
-            "points": 18,
-            "why": "תלות החברה בתוכנית: נכס מוביל"
-          },
-          {
-            "code": "mcap",
-            "points": 8,
-            "why": "שווי שוק לפני האירוע: לא ידוע"
-          },
-          {
-            "code": "stage",
-            "points": 10,
-            "why": "חברה טרום-מסחרית"
-          }
-        ],
-        "version": "0.2.0"
-      },
-      "evidence": {
-        "engine": "informational_v0.2",
-        "score": null,
-        "category": "Informational",
-        "context_prior": null,
-        "reasons": [
-          {
-            "code": "non_binary",
-            "delta": 0,
-            "text": "not treated as a primary binary decision event"
-          }
-        ]
-      },
-      "market": {
-        "available": false,
-        "n_prices": 0,
-        "benchmark": "XBI",
-        "reason": "fewer than 31 pre-event closes in DB"
-      },
-      "risk_flags": [
-        {
-          "sev": "low",
-          "code": "known_data",
-          "known_from": "2026-08-05",
-          "src": "qttb-8k",
-          "text": "ה-topline כבר פורסם ביולי; הצגה בכנס בדרך כלל משפיעה פחות",
-          "origin": "source"
-        }
-      ],
-      "classification": {
-        "class": "WATCH",
-        "actionable": true,
-        "reasons": [
-          "informational catalyst, not modeled as primary binary"
-        ]
-      },
-      "recommendation": {
-        "experimental": true,
-        "validation_gates_separate": true,
-        "status": "INSUFFICIENT_INFORMATION",
-        "label_he": "חסר מידע",
-        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
-        "missing_he": "אימות מצב מסחר ממקור רשמי."
-      },
-      "gates": {
-        "runup": {
-          "enabled": false,
-          "satisfied": false,
-          "n": 0,
-          "min_n": 150,
-          "note": "locked until stable positive out-of-sample evidence"
-        },
-        "hold_through": {
-          "enabled": false,
-          "satisfied": false,
-          "n": 0,
-          "min_n": 200,
-          "note": "locked until calibrated out-of-sample binary model"
-        }
-      },
-      "sources": [
-        {
-          "event_id": "QTTB-CONF",
-          "source_id": "qttb-8k",
-          "source_type": "sec",
-          "url": "https://www.sec.gov/Archives/edgar/data/0001661998/000119312526333813/qttb-ex99_1.htm",
-          "published_at": "2026-08-05",
-          "statement": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026",
-          "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
-        }
-      ],
-      "features": {},
-      "security": {
-        "status": "UNKNOWN",
-        "tradable": false,
-        "verified": false,
-        "reason": "no current security lifecycle verification"
-      }
-    },
-    {
       "id": "KOD-BLA",
       "ticker": "KOD",
       "company": "Kodiak Sciences",
@@ -210,8 +59,8 @@
       "dependency": "lead",
       "commercial": false,
       "pivotal": false,
-      "today": "2026-09-30",
-      "as_of": "2026-09-30",
+      "today": "2026-10-01",
+      "as_of": "2026-10-01",
       "state": {
         "event_id": "KOD-BLA",
         "status": "VERIFIED",
@@ -220,7 +69,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:58:32+00:00",
+        "updated_at": "2026-10-01T07:45:59+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -250,7 +99,7 @@
           }
         ]
       },
-      "days_to": 1,
+      "days_to": 0,
       "impact": {
         "score": 46,
         "contributions": [
@@ -291,10 +140,32 @@
         ]
       },
       "market": {
-        "available": false,
-        "n_prices": 0,
-        "benchmark": "XBI",
-        "reason": "fewer than 31 pre-event closes in DB"
+        "available": true,
+        "n_prices": 187,
+        "last_close": {
+          "date": "2026-09-30",
+          "close": 94.80000305175781,
+          "volume": 4908200.0,
+          "source": "csv"
+        },
+        "returns": {
+          "T-7": 1.9241211723005427,
+          "T-14": 1.8840890213659032,
+          "T-30": 1.3321033085670497,
+          "T-60": 1.4751959514407953,
+          "T-90": 1.5340818882231493,
+          "T-120": 1.23796037974068
+        },
+        "relative_to_xbi": {
+          "T-7": 1.9275971444082893,
+          "T-14": 1.878605120642799,
+          "T-30": 1.3472804238334724,
+          "T-60": 1.512969812585904,
+          "T-90": 1.3453879276998242,
+          "T-120": 1.040609686546648
+        },
+        "realized_vol_20d": 3.672938923102151,
+        "benchmark": "XBI"
       },
       "risk_flags": [],
       "classification": {
@@ -307,10 +178,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "INSUFFICIENT_INFORMATION",
-        "label_he": "חסר מידע",
-        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
-        "missing_he": "אימות מצב מסחר ממקור רשמי."
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
       },
       "gates": {
         "runup": {
@@ -337,15 +208,25 @@
           "published_at": "2026-09-28",
           "statement": "החברה מתכננת להגיש BLA ברבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         }
       ],
       "features": {},
       "security": {
-        "status": "UNKNOWN",
-        "tradable": false,
-        "verified": false,
-        "reason": "no current security lifecycle verification"
+        "ticker": "KOD",
+        "company": "Kodiak Sciences",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
       }
     },
     {
@@ -360,8 +241,8 @@
       "dependency": "one_of_many",
       "commercial": true,
       "pivotal": false,
-      "today": "2026-09-30",
-      "as_of": "2026-09-30",
+      "today": "2026-10-01",
+      "as_of": "2026-10-01",
       "state": {
         "event_id": "REGN-POZELIMAB",
         "status": "QUARANTINED",
@@ -370,7 +251,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:58:32+00:00",
+        "updated_at": "2026-10-01T07:45:59+00:00",
         "note": "Secondary calendar only; no matching primary-source PDUFA confirmation was verified in the 2026-09-30 review."
       },
       "date": {
@@ -400,7 +281,7 @@
           }
         ]
       },
-      "days_to": 20,
+      "days_to": 19,
       "impact": {
         "score": 47,
         "contributions": [
@@ -474,8 +355,8 @@
         "validation_gates_separate": true,
         "status": "INSUFFICIENT_INFORMATION",
         "label_he": "חסר מידע",
-        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
-        "missing_he": "אימות מצב מסחר ממקור רשמי."
+        "why_he": "האירוע אינו מאומת מספיק מול מקור ראשוני.",
+        "missing_he": "אימות מועד ואירוע מול מקור ראשוני."
       },
       "gates": {
         "runup": {
@@ -502,15 +383,25 @@
           "published_at": "2026-09",
           "statement": "תאריך PDUFA לפי לוח משני",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         }
       ],
       "features": {},
       "security": {
-        "status": "UNKNOWN",
-        "tradable": false,
-        "verified": false,
-        "reason": "no current security lifecycle verification"
+        "ticker": "REGN",
+        "company": "Regeneron",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
       }
     },
     {
@@ -525,8 +416,8 @@
       "dependency": "single",
       "commercial": false,
       "pivotal": false,
-      "today": "2026-09-30",
-      "as_of": "2026-09-30",
+      "today": "2026-10-01",
+      "as_of": "2026-10-01",
       "state": {
         "event_id": "SMMT-PDUFA",
         "status": "SCHEDULED",
@@ -535,7 +426,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:58:32+00:00",
+        "updated_at": "2026-10-01T07:45:59+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -580,7 +471,7 @@
           }
         ]
       },
-      "days_to": 45,
+      "days_to": 44,
       "impact": {
         "score": 74,
         "contributions": [
@@ -665,10 +556,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "INSUFFICIENT_INFORMATION",
-        "label_he": "חסר מידע",
-        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
-        "missing_he": "אימות מצב מסחר ממקור רשמי."
+        "status": "NOT_NOW",
+        "label_he": "לא כרגע",
+        "why_he": "דגל סיכון מהותי או ראיות חלשות מגבילים את ההתקדמות.",
+        "missing_he": "שינוי מהותי בפרופיל הסיכון או ראיות חדשות."
       },
       "gates": {
         "runup": {
@@ -695,7 +586,7 @@
           "published_at": "2026-01-29",
           "statement": "ה-FDA קיבל את ה-BLA; נקבע תאריך PDUFA",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         },
         {
           "event_id": "SMMT-PDUFA",
@@ -705,7 +596,7 @@
           "published_at": "2026-07-23",
           "statement": "ההנחיה חוזרת: החלטת FDA עד 14 בנובמבר",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         }
       ],
       "features": {
@@ -715,10 +606,20 @@
         "fda_requirement_at_risk": true
       },
       "security": {
-        "status": "UNKNOWN",
-        "tradable": false,
-        "verified": false,
-        "reason": "no current security lifecycle verification"
+        "ticker": "SMMT",
+        "company": "Summit Therapeutics",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
       }
     },
     {
@@ -733,8 +634,8 @@
       "dependency": "lead",
       "commercial": true,
       "pivotal": false,
-      "today": "2026-09-30",
-      "as_of": "2026-09-30",
+      "today": "2026-10-01",
+      "as_of": "2026-10-01",
       "state": {
         "event_id": "CYTK-SNDA",
         "status": "SCHEDULED",
@@ -743,7 +644,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:58:32+00:00",
+        "updated_at": "2026-10-01T07:45:59+00:00",
         "note": "Company IR confirms supplemental NDA accepted with a November 14, 2026 PDUFA date."
       },
       "date": {
@@ -773,7 +674,7 @@
           }
         ]
       },
-      "days_to": 45,
+      "days_to": 44,
       "impact": {
         "score": 53,
         "contributions": [
@@ -845,10 +746,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "INSUFFICIENT_INFORMATION",
-        "label_he": "חסר מידע",
-        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
-        "missing_he": "אימות מצב מסחר ממקור רשמי."
+        "status": "RESEARCH_WORTHY",
+        "label_he": "שווה מחקר",
+        "why_he": "האירוע מאומת וראוי לבדיקת עומק, אך אינו עומד בכל תנאי המועמדות.",
+        "missing_he": "חיזוק של חשיבות האירוע, ראיות או תמונת שוק."
       },
       "gates": {
         "runup": {
@@ -875,7 +776,7 @@
           "published_at": "2026-05-05",
           "statement": "Supplemental NDA for MAPLE-HCM accepted with PDUFA date November 14, 2026.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         },
         {
           "event_id": "CYTK-SNDA",
@@ -885,15 +786,25 @@
           "published_at": "2026-09",
           "statement": "תאריך PDUFA להתוויה המשלימה",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         }
       ],
       "features": {},
       "security": {
-        "status": "UNKNOWN",
-        "tradable": false,
-        "verified": false,
-        "reason": "no current security lifecycle verification"
+        "ticker": "CYTK",
+        "company": "Cytokinetics",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
       }
     },
     {
@@ -908,8 +819,8 @@
       "dependency": "single",
       "commercial": false,
       "pivotal": false,
-      "today": "2026-09-30",
-      "as_of": "2026-09-30",
+      "today": "2026-10-01",
+      "as_of": "2026-10-01",
       "state": {
         "event_id": "CAPR-PDUFA",
         "status": "SCHEDULED",
@@ -918,7 +829,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:58:32+00:00",
+        "updated_at": "2026-10-01T07:45:59+00:00",
         "note": "primary source: sec"
       },
       "date": {
@@ -985,7 +896,7 @@
           }
         ]
       },
-      "days_to": 53,
+      "days_to": 52,
       "impact": {
         "score": 87,
         "contributions": [
@@ -1095,10 +1006,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "INSUFFICIENT_INFORMATION",
-        "label_he": "חסר מידע",
-        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
-        "missing_he": "אימות מצב מסחר ממקור רשמי."
+        "status": "NOT_NOW",
+        "label_he": "לא כרגע",
+        "why_he": "דגל סיכון מהותי או ראיות חלשות מגבילים את ההתקדמות.",
+        "missing_he": "שינוי מהותי בפרופיל הסיכון או ראיות חדשות."
       },
       "gates": {
         "runup": {
@@ -1125,7 +1036,7 @@
           "published_at": "2026-08-24",
           "statement": "יעד PDUFA הקודם (כפי שמצוטט ב-8-K; ההודעה המקורית טרם נקלטה)",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         },
         {
           "event_id": "CAPR-PDUFA",
@@ -1135,7 +1046,7 @@
           "published_at": "2026-08-25",
           "statement": "CRL על ה-BLA המקורי (PDUFA מקורי 31/08/2025)",
           "supports_date": 0,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         }
       ],
       "features": {
@@ -1151,10 +1062,20 @@
         ]
       },
       "security": {
-        "status": "UNKNOWN",
-        "tradable": false,
-        "verified": false,
-        "reason": "no current security lifecycle verification"
+        "ticker": "CAPR",
+        "company": "Capricor Therapeutics",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
       }
     },
     {
@@ -1169,8 +1090,8 @@
       "dependency": "one_of_few",
       "commercial": false,
       "pivotal": true,
-      "today": "2026-09-30",
-      "as_of": "2026-09-30",
+      "today": "2026-10-01",
+      "as_of": "2026-10-01",
       "state": {
         "event_id": "KOD-PEAK-PA1",
         "status": "VERIFIED",
@@ -1179,7 +1100,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:58:32+00:00",
+        "updated_at": "2026-10-01T07:45:59+00:00",
         "note": "primary source: company_ir"
       },
       "date": {
@@ -1247,7 +1168,7 @@
           }
         ]
       },
-      "days_to": 62,
+      "days_to": 61,
       "impact": {
         "score": 62,
         "contributions": [
@@ -1304,10 +1225,32 @@
         "probability_label": "UNCALIBRATED; do not interpret score as probability"
       },
       "market": {
-        "available": false,
-        "n_prices": 0,
-        "benchmark": "XBI",
-        "reason": "fewer than 31 pre-event closes in DB"
+        "available": true,
+        "n_prices": 187,
+        "last_close": {
+          "date": "2026-09-30",
+          "close": 94.80000305175781,
+          "volume": 4908200.0,
+          "source": "csv"
+        },
+        "returns": {
+          "T-7": 1.9241211723005427,
+          "T-14": 1.8840890213659032,
+          "T-30": 1.3321033085670497,
+          "T-60": 1.4751959514407953,
+          "T-90": 1.5340818882231493,
+          "T-120": 1.23796037974068
+        },
+        "relative_to_xbi": {
+          "T-7": 1.9275971444082893,
+          "T-14": 1.878605120642799,
+          "T-30": 1.3472804238334724,
+          "T-60": 1.512969812585904,
+          "T-90": 1.3453879276998242,
+          "T-120": 1.040609686546648
+        },
+        "realized_vol_20d": 3.672938923102151,
+        "benchmark": "XBI"
       },
       "risk_flags": [
         {
@@ -1345,10 +1288,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "INSUFFICIENT_INFORMATION",
-        "label_he": "חסר מידע",
-        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
-        "missing_he": "אימות מצב מסחר ממקור רשמי."
+        "status": "RESEARCH_WORTHY",
+        "label_he": "שווה מחקר",
+        "why_he": "האירוע מאומת וראוי לבדיקת עומק, אך אינו עומד בכל תנאי המועמדות.",
+        "missing_he": "חיזוק של חשיבות האירוע, ראיות או תמונת שוק."
       },
       "gates": {
         "runup": {
@@ -1375,7 +1318,7 @@
           "published_at": "2025-11",
           "statement": "PEAK — topline צפוי ברבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         },
         {
           "event_id": "KOD-PEAK-PA1",
@@ -1385,7 +1328,7 @@
           "published_at": "2026-05",
           "statement": "ההנחיה חוזרת: רבעון 4 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         },
         {
           "event_id": "KOD-PEAK-PA1",
@@ -1395,7 +1338,7 @@
           "published_at": "2026-08",
           "statement": "Pivotal Analysis 1 (עוקבה ראשונה, 300 מטופלים) — topline צפוי בדצמבר 2026",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         }
       ],
       "features": {
@@ -1405,10 +1348,20 @@
         "n": 300
       },
       "security": {
-        "status": "UNKNOWN",
-        "tradable": false,
-        "verified": false,
-        "reason": "no current security lifecycle verification"
+        "ticker": "KOD",
+        "company": "Kodiak Sciences",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
       }
     },
     {
@@ -1423,8 +1376,8 @@
       "dependency": "lead",
       "commercial": true,
       "pivotal": false,
-      "today": "2026-09-30",
-      "as_of": "2026-09-30",
+      "today": "2026-10-01",
+      "as_of": "2026-10-01",
       "state": {
         "event_id": "PHAR-SNDA-LOWER-WEIGHT",
         "status": "SCHEDULED",
@@ -1433,7 +1386,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:58:32+00:00",
+        "updated_at": "2026-10-01T07:45:59+00:00",
         "note": "primary source: company_press_release"
       },
       "date": {
@@ -1463,7 +1416,7 @@
           }
         ]
       },
-      "days_to": 122,
+      "days_to": 121,
       "impact": {
         "score": 51,
         "contributions": [
@@ -1510,10 +1463,32 @@
         "probability_label": "UNCALIBRATED; do not interpret score as probability"
       },
       "market": {
-        "available": false,
-        "n_prices": 0,
-        "benchmark": "XBI",
-        "reason": "fewer than 31 pre-event closes in DB"
+        "available": true,
+        "n_prices": 187,
+        "last_close": {
+          "date": "2026-09-30",
+          "close": 9.989999771118164,
+          "volume": 12300.0,
+          "source": "csv"
+        },
+        "returns": {
+          "T-7": -0.07585574622277491,
+          "T-14": -0.07542808986939298,
+          "T-30": -0.1612090764813181,
+          "T-60": -0.3091286483566035,
+          "T-90": -0.220140558635744,
+          "T-120": -0.41166077500362264
+        },
+        "relative_to_xbi": {
+          "T-7": -0.07237977411502816,
+          "T-14": -0.08091199059249721,
+          "T-30": -0.14603196121489537,
+          "T-60": -0.271354787211495,
+          "T-90": -0.4088345191590691,
+          "T-120": -0.6090114681976545
+        },
+        "realized_vol_20d": 0.4488517742054003,
+        "benchmark": "XBI"
       },
       "risk_flags": [],
       "classification": {
@@ -1526,10 +1501,10 @@
       "recommendation": {
         "experimental": true,
         "validation_gates_separate": true,
-        "status": "INSUFFICIENT_INFORMATION",
-        "label_he": "חסר מידע",
-        "why_he": "לא נמצא אימות עדכני שהטיקר נסחר בציבור.",
-        "missing_he": "אימות מצב מסחר ממקור רשמי."
+        "status": "RESEARCH_WORTHY",
+        "label_he": "שווה מחקר",
+        "why_he": "האירוע מאומת וראוי לבדיקת עומק, אך אינו עומד בכל תנאי המועמדות.",
+        "missing_he": "חיזוק של חשיבות האירוע, ראיות או תמונת שוק."
       },
       "gates": {
         "runup": {
@@ -1556,16 +1531,221 @@
           "published_at": "2026-09-25",
           "statement": "FDA accepted the supplemental NDA for Priority Review with a PDUFA target action date of January 30, 2027.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         }
       ],
       "features": {},
       "security": {
-        "status": "UNKNOWN",
-        "tradable": false,
-        "verified": false,
-        "reason": "no current security lifecycle verification"
+        "ticker": "PHAR",
+        "company": "Pharming Group",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
       }
+    }
+  ],
+  "stale": [
+    {
+      "id": "QTTB-CONF",
+      "ticker": "QTTB",
+      "company": "Q32 Bio",
+      "program": "bempikibart — SIGNAL-AA Part B (נתוני 36/52 שבועות)",
+      "indication": "התקרחות (alopecia areata)",
+      "ta": "immunology",
+      "type": "CONFERENCE",
+      "phase": "2a",
+      "dependency": "lead",
+      "commercial": false,
+      "pivotal": false,
+      "today": "2026-10-01",
+      "as_of": "2026-10-01",
+      "state": {
+        "event_id": "QTTB-CONF",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 93,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-01T07:45:59+00:00",
+        "note": "primary source: sec"
+      },
+      "date": {
+        "window": {
+          "start": "2026-07-01",
+          "end": "2026-12-31"
+        },
+        "precision": "half",
+        "confidence": 35,
+        "original": "second half of 2026",
+        "changes": [],
+        "timeline": [
+          {
+            "date": "2026-08-05",
+            "text": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026",
+            "src": "qttb-8k",
+            "date_text": "second half of 2026",
+            "superseded": null,
+            "norm": {
+              "original": "second half of 2026",
+              "precision": "half",
+              "start": "2026-07-01",
+              "end": "2026-12-31",
+              "confidence": 35,
+              "inferred_year": false
+            }
+          }
+        ]
+      },
+      "days_to": -92,
+      "impact": {
+        "score": 46,
+        "contributions": [
+          {
+            "code": "type",
+            "points": 10,
+            "why": "סוג אירוע: הצגה בכנס"
+          },
+          {
+            "code": "dependency",
+            "points": 18,
+            "why": "תלות החברה בתוכנית: נכס מוביל"
+          },
+          {
+            "code": "mcap",
+            "points": 8,
+            "why": "שווי שוק לפני האירוע: לא ידוע"
+          },
+          {
+            "code": "stage",
+            "points": 10,
+            "why": "חברה טרום-מסחרית"
+          }
+        ],
+        "version": "0.2.0"
+      },
+      "evidence": {
+        "engine": "informational_v0.2",
+        "score": null,
+        "category": "Informational",
+        "context_prior": null,
+        "reasons": [
+          {
+            "code": "non_binary",
+            "delta": 0,
+            "text": "not treated as a primary binary decision event"
+          }
+        ]
+      },
+      "market": {
+        "available": true,
+        "n_prices": 187,
+        "last_close": {
+          "date": "2026-09-30",
+          "close": 8.270000457763672,
+          "volume": 5240200.0,
+          "source": "csv"
+        },
+        "returns": {
+          "T-7": -0.2101241407025729,
+          "T-14": -0.22854475263405816,
+          "T-30": -0.4591235789145539,
+          "T-60": -0.39280466026052396,
+          "T-90": 0.5036364468661221,
+          "T-120": 0.680894375919026
+        },
+        "relative_to_xbi": {
+          "T-7": -0.20664816859482615,
+          "T-14": -0.2340286533571624,
+          "T-30": -0.4439464636481312,
+          "T-60": -0.35503079911541546,
+          "T-90": 0.314942486342797,
+          "T-120": 0.48354368272499415
+        },
+        "realized_vol_20d": 0.7398738649200164,
+        "benchmark": "XBI"
+      },
+      "risk_flags": [
+        {
+          "sev": "low",
+          "code": "known_data",
+          "known_from": "2026-08-05",
+          "src": "qttb-8k",
+          "text": "ה-topline כבר פורסם ביולי; הצגה בכנס בדרך כלל משפיעה פחות",
+          "origin": "source"
+        }
+      ],
+      "classification": {
+        "class": "STALE_UNRESOLVED",
+        "actionable": false,
+        "reasons": [
+          "conference window began over 90 days ago without an exact verified event timestamp"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "האירוע אינו מאומת מספיק מול מקור ראשוני.",
+        "missing_he": "אימות מועד ואירוע מול מקור ראשוני."
+      },
+      "gates": {
+        "runup": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 150,
+          "note": "locked until stable positive out-of-sample evidence"
+        },
+        "hold_through": {
+          "enabled": false,
+          "satisfied": false,
+          "n": 0,
+          "min_n": 200,
+          "note": "locked until calibrated out-of-sample binary model"
+        }
+      },
+      "sources": [
+        {
+          "event_id": "QTTB-CONF",
+          "source_id": "qttb-8k",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/0001661998/000119312526333813/qttb-ex99_1.htm",
+          "published_at": "2026-08-05",
+          "statement": "נתונים נוספים יוצגו בכנס רפואי במחצית השנייה של 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
+        }
+      ],
+      "features": {},
+      "security": {
+        "ticker": "QTTB",
+        "company": "Q32 Bio",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "stale_reason": "conference window began over 90 days ago without an exact verified event timestamp",
+      "age_days": 92
     }
   ],
   "resolved": [
@@ -1624,14 +1804,24 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": "2026-09-11",
-        "updated_at": "2026-09-30T20:58:32+00:00",
+        "updated_at": "2026-10-01T07:45:59+00:00",
         "note": "Resolved early: FDA approved the pediatric Joenja label expansion before the prior PDUFA date."
       },
       "security": {
-        "status": "UNKNOWN",
-        "tradable": false,
-        "verified": false,
-        "reason": "no current security lifecycle verification"
+        "ticker": "PHAR",
+        "company": "Pharming Group",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
       },
       "sources_v2": [
         {
@@ -1642,7 +1832,7 @@
           "published_at": "2026-09-07",
           "statement": "CRL על ההגשה",
           "supports_date": 0,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         },
         {
           "event_id": "PHAR-SNDA",
@@ -1652,7 +1842,7 @@
           "published_at": "2026-09-11",
           "statement": "FDA approved Joenja for children aged 4-11 years weighing at least 27 kg.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         }
       ]
     },
@@ -1717,7 +1907,7 @@
         "event_timestamp": null,
         "event_session": "unknown",
         "resolved_at": null,
-        "updated_at": "2026-09-30T20:58:32+00:00",
+        "updated_at": "2026-10-01T07:45:59+00:00",
         "note": "Primary SEC exhibit confirms FDA accepted the BLA with a December 23, 2026 PDUFA date."
       },
       "security": {
@@ -1731,8 +1921,8 @@
         "reason": "Gilead completed the acquisition; ACLX shares ceased trading before Nasdaq opened.",
         "source_url": "https://www.sec.gov/Archives/edgar/data/882095/000110465926049902/xslSCHEDULE_13D_X02/primary_doc.xml",
         "source_type": "sec_schedule_13d",
-        "published_at": "2026-04-28T00:00:00Z",
-        "verified_at": "2026-09-30T20:58:32+00:00",
+        "published_at": "2026-04-28",
+        "verified_at": "2026-10-01T07:45:59+00:00",
         "tradable": false,
         "verified": false
       },
@@ -1745,7 +1935,7 @@
           "published_at": "2026-02-01",
           "statement": "BLA accepted with anticipated PDUFA action date December 23, 2026.",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         },
         {
           "event_id": "ACLX-ANITO",
@@ -1755,7 +1945,7 @@
           "published_at": "2026-09-30",
           "statement": "תאריך PDUFA לפי לוח קטליזטורים משני",
           "supports_date": 1,
-          "retrieved_at": "2026-09-30T20:58:32+00:00"
+          "retrieved_at": "2026-10-01T07:45:59+00:00"
         }
       ]
     }
@@ -1769,39 +1959,23 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "AKRO",
-      "company": "Akero",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "ALNY",
-      "company": "Alnylam",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "ALT",
-      "company": "Altimmune",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "AMLX",
-      "company": "Amylyx",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
+      "updated_at": "2026-10-01T07:52:08+00:00",
+      "security": {
+        "ticker": "ACLX",
+        "company": "Arcellx, Inc.",
+        "status": "ACQUIRED",
+        "effective_from": "2026-04-28",
+        "effective_to": "2026-04-28",
+        "successor_ticker": null,
+        "acquirer_ticker": "GILD",
+        "reason": "Gilead completed the acquisition; ACLX shares ceased trading before Nasdaq opened.",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/882095/000110465926049902/xslSCHEDULE_13D_X02/primary_doc.xml",
+        "source_type": "sec_schedule_13d",
+        "published_at": "2026-04-28",
+        "verified_at": "2026-10-01T07:45:59+00:00",
+        "tradable": false,
+        "verified": false
+      }
     },
     {
       "ticker": "CAPR",
@@ -1809,7 +1983,23 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
+      "updated_at": "2026-10-01T07:52:08+00:00",
+      "security": {
+        "ticker": "CAPR",
+        "company": "Capricor Therapeutics",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
+      }
     },
     {
       "ticker": "CYTK",
@@ -1817,15 +2007,23 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "INSM",
-      "company": "Insmed",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
+      "updated_at": "2026-10-01T07:52:08+00:00",
+      "security": {
+        "ticker": "CYTK",
+        "company": "Cytokinetics",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
+      }
     },
     {
       "ticker": "KOD",
@@ -1833,23 +2031,23 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "KRTX",
-      "company": "Karuna",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "MDGL",
-      "company": "Madrigal",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
+      "updated_at": "2026-10-01T07:52:08+00:00",
+      "security": {
+        "ticker": "KOD",
+        "company": "Kodiak Sciences",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
+      }
     },
     {
       "ticker": "PHAR",
@@ -1857,7 +2055,23 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
+      "updated_at": "2026-10-01T07:52:08+00:00",
+      "security": {
+        "ticker": "PHAR",
+        "company": "Pharming Group",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
+      }
     },
     {
       "ticker": "QTTB",
@@ -1865,15 +2079,23 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "QURE",
-      "company": "uniQure",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
+      "updated_at": "2026-10-01T07:52:08+00:00",
+      "security": {
+        "ticker": "QTTB",
+        "company": "Q32 Bio",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
+      }
     },
     {
       "ticker": "REGN",
@@ -1881,39 +2103,23 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "RPTX",
-      "company": "Replimune",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "SAGE",
-      "company": "Sage Therapeutics",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "SAVA",
-      "company": "Cassava",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "SLRN",
-      "company": "Acelyrin",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
+      "updated_at": "2026-10-01T07:52:08+00:00",
+      "security": {
+        "ticker": "REGN",
+        "company": "Regeneron",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
+      }
     },
     {
       "ticker": "SMMT",
@@ -1921,31 +2127,23 @@
       "cik": null,
       "source": "curated-catalog",
       "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "SRPT",
-      "company": "Sarepta",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "SRRK",
-      "company": "Scholar Rock",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
-    },
-    {
-      "ticker": "VKTX",
-      "company": "Viking",
-      "cik": null,
-      "source": "curated-catalog",
-      "active": 1,
-      "updated_at": "2026-09-30T20:58:32+00:00"
+      "updated_at": "2026-10-01T07:52:08+00:00",
+      "security": {
+        "ticker": "SMMT",
+        "company": "Summit Therapeutics",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-01T07:46:03+00:00",
+        "tradable": true,
+        "verified": true
+      }
     }
   ],
   "refresh": null,
@@ -1968,224 +2166,482 @@
   "backtest": {
     "coverage": {
       "historical_events": 21,
-      "with_pre_event_prices": 0,
-      "with_session_aware_event_move": 0
+      "with_pre_event_prices": 2,
+      "with_session_aware_event_move": 2
     },
     "runup_all_grids": [
       {
         "entry": 60,
         "exit": 14,
         "return": {
-          "n": 0
+          "n": 1,
+          "mean": -0.05048337764179811,
+          "median": -0.05048337764179811,
+          "win_rate": 0.0,
+          "sd": 0.0,
+          "worst": -0.05048337764179811,
+          "best": -0.05048337764179811
         },
         "excess": {
-          "n": 0
+          "n": 1,
+          "mean": -0.0968583017255471,
+          "median": -0.0968583017255471,
+          "win_rate": 0.0,
+          "sd": 0.0,
+          "worst": -0.0968583017255471,
+          "best": -0.0968583017255471
         }
       },
       {
         "entry": 60,
         "exit": 7,
         "return": {
-          "n": 0
+          "n": 1,
+          "mean": -0.12003225078498869,
+          "median": -0.12003225078498869,
+          "win_rate": 0.0,
+          "sd": 0.0,
+          "worst": -0.12003225078498869,
+          "best": -0.12003225078498869
         },
         "excess": {
-          "n": 0
+          "n": 1,
+          "mean": -0.10489325155294782,
+          "median": -0.10489325155294782,
+          "win_rate": 0.0,
+          "sd": 0.0,
+          "worst": -0.10489325155294782,
+          "best": -0.10489325155294782
         }
       },
       {
         "entry": 60,
         "exit": 3,
         "return": {
-          "n": 0
+          "n": 1,
+          "mean": -0.0923738530171806,
+          "median": -0.0923738530171806,
+          "win_rate": 0.0,
+          "sd": 0.0,
+          "worst": -0.0923738530171806,
+          "best": -0.0923738530171806
         },
         "excess": {
-          "n": 0
+          "n": 1,
+          "mean": -0.12635655478481211,
+          "median": -0.12635655478481211,
+          "win_rate": 0.0,
+          "sd": 0.0,
+          "worst": -0.12635655478481211,
+          "best": -0.12635655478481211
         }
       },
       {
         "entry": 60,
         "exit": 1,
         "return": {
-          "n": 0
+          "n": 1,
+          "mean": -0.10794844996175568,
+          "median": -0.10794844996175568,
+          "win_rate": 0.0,
+          "sd": 0.0,
+          "worst": -0.10794844996175568,
+          "best": -0.10794844996175568
         },
         "excess": {
-          "n": 0
+          "n": 1,
+          "mean": -0.10475458225014223,
+          "median": -0.10475458225014223,
+          "win_rate": 0.0,
+          "sd": 0.0,
+          "worst": -0.10475458225014223,
+          "best": -0.10475458225014223
         }
       },
       {
         "entry": 45,
         "exit": 14,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.09676850341894311,
+          "median": -0.09676850341894311,
+          "win_rate": 0.0,
+          "sd": 0.058283932314598504,
+          "worst": -0.13798146719281346,
+          "best": -0.05555553964507276
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.12925594526494188,
+          "median": -0.12925594526494188,
+          "win_rate": 0.0,
+          "sd": 0.1199177328024318,
+          "worst": -0.2140505873140579,
+          "best": -0.044461303215825865
         }
       },
       {
         "entry": 45,
         "exit": 7,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.16306070097432873,
+          "median": -0.16306070097432873,
+          "win_rate": 0.0,
+          "sd": 0.05382595951132257,
+          "worst": -0.20112140194865746,
+          "best": -0.125
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.16395827980000321,
+          "median": -0.16395827980000321,
+          "win_rate": 0.0,
+          "sd": 0.07067202332877817,
+          "worst": -0.21393094673595614,
+          "best": -0.11398561286405029
         }
       },
       {
         "entry": 45,
         "exit": 3,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.1704007500288519,
+          "median": -0.1704007500288519,
+          "win_rate": 0.0,
+          "sd": 0.007935123129815445,
+          "worst": -0.17601172940349463,
+          "best": -0.1647897706542092
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.1821894546496352,
+          "median": -0.1821894546496352,
+          "win_rate": 0.0,
+          "sd": 0.08081877532463606,
+          "worst": -0.2393369587288774,
+          "best": -0.12504195057039302
         }
       },
       {
         "entry": 45,
         "exit": 1,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.18497794837757126,
+          "median": -0.18497794837757126,
+          "win_rate": 0.0,
+          "sd": 0.007315976626741514,
+          "worst": -0.19015112506134246,
+          "best": -0.17980477169380005
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.1745780101106693,
+          "median": -0.1745780101106693,
+          "win_rate": 0.0,
+          "sd": 0.05751150067509187,
+          "worst": -0.21524478223424148,
+          "best": -0.13391123798709714
         }
       },
       {
         "entry": 30,
         "exit": 14,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.01832775803746267,
+          "median": -0.01832775803746267,
+          "win_rate": 0.5,
+          "sd": 0.1375039782473916,
+          "worst": -0.1155577534963208,
+          "best": 0.07890223742139546
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.03473690325678441,
+          "median": -0.03473690325678441,
+          "win_rate": 0.5,
+          "sd": 0.17695751096434723,
+          "worst": -0.15986475924156718,
+          "best": 0.09039095272799835
         }
       },
       {
         "entry": 30,
         "exit": 7,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.09038448776863245,
+          "median": -0.09038448776863245,
+          "win_rate": 0.0,
+          "sd": 0.1272165164795759,
+          "worst": -0.18034014925027075,
+          "best": -0.00042882628699414393
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.07613736408085009,
+          "median": -0.07613736408085009,
+          "win_rate": 0.5,
+          "sd": 0.12320265902868528,
+          "worst": -0.16325479974024748,
+          "best": 0.010980071578547301
         }
       },
       {
         "entry": 30,
         "exit": 3,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.10023032374126123,
+          "median": -0.10023032374126123,
+          "win_rate": 0.0,
+          "sd": 0.07685822813770485,
+          "worst": -0.15457729804741505,
+          "best": -0.04588334943510741
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.09613452617826801,
+          "median": -0.09613452617826801,
+          "win_rate": 0.0,
+          "sd": 0.12781951477198142,
+          "worst": -0.18651657184151016,
+          "best": -0.0057524805150258596
         }
       },
       {
         "entry": 30,
         "exit": 1,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.116060247094039,
+          "median": -0.116060247094039,
+          "win_rate": 0.0,
+          "sd": 0.07498762074017384,
+          "worst": -0.16908450222446092,
+          "best": -0.06303599196361709
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.09034126920727231,
+          "median": -0.09034126920727231,
+          "win_rate": 0.0,
+          "sd": 0.10405699703635081,
+          "worst": -0.16392067744158445,
+          "best": -0.016761860972960174
         }
       },
       {
         "entry": 21,
         "exit": 14,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.10086352534135484,
+          "median": -0.10086352534135484,
+          "win_rate": 0.0,
+          "sd": 0.00010926028439890697,
+          "worst": -0.10094078402936768,
+          "best": -0.100786266653342
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.06690178520005485,
+          "median": -0.06690178520005485,
+          "win_rate": 0.0,
+          "sd": 0.009673536255871017,
+          "worst": -0.07374200828463517,
+          "best": -0.06006156211547453
         }
       },
       {
         "entry": 21,
         "exit": 7,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.1668493803939909,
+          "median": -0.1668493803939909,
+          "win_rate": 0.0,
+          "sd": 7.856968593921783e-05,
+          "worst": -0.1669049375517142,
+          "best": -0.16679382323626757
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.10433201945920134,
+          "median": -0.10433201945920134,
+          "win_rate": 0.0,
+          "sd": 0.031007580348875064,
+          "worst": -0.12625768979207763,
+          "best": -0.08240634912632505
         }
       },
       {
         "entry": 21,
         "exit": 3,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.1726971587617836,
+          "median": -0.1726971587617836,
+          "win_rate": 0.0,
+          "sd": 0.04538488977704841,
+          "worst": -0.20478912208653854,
+          "best": -0.14060519543702865
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.11907745443579498,
+          "median": -0.11907745443579498,
+          "win_rate": 0.0,
+          "sd": 0.024313051299133952,
+          "worst": -0.136269377880749,
+          "best": -0.10188553099084097
         }
       },
       {
         "entry": 21,
         "exit": 1,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.18721859556061943,
+          "median": -0.18721859556061943,
+          "win_rate": 0.0,
+          "sd": 0.04506594991758155,
+          "worst": -0.21908503434795468,
+          "best": -0.15535215677328418
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.11333681832930037,
+          "median": -0.11333681832930037,
+          "win_rate": 0.0,
+          "sd": 0.04421807614167553,
+          "worst": -0.14460371982010223,
+          "best": -0.08206991683849851
         }
       },
       {
         "entry": 14,
         "exit": 7,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.07338801837909431,
+          "median": -0.07338801837909431,
+          "win_rate": 0.0,
+          "sd": 0.00019998251616561144,
+          "worst": -0.07352942737239376,
+          "best": -0.07324660938579486
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.04403456568466163,
+          "median": -0.04403456568466163,
+          "win_rate": 0.0,
+          "sd": 0.04182622423251812,
+          "worst": -0.07361017247090429,
+          "best": -0.014458958898418972
         }
       },
       {
         "entry": 14,
         "exit": 3,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.07988872859797214,
+          "median": -0.07988872859797214,
+          "win_rate": 0.0,
+          "sd": 0.050587894805967946,
+          "worst": -0.1156597720612238,
+          "best": -0.044117685134720475
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.05947970684632514,
+          "median": -0.05947970684632514,
+          "win_rate": 0.0,
+          "sd": 0.03847371619725055,
+          "worst": -0.08668473246684771,
+          "best": -0.03227468122580257
         }
       },
       {
         "entry": 14,
         "exit": 1,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.09603917593674366,
+          "median": -0.09603917593674366,
+          "win_rate": 0.0,
+          "sd": 0.05023121428974479,
+          "worst": -0.1315580081882568,
+          "best": -0.060520343685230515
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.054758364628275935,
+          "median": -0.054758364628275935,
+          "win_rate": 0.0,
+          "sd": 0.0588453463274374,
+          "worst": -0.09636830805767782,
+          "best": -0.01314842119887405
         }
       },
       {
         "entry": 7,
         "exit": 3,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.007021437116582263,
+          "median": -0.007021437116582263,
+          "win_rate": 0.5,
+          "sd": 0.05438016931997673,
+          "worst": -0.045474023604810454,
+          "best": 0.03143114937164593
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.0174331105409532,
+          "median": -0.0174331105409532,
+          "win_rate": 0.0,
+          "sd": 0.0014319275860354697,
+          "worst": -0.018445636247206965,
+          "best": -0.016420584834699437
         }
       },
       {
         "entry": 7,
         "exit": 1,
         "return": {
-          "n": 0
+          "n": 2,
+          "mean": -0.024450964843002854,
+          "median": -0.024450964843002854,
+          "win_rate": 0.5,
+          "sd": 0.053999001234069796,
+          "worst": -0.06263402479291436,
+          "best": 0.013732095106908648
         },
         "excess": {
-          "n": 0
+          "n": 2,
+          "mean": -0.012881540389639179,
+          "median": -0.012881540389639179,
+          "win_rate": 0.5,
+          "sd": 0.020484723446602255,
+          "worst": -0.0273664272494627,
+          "best": 0.0016033464701843414
         }
       }
     ],
     "hold_through": {
       "stats": {
-        "n": 0
+        "n": 2,
+        "mean": 1.2215331353585894,
+        "median": 1.2215331353585894,
+        "win_rate": 1.0,
+        "sd": 0.8416826493818467,
+        "worst": 0.6263736263736264,
+        "best": 1.8166926443435525
       },
       "rows": [
         {
@@ -2254,9 +2710,9 @@
           "date": "2026-03-26",
           "session": "unknown",
           "timing_uncertain": true,
-          "move": null,
+          "move": 0.6263736263736264,
           "clinical": "success",
-          "available": false
+          "available": true
         },
         {
           "id": "KOD-2026-09",
@@ -2264,9 +2720,9 @@
           "date": "2026-09-28",
           "session": "unknown",
           "timing_uncertain": true,
-          "move": null,
+          "move": 1.8166926443435525,
           "clinical": "success",
-          "available": false
+          "available": true
         },
         {
           "id": "KRTX-2022-08",
@@ -2485,7 +2941,6 @@
           "features not blinded / reconstructed post hoc",
           "outcome/move not fully verified",
           "no pre-event provenance",
-          "insufficient pre-event price history",
           "announcement session unknown"
         ]
       },
@@ -2495,7 +2950,6 @@
         "reasons": [
           "features not blinded / reconstructed post hoc",
           "outcome/move not fully verified",
-          "insufficient pre-event price history",
           "announcement session unknown"
         ]
       },
@@ -2645,9 +3099,9 @@
     ],
     "total": 21,
     "pipeline": {
-      "cases": 21,
-      "research_ready": 0,
-      "runup_ready": 0,
+      "cases": 24,
+      "research_ready": 3,
+      "runup_ready": 3,
       "hold_ready": 0,
       "missing_prices": 21,
       "missing_provenance": 21,
@@ -2955,6 +3409,22 @@
           ]
         },
         {
+          "case_id": "PIT-QTTB-SIGNALAA-20260713",
+          "research_ready": true,
+          "runup_ready": true,
+          "hold_ready": false,
+          "prices_ok": true,
+          "reasons": []
+        },
+        {
+          "case_id": "PIT-PHAR-JOENJA-20260911",
+          "research_ready": true,
+          "runup_ready": true,
+          "hold_ready": false,
+          "prices_ok": true,
+          "reasons": []
+        },
+        {
           "case_id": "KOD-2026-09",
           "research_ready": false,
           "runup_ready": false,
@@ -2968,6 +3438,14 @@
             "missing point-in-time feature snapshot",
             "missing price attachment"
           ]
+        },
+        {
+          "case_id": "PIT-KOD-DAYBREAK-20260928",
+          "research_ready": true,
+          "runup_ready": true,
+          "hold_ready": false,
+          "prices_ok": true,
+          "reasons": []
         }
       ]
     }

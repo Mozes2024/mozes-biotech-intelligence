@@ -80,7 +80,25 @@ mozes historical-readiness
 mozes historical-export --file historical-status.json
 ```
 
-`research-ready` requires a non-legacy blinded snapshot and source-provenanced verified outcome. `run-up-ready` additionally requires a known announcement session and both ticker/XBI price coverage; `hold-ready` additionally requires a measurable event return. These dataset flags never open the independent RUN-UP/HOLD OOS validation gates.
+`research-ready` requires a non-legacy blinded snapshot, archived source provenance, a verified outcome, a known announcement session, and ticker/XBI price coverage. `hold-ready` additionally requires a measurable event return and prices through T+30. These dataset flags never open the independent RUN-UP/HOLD OOS validation gates.
+
+### Starter batch and current-universe audit
+
+The checked-in starter bundle (`mozes/data/historical_starter.json`) contains three reconstructed point-in-time cases: KOD DAYBREAK, QTTB SIGNAL-AA, and PHAR's early Joenja pediatric approval. Source records store normalized fact extracts and their SHA-256 hashes, canonical primary URLs, publication-time basis, and retrieval timestamps. These are audit extracts, not full copies of the source pages. Pre-event snapshots cite only pre-event releases. The fixed CSV price capture in `mozes/data/starter_prices/` is adjusted daily Yahoo Chart data for KOD, QTTB, PHAR, and XBI; its manifest records capture time and file hashes, and `scripts/capture_starter_prices.py` reproduces the capture. The case-level price runs record CSV hashes and the original provider URL. Neither a clean case nor an imported label opens the independent OOS gates.
+
+Run the current security audit before export:
+
+```bash
+mozes bootstrap-v2
+mozes audit-securities --provider auto
+mozes historical-import --file mozes/data/historical_starter.json
+mozes historical-prices --case PIT-KOD-DAYBREAK-20260928 --provider csv --stock-file mozes/data/starter_prices/KOD.csv --benchmark-file mozes/data/starter_prices/XBI.csv --source-url https://query1.finance.yahoo.com/v8/finance/chart/
+mozes historical-prices --case PIT-QTTB-SIGNALAA-20260713 --provider csv --stock-file mozes/data/starter_prices/QTTB.csv --benchmark-file mozes/data/starter_prices/XBI.csv --source-url https://query1.finance.yahoo.com/v8/finance/chart/
+mozes historical-prices --case PIT-PHAR-JOENJA-20260911 --provider csv --stock-file mozes/data/starter_prices/PHAR.csv --benchmark-file mozes/data/starter_prices/XBI.csv --source-url https://query1.finance.yahoo.com/v8/finance/chart/
+mozes export-v3
+```
+
+`auto` uses the SEC ticker map when `SEC_USER_AGENT` is configured, and the two official Nasdaq Trader current-listing directories otherwise. Nasdaq's financial-status flag remains visible in the listing audit; a deficient flag alone does not mean a share is delisted. Missing from a directory means `UNKNOWN`, never an inferred acquisition. Corporate-action overrides are sourced separately. Pages and the nightly job run this audit before export. Events with elapsed windows or an unconfirmed broad conference window older than 90 days go to the advanced stale queue for reconciliation.
 
 ## Quick start
 

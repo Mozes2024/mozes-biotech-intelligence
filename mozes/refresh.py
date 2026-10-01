@@ -5,6 +5,7 @@ The pipeline is intentionally staged. Discovery never equals verification.
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 
 from . import db
@@ -90,6 +91,11 @@ def refresh_live(conn, start=None, end=None, months=6, do_sec_map=True, do_sec_v
         rid = cur.lastrowid
     details = {}
     try:
+        from .security import audit_current_universe
+        details["security_audit"] = audit_current_universe(conn)
+        if not os.environ.get("SEC_USER_AGENT"):
+            do_sec_map = do_sec_verify = False
+            details["sec_skipped"] = "SEC_USER_AGENT not configured"
         if do_sec_map:
             details["sec_map_rows"] = refresh_sec_company_map(conn)
             details["watch_ciks_synced"] = sync_watch_ciks(conn)
