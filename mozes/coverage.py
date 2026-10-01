@@ -6,10 +6,16 @@ from .intelligence_store import operation_start, operation_finish
 from .promotion import candidate_matches_statement
 
 
-def audit_coverage(conn, limit=1000):
+def audit_coverage(conn, limit=None):
     rid = operation_start(conn, "coverage_audit")
-    rows = conn.execute("SELECT * FROM discovery_candidates ORDER BY discovered_at DESC,candidate_id LIMIT ?", (limit + 1,)).fetchall()
-    truncated = len(rows) > limit
+    total_candidates = conn.execute("SELECT COUNT(*) FROM discovery_candidates").fetchone()[0]
+    total_evidence = conn.execute("SELECT COUNT(*) FROM catalyst_evidence").fetchone()[0]
+    query_limit = (limit + 1) if limit is not None else None
+    sql = "SELECT * FROM discovery_candidates ORDER BY discovered_at DESC,candidate_id"
+    rows = conn.execute(sql + (" LIMIT ?" if query_limit else ""), (query_limit,) if query_limit else ()).fetchall()
+    truncated = limit is not None and len(rows) > limit
+    if truncated:
+        rows = rows[:limit]
     items = []
     for row in rows[:limit]:
         row = dict(row)
@@ -31,9 +37,12 @@ def audit_coverage(conn, limit=1000):
                       "event_id": row["promoted_event_id"], "status": status})
     # Also surface primary statements with no registry candidate at all. This is
     # bounded review evidence, never an implicit promotion or a new scored event.
-    evidence_rows = conn.execute("SELECT * FROM catalyst_evidence ORDER BY retrieved_at DESC LIMIT ?", (limit + 1,)).fetchall()
-    truncated = truncated or len(evidence_rows) > limit
-    for evidence in evidence_rows[:limit]:
+    evidence_sql = "SELECT * FROM catalyst_evidence ORDER BY retrieved_at DESC"
+    evidence_rows = conn.execute(evidence_sql + (" LIMIT ?" if query_limit else ""), (query_limit,) if query_limit else ()).fetchall()
+    truncated = truncated or (limit is not None and len(evidence_rows) > limit)
+    if limit is not None:
+        evidence_rows = evidence_rows[:limit]
+    for evidence in evidence_rows:
         statement = json.loads(evidence["payload"]).get("statement", "")
         matching = [dict(row) for row in rows[:limit] if row["ticker"] == evidence["ticker"]
                     and candidate_matches_statement(dict(row), statement)[0]]
@@ -42,11 +51,13 @@ def audit_coverage(conn, limit=1000):
         if not matching and not covered:
             items.append({"evidence_id": evidence["evidence_id"], "ticker": evidence["ticker"],
                           "status": "PRIMARY_SOURCE_FOUND_NOT_PROMOTED", "source_url": evidence["source_url"]})
-    result = {"last_coverage_audit": db.utcnow(), "candidate_count": min(len(rows), limit),
+    result = {"last_coverage_audit": db.utcnow(), "candidate_count": len(rows),
+              "total_candidates": total_candidates, "scanned_candidates": len(rows),
+              "total_evidence": total_evidence, "scanned_evidence": len(evidence_rows),
               "missing_count": sum(x["status"] in {"DISCOVERY_ONLY", "ENTITY_UNRESOLVED", "REVIEW_REQUIRED", "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"} for x in items),
               "review_required_count": sum(x["status"] in {"REVIEW_REQUIRED", "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"} for x in items),
               "unmapped_count": sum(x["status"] == "ENTITY_UNRESOLVED" for x in items),
               "event_driven_count": sum(x["status"] == "EVENT_DRIVEN_UNRESOLVED" for x in items),
-              "truncated": truncated, "items": items}
-    operation_finish(conn, rid, "PARTIAL" if truncated else "OK", result)
+              "truncated": truncated, "stop_reason": "row_cap" if truncated else "complete", "items": items}
+    operation_finish(conn, rid, "INCOMPLETE" if truncated else "OK", result)
     return result

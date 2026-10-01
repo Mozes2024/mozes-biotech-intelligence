@@ -214,12 +214,13 @@ def refresh_financials(conn, *, as_of=None, fetcher=None, budget_seconds=120):
     fetcher = fetcher or (lambda cik: json.loads(get_text(
         f'https://data.sec.gov/api/xbrl/companyfacts/CIK{int(cik):010d}.json')))
     rid = operation_start(conn, 'financials')
-    result = {'updated': [], 'missing_cik': [], 'errors': []}
+    result = {'requested': len(db.watch_rows(conn)), 'processed': 0, 'updated': [], 'missing_cik': [], 'errors': [],
+              'budget_exhausted': False}
     by_cik = {}
     deadline = time.monotonic() + budget_seconds
     for watch in db.watch_rows(conn):
         if time.monotonic() >= deadline:
-            result['errors'].append({'reason': 'financial_time_budget_exhausted'})
+            result['budget_exhausted'] = True
             break
         ticker, cik = watch['ticker'], watch.get('cik')
         if not cik:
@@ -230,8 +231,12 @@ def refresh_financials(conn, *, as_of=None, fetcher=None, budget_seconds=120):
                 by_cik[cik] = fetcher(cik)
             extracted = store_financials(conn, ticker, by_cik[cik], as_of=as_of, expected_cik=cik)
             result['updated'].append({'ticker': ticker, 'status': extracted['status']})
+            result['processed'] += 1
         except Exception as exc:
             result['errors'].append({'ticker': ticker, 'error': str(exc)[:200]})
-    status = 'PARTIAL' if result['errors'] or result['missing_cik'] else 'OK'
+    result['updated_count'] = len(result['updated'])
+    result['error_count'] = len(result['errors'])
+    result['completeness_pct'] = round(100 * result['processed'] / result['requested'], 1) if result['requested'] else 100.0
+    status = 'PARTIAL' if result['errors'] else 'INCOMPLETE' if result['missing_cik'] or result['budget_exhausted'] else 'OK'
     operation_finish(conn, rid, status, result)
     return {**result, 'status': status}

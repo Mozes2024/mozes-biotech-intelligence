@@ -23,11 +23,11 @@ def refresh_sec_company_map(conn):
     return len(result["projection"])
 
 
-def discover_registry(conn, start=None, end=None, months=6):
+def discover_registry(conn, start=None, end=None, months=6, return_metadata=False):
     maps = [dict(r) for r in conn.execute("SELECT * FROM sponsor_ticker_map WHERE confidence>=0.85 AND (source NOT LIKE 'SEC %' OR source='SEC-v2C-equity')").fetchall()]
-    rows = discover(start=start, end=end, months=months, sponsor_map=maps)
+    rows, meta = discover(start=start, end=end, months=months, sponsor_map=maps, return_metadata=True)
     store_candidates(conn, rows)
-    return rows
+    return (rows, meta) if return_metadata else rows
 
 
 def _candidates_for_ticker(conn, ticker):
@@ -101,9 +101,10 @@ def refresh_live(conn, start=None, end=None, months=6, do_sec_map=True, do_sec_v
             if do_sec_map:
                 details["sec_map_rows"] = refresh_sec_company_map(conn)
                 details["watch_ciks_synced"] = sync_watch_ciks(conn)
-            candidates = discover_registry(conn, start=start, end=end, months=months)
+            candidates, discovery_meta = discover_registry(conn, start=start, end=end, months=months, return_metadata=True)
             details["ctgov_candidates"] = len(candidates)
             details["ctgov_mapped"] = sum(1 for x in candidates if x.get("ticker"))
+            details["ctgov_discovery"] = discovery_meta
             if do_sec_verify:
                 details["sec_verification"] = verify_candidates_from_sec(conn)
                 details["sec_regulatory_discovery"] = scan_watch_universe_regulatory(conn)
@@ -111,6 +112,8 @@ def refresh_live(conn, start=None, end=None, months=6, do_sec_map=True, do_sec_v
             from .coverage import audit_coverage
             details["coverage_audit"] = audit_coverage(conn)
             status = "PARTIAL" if any(isinstance(v, dict) and v.get("errors") for v in details.values()) else "OK"
+            if discovery_meta.get("truncated") and status == "OK":
+                status = "INCOMPLETE"
             if details.get("sec_skipped"):
                 status = "PARTIAL"
             if any(row["errors"] for row in details["source_operations"]["sources"].values()):

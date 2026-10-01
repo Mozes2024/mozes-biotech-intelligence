@@ -142,21 +142,33 @@ def _health(conn, live, refresh, monitor):
         return out
     stale_prices, fresh_prices = uniq(stale_prices), uniq(fresh_prices)
     warnings = []
+    red, amber, info = [], [], []
     operations = operation_health(conn).get("modules", {})
     for name, op in operations.items():
-        if op.get("status") in {"PARTIAL", "FAILED", "SKIPPED"}:
-            warnings.append(f"{name} collection is {op['status'].lower()}")
+        status = op.get("status")
+        if status in {"PARTIAL", "FAILED"}:
+            red.append({"module": name, "status": status, "details": op.get("details") or {}})
+        elif status in {"INCOMPLETE", "BOUNDED"}:
+            amber.append({"module": name, "status": status, "details": op.get("details") or {}})
+        elif status == "SKIPPED":
+            info.append({"module": name, "status": status, "details": op.get("details") or {}})
     if not os.environ.get("SEC_USER_AGENT"):
-        warnings.append("SEC monitoring identity is not configured")
-    if monitor and monitor.get("status") not in {"OK"}:
-        warnings.append(f"latest monitor status is {monitor.get('status')}")
-    if refresh and refresh.get("status") not in {"OK"}:
-        warnings.append(f"latest refresh status is {refresh.get('status')}")
+        info.append({"module": "identity", "status": "SKIPPED", "reason": "SEC monitoring identity is not configured"})
+    for name, run in (("monitor", monitor), ("refresh", refresh)):
+        if not run or run.get("status") in {"OK"}:
+            continue
+        target = red if run.get("status") in {"PARTIAL", "FAILED"} else amber
+        target.append({"module": name, "status": run.get("status"), "details": run})
     if stale_prices:
-        warnings.append(f"{len(stale_prices)} live tickers have stale market prices")
+        amber.append({"module": "prices", "status": "INCOMPLETE", "reason": "stale prices", "count": len(stale_prices)})
+    warnings.extend([f"{x['module']} collection is {x['status'].lower()}" for x in red + amber])
+    catalyst_healthy = not any(x["module"] in {"monitor", "refresh", "deep_refresh"} for x in red)
     return {
-        "status": "ok" if not warnings else "degraded",
+        "status": "ok" if not red and not amber else "degraded",
         "warnings": warnings,
+        "severity": {"red": red, "amber": amber, "info": info},
+        "primary_catalyst_monitoring": {"healthy": catalyst_healthy,
+                                         "label_he": "ניטור אירועי הליבה תקין" if catalyst_healthy else "ניטור אירועי הליבה דורש בדיקה"},
         "coverage": (operations.get("coverage_audit") or {}).get("details"),
         "sec_monitoring_enabled": bool(os.environ.get("SEC_USER_AGENT")),
         "latest_monitor": monitor,

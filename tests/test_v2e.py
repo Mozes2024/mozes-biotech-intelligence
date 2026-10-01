@@ -114,6 +114,31 @@ def test_discovery_queries_past_completion_and_bounds_requests():
     assert "2024-10-01" in calls[-1] and "COMPLETED" in calls[-1]
 
 
+def test_discovery_finds_candidate_after_page_three_and_reports_bounded_stop():
+    calls = []
+    def fetch(url):
+        calls.append(url)
+        page = len(calls)
+        study = {"protocolSection": {"identificationModule": {"nctId": f"NCT0000000{page}",
+                    "briefTitle": "SELLAS later-page study"},
+                    "statusModule": {"overallStatus": "RECRUITING"}}}
+        return {"studies": [study], "nextPageToken": f"page-{page}" if page < 4 else None}
+    rows, meta = discover(fetcher=fetch, today=date(2026, 10, 1), max_pages=5, return_metadata=True)
+    assert len(calls) == 5  # four forward pages plus the lookback first page
+    assert any(row["nct_id"] == "NCT00000004" for row in rows)
+    assert meta["pages_fetched"] == 5 and meta["candidates_seen"] == 5
+    assert meta["truncated"] is False and meta["stop_reason"] == "complete"
+
+
+def test_coverage_full_reconciliation_is_not_partial_over_1000_rows(tmp_path):
+    conn = db.connect(tmp_path / "large-coverage.db")
+    store_candidates(conn, [study_to_candidate({"NCTId": f"NCT{i:08d}"}) for i in range(1001)])
+    result = audit_coverage(conn)
+    assert result["total_candidates"] == result["scanned_candidates"] == 1001
+    assert result["truncated"] is False and result["stop_reason"] == "complete"
+    assert conn.execute("SELECT status FROM v2c_operation_runs WHERE operation='coverage_audit' ORDER BY run_id DESC LIMIT 1").fetchone()[0] == "OK"
+
+
 def test_paper_idempotency_chain_and_tamper(tmp_path):
     conn = db.connect(tmp_path / "x.db")
     book = PaperBook(conn)

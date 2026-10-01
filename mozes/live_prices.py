@@ -41,8 +41,9 @@ def refresh_live_prices(conn, *, today: date | None = None, lookback_days: int =
             metrics.record('yahoo', error=True, duration_ms=(time.monotonic() - started) * 1000)
             errors.append({"ticker": ticker, "error": str(exc)})
 
+    systemic_failure = bool(errors) and not updated
     return {
-        "status": "PARTIAL" if errors and updated else "FAILED" if errors else "OK",
+        "status": "PARTIAL" if systemic_failure else "INCOMPLETE" if errors else "OK",
         "source_operations": metrics.snapshot(),
         "provider": "yahoo-chart-keyless",
         "start": start,
@@ -52,6 +53,9 @@ def refresh_live_prices(conn, *, today: date | None = None, lookback_days: int =
         "tickers": updated,
         "latest": latest,
         "errors": errors,
+        "failed_tickers": [item["ticker"] for item in errors],
+        "error_count": len(errors),
+        "systemic_failure": systemic_failure,
         "best_effort": True,
     }
 

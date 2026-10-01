@@ -159,12 +159,13 @@ def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, re
     from .ingest import edgar
     today = today or date.today()
     rid = operation_start(conn, 'financing')
-    out = {'filings_checked': 0, 'identified': 0, 'errors': [], 'missing_cik': []}
+    out = {'requested': len(db.watch_rows(conn)), 'processed': 0, 'filings_checked': 0, 'identified': 0,
+           'errors': [], 'missing_cik': [], 'budget_exhausted': False}
     cutoff = (today - timedelta(days=45)).isoformat()
     deadline = time.monotonic() + budget_seconds
     for watch in db.watch_rows(conn):
         if time.monotonic() >= deadline:
-            out['errors'].append({'reason': 'financing_time_budget_exhausted'})
+            out['budget_exhausted'] = True
             break
         if not watch.get('cik'):
             out['missing_cik'].append(watch['ticker'])
@@ -173,10 +174,11 @@ def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, re
         baselined = state_get(conn, baseline_key, False)
         error_count = len(out['errors'])
         try:
+            out['processed'] += 1
             filings = edgar.recent_filings_v2(watch['cik'], forms=FORMS, limit=max_filings)
             for filing in filings:
                 if time.monotonic() >= deadline:
-                    out['errors'].append({'reason': 'financing_time_budget_exhausted'})
+                    out['budget_exhausted'] = True
                     break
                 if not cutoff <= filing.get('filed', '') <= today.isoformat():
                     continue
@@ -201,6 +203,8 @@ def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, re
                 state_put(conn, baseline_key, True)
         except Exception as exc:
             out['errors'].append({'ticker': watch['ticker'], 'error': str(exc)[:200]})
-    status = 'PARTIAL' if out['errors'] or out['missing_cik'] else 'OK'
+    out['error_count'] = len(out['errors'])
+    out['completeness_pct'] = round(100 * out['processed'] / out['requested'], 1) if out['requested'] else 100.0
+    status = 'PARTIAL' if out['errors'] else 'INCOMPLETE' if out['missing_cik'] or out['budget_exhausted'] else 'OK'
     operation_finish(conn, rid, status, out)
     return {**out, 'status': status}

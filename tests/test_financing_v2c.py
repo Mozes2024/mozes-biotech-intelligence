@@ -97,7 +97,7 @@ def test_missing_one_issuer_does_not_block_other_issuer_change_baseline(tmp_path
     changes = []
     recorder = lambda conn, **kw: changes.append(kw)
     first = refresh_financing(conn, today=date(2026,10,1), recorder=recorder)
-    assert first['status'] == 'PARTIAL' and first['missing_cik'] == ['BBB']
+    assert first['status'] == 'INCOMPLETE' and first['missing_cik'] == ['BBB']
     assert state_get(conn, 'financing_baselined:AAA') is True
     assert changes == []
     accession[0] = 'two'

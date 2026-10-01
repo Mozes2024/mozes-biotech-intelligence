@@ -188,9 +188,18 @@ def run_pipeline(conn, *, deep=False):
         if not os.environ.get('SEC_USER_AGENT'):
             cmd = [sys.executable, '-m', 'mozes', 'discover-v2', '--months', '9']
         try:
-            rc = subprocess.run(cmd, timeout=480, check=False).returncode
-            status = 'OK' if rc == 0 else 'PARTIAL'
+            completed = subprocess.run(cmd, timeout=480, check=False, capture_output=True, text=True)
+            rc = completed.returncode
             report = {'returncode': rc}
+            try:
+                child = json.loads(completed.stdout)
+                report.update({'refresh_status': child.get('status'),
+                               'ctgov_discovery': child.get('ctgov_discovery'),
+                               'source_operations': child.get('source_operations')})
+            except (TypeError, ValueError):
+                child = {}
+            status = child.get('status') if rc == 0 else 'PARTIAL'
+            status = status if status in {'OK', 'INCOMPLETE', 'BOUNDED', 'PARTIAL', 'FAILED'} else ('OK' if rc == 0 else 'PARTIAL')
         except subprocess.TimeoutExpired:
             status, report = 'PARTIAL', {'reason': '480_second_budget_exhausted'}
         operation_finish(conn, deep_id, status, report)
@@ -217,9 +226,11 @@ def run_pipeline(conn, *, deep=False):
             module_run = operation_start(conn, name)
             operation_finish(conn, module_run, 'SKIPPED', {'reason': 'SEC_USER_AGENT missing'})
         details['sec_skipped'] = 'SEC_USER_AGENT missing'
-    bad = [k for k, value in details.items() if isinstance(value, dict) and
-           (value.get('status') in {'FAILED', 'PARTIAL', 'SKIPPED'} or value.get('errors') or value.get('error') or value.get('conflicts'))]
-    status = 'PARTIAL' if bad or details.get('sec_skipped') else 'OK'
+    fatal = [k for k, value in details.items() if isinstance(value, dict) and
+             (value.get('status') in {'FAILED', 'PARTIAL'} or value.get('errors') or value.get('error') or value.get('conflicts'))]
+    bounded = [k for k, value in details.items() if isinstance(value, dict) and
+               value.get('status') in {'INCOMPLETE', 'BOUNDED'}]
+    status = 'PARTIAL' if fatal else 'INCOMPLETE' if bounded else 'OK'
     operation_finish(conn, rid, status, details)
     return {'status': status, 'details': details}
 

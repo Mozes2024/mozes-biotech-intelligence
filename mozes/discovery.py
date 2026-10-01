@@ -93,7 +93,15 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
 
 
 def discover(start: str | None = None, end: str | None = None, months=6, sponsor_map=None, fetcher=None,
-             lookback_days=730, max_pages=3, today=None):
+             lookback_days=730, max_pages=None, today=None, budget_seconds=120, return_metadata=False):
+    """Discover registry candidates, paginating until exhausted or budgeted.
+
+    ``max_pages`` remains available as an explicit safety cap for callers, but a
+    missing cap no longer silently truncates deep discovery.  The returned list
+    remains backward compatible; ``return_metadata=True`` returns ``(rows, meta)``.
+    """
+    from time import monotonic
+    started = monotonic()
     fetcher = fetcher or cached_fetch_json
     today = today or date.today()
     start = start or today.isoformat()
@@ -103,11 +111,25 @@ def discover(start: str | None = None, end: str | None = None, months=6, sponsor
     if lookback_days:
         windows.append(((today - timedelta(days=min(lookback_days, 1095))).isoformat(), today.isoformat(),
                         ACTIVE + ",COMPLETED"))
+    pages_fetched = candidates_seen = 0
+    truncated = False
+    stop_reason = "complete"
+    next_page_token_present = False
     for lo, hi, statuses in windows:
         token = None
-        for _ in range(max_pages):
+        window_pages = 0
+        while True:
+            if max_pages is not None and window_pages >= max_pages:
+                truncated, stop_reason = True, "page_cap"
+                break
+            if monotonic() - started >= budget_seconds:
+                truncated, stop_reason = True, "time_budget"
+                break
             payload = fetcher(query_url(lo, hi, page_size=100, page_token=token, statuses=statuses))
+            pages_fetched += 1
+            window_pages += 1
             for study in payload.get("studies", []):
+                candidates_seen += 1
                 candidate = study_to_candidate(study, sponsor_map)
                 if statuses != ACTIVE and candidate["status"] == "COMPLETED" and (candidate.get("last_update_posted") or "") < (today - timedelta(days=180)).isoformat():
                     continue
@@ -118,8 +140,16 @@ def discover(start: str | None = None, end: str | None = None, months=6, sponsor
             if not token:
                 break
         if token:
-            record("clinicaltrials.gov", error=True)
-    return out
+            next_page_token_present = True
+            if not truncated:
+                truncated, stop_reason = True, "page_cap"
+        if truncated and stop_reason == "time_budget":
+            break
+    meta = {"pages_fetched": pages_fetched, "candidates_seen": candidates_seen,
+            "candidates_kept": len(out), "truncated": truncated,
+            "stop_reason": stop_reason, "next_page_token_present": next_page_token_present,
+            "duration_ms": round((monotonic() - started) * 1000)}
+    return (out, meta) if return_metadata else out
 
 
 def cached_fetch_json(url):

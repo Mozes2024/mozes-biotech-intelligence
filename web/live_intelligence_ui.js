@@ -20,11 +20,13 @@
 
   function healthBanner(){
     const h=D?.health||{};
-    const warnings=h.warnings||[];
-    if(h.status==='ok'){
-      return `<div class="notice blue-note"><b>Live Intelligence פעיל:</b> SEC ${h.sec_monitoring_enabled?'פעיל':'כבוי'} · מחירי השוק נבדקים בריצות הניטור.</div>`;
-    }
-    return `<div class="notice red-note"><b>אזהרת טריות/מקורות:</b> ${esc(warnings.join(' · ')||'מצב המערכת דורש בדיקה.')}</div>`;
+    const s=h.severity||{};
+    const primary=h.primary_catalyst_monitoring||{};
+    const red=s.red||[], amber=s.amber||[], info=s.info||[];
+    const details=[...red,...amber,...info].map(x=>`${esc(x.module||'module')}: ${esc(x.status||'INFO')}`).join(' · ');
+    const core=`<div class="notice ${primary.healthy?'blue-note':'red-note'}"><b>${esc(primary.label_he||'מצב ניטור הליבה לא ידוע')}</b> · SEC ${h.sec_monitoring_enabled?'פעיל':'כבוי'}</div>`;
+    if(!red.length&&!amber.length&&!info.length) return core;
+    return core+`<div class="notice ${red.length?'red-note':'blue-note'}"><b>${red.length?'אזהרת מקור':'שכבות העשרה'}</b>: ${red.length?'יש כשל מקור/פעולה אמיתי':'הנתונים זמינים אך אינם מלאים'}${amber.length?` · ${amber.length} שכבות העשרה חלקיות`:''}${info.length?` · ${info.length} שכבות מדולגות`:''}<details style="margin-top:6px"><summary>פרטים טכניים</summary><span class="company">${details}</span></details></div>`;
   }
 
   function recentCatalystHtml(a){
