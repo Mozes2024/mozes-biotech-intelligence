@@ -13,6 +13,7 @@ from .radar import bootstrap_database, current_resolved_records, live_event_reco
 from .historical import readiness_summary
 from .security import tradability
 from .live_monitor import recent_changes
+from .live_intelligence import enrich_live_rows
 
 VERSION = "0.3.0"
 
@@ -45,6 +46,9 @@ def _summary(conn, live, stale, resolved, candidates, validation, paper, histori
     high_impact = sum(1 for x in live if (x.get("impact") or {}).get("score", 0) >= 70)
     next_30 = sum(1 for x in live if x.get("days_to") is not None and 0 <= x["days_to"] <= 30)
     mapped = sum(1 for c in candidates if c.get("ticker"))
+    market_attention = sum(1 for x in live if (x.get("market_intelligence") or {}).get("attention_score", 0) >= 50)
+    recent_shocks = sum(1 for x in live if (x.get("market_intelligence") or {}).get("recent_shock"))
+    chase_flags = sum(1 for x in live if (x.get("market_intelligence") or {}).get("post_event_chase_risk"))
     return {
         "live_events": len(live),
         "stale_events": len(stale),
@@ -55,6 +59,9 @@ def _summary(conn, live, stale, resolved, candidates, validation, paper, histori
         "historical_research_ready": historical["research_ready"],
         "historical_runup_ready": historical["runup_ready"],
         "historical_hold_ready": historical["hold_ready"],
+        "market_attention_high": market_attention,
+        "recent_market_shocks": recent_shocks,
+        "post_event_chase_flags": chase_flags,
         "verified": verified,
         "quarantined": quarantined,
         "high_impact": high_impact,
@@ -74,6 +81,7 @@ def build(conn, today: date):
     bootstrap_database(conn)
     t = today.isoformat()
     scored = [score_event(conn, e, t) for e in live_event_records(conn, include_quarantined=True)]
+    enrich_live_rows(conn, scored, today)
     stale = [row for row in scored if row["classification"]["class"] == "STALE_UNRESOLVED"]
     for row in stale:
         window = (row.get("date") or {}).get("window") or {}
@@ -112,5 +120,6 @@ def build(conn, today: date):
             "hold_and_runup_empirically_gated": True,
             "readout_and_regulatory_models_separate": True,
             "scores_are_not_probabilities": True,
+            "market_attention_is_observational_only": True,
         },
     }
