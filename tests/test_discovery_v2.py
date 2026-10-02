@@ -3,7 +3,7 @@ import json
 from datetime import date
 from urllib.parse import parse_qs, urlparse
 
-from mozes.discovery import discover, query_url, study_to_candidate
+from mozes.discovery import discover, query_url, store_candidates, study_to_candidate
 from mozes.pipeline_v2c import aggregate_status
 
 
@@ -101,7 +101,16 @@ def test_verified_subsidiary_is_persisted_and_remaps_candidate(tmp_path, monkeyp
     bootstrap_database(conn)
     conn.execute("INSERT INTO sponsor_ticker_map(sponsor_norm,sponsor,ticker,cik,confidence,source,updated_at) "
                  "VALUES('example','Example, Inc.','EXM','123',.9,'SEC-v2C-equity','2026-10-02')")
+    conn.execute("INSERT INTO sponsor_ticker_map(sponsor_norm,sponsor,ticker,cik,confidence,source,updated_at) "
+                 "VALUES('another','Another, Inc.','OTH','456',.9,'SEC-v2C-equity','2026-10-02')")
     study = {'NCTId': 'NCT00000001', 'LeadSponsorName': 'ExampleTX, Inc.', 'Phase': ['PHASE4']}
+    older = {**study, 'NCTId': 'NCT00000002'}
+    joint = {'NCTId': 'NCT00000003', 'LeadSponsorName': 'University Hospital',
+             'CollaboratorName': ['ExampleTX, Inc.', 'Another, Inc.'],
+             'CollaboratorClass': ['INDUSTRY', 'INDUSTRY']}
+    store_candidates(conn, [study_to_candidate(older, []), study_to_candidate(joint, [
+        {'sponsor_norm': 'another', 'sponsor': 'Another, Inc.', 'ticker': 'OTH',
+         'cik': '456', 'confidence': .9}])])
     monkeypatch.setattr(refresh, 'discover', lambda **kw: ([study_to_candidate(study, kw['sponsor_map'])],
                                                           {'resume_cursor': None}))
     monkeypatch.setattr(refresh, '_verified_subsidiary_maps', lambda rows, maps, **kw: [
@@ -109,5 +118,7 @@ def test_verified_subsidiary_is_persisted_and_remaps_candidate(tmp_path, monkeyp
          'source': 'SEC-v2E-subsidiary|https://www.sec.gov/exhibit21.htm'}])
     monkeypatch.setenv('SEC_USER_AGENT', 'test@example.com')
     rows, _ = refresh.discover_registry(conn, return_metadata=True)
-    assert rows[0]['ticker'] == 'EXM' and rows[0]['ticker_confidence'] >= .85
+    assert len(rows) == 3 and sum(row['ticker'] == 'EXM' and row['ticker_confidence'] >= .85 for row in rows) == 2
     assert conn.execute("SELECT ticker FROM discovery_candidates WHERE nct_id='NCT00000001'").fetchone()[0] == 'EXM'
+    assert conn.execute("SELECT ticker FROM discovery_candidates WHERE nct_id='NCT00000002'").fetchone()[0] == 'EXM'
+    assert conn.execute("SELECT ticker FROM discovery_candidates WHERE nct_id='NCT00000003'").fetchone()[0] is None

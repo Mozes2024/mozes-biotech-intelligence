@@ -95,8 +95,34 @@ def discover_registry(conn, start=None, end=None, months=6, return_metadata=Fals
                                  (alias['sponsor_norm'], alias['sponsor'], alias['ticker'], alias['cik'],
                                   alias['confidence'], alias['source'], db.utcnow()))
             maps += aliases
-            rows = [study_to_candidate(row['raw'], maps) if not row.get('ticker') else row for row in rows]
         meta['verified_subsidiary_aliases'] = len(aliases)
+    alias_norms = {m['sponsor_norm'] for m in maps
+                   if (m.get('source') or '').startswith('SEC-v2E-subsidiary|')}
+    if alias_norms:
+        def has_alias(raw):
+            ps = raw.get('protocolSection', raw)
+            sponsor_module = ps.get('sponsorCollaboratorsModule') or {}
+            names = [(sponsor_module.get('leadSponsor') or {}).get('name') or raw.get('LeadSponsorName') or '']
+            names += [c.get('name') or '' for c in sponsor_module.get('collaborators') or []]
+            if not sponsor_module.get('collaborators'):
+                collaborators = raw.get('CollaboratorName') or []
+                names += [collaborators] if isinstance(collaborators, str) else collaborators
+            return any(normalize_org(name) in alias_norms for name in names)
+
+        rows = [study_to_candidate(row['raw'], maps) if has_alias(row['raw']) else row for row in rows]
+        current_ncts = {row['nct_id'] for row in rows}
+        repaired = 0
+        for stored in conn.execute('SELECT nct_id,ticker,raw_json FROM discovery_candidates WHERE promoted_event_id IS NULL'):
+            if stored['nct_id'] in current_ncts:
+                continue
+            raw = json.loads(stored['raw_json'] or '{}')
+            if not has_alias(raw):
+                continue
+            candidate = study_to_candidate(raw, maps)
+            if candidate['ticker'] != stored['ticker']:
+                rows.append(candidate)
+                repaired += 1
+        meta['remapped_existing_candidates'] = repaired
     store_candidates(conn, rows)
     state_put(conn, 'v2e2_ctgov_cursor', meta.get('resume_cursor'))
     return (rows, meta) if return_metadata else rows
