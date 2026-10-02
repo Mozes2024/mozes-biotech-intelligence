@@ -78,6 +78,9 @@ def promote_candidate(conn, candidate: dict, extracted: dict, ticker: str, sourc
         return reject('missing_publication_timestamp')
     if published < prior_event.get("guidance_published_at", ""):
         return event_id
+    registry_mapping = (json.loads(candidate.get("raw_json") or "{}").get("_mapping") or {}
+                        if isinstance(candidate.get("raw_json"), str) else
+                        (candidate.get("raw") or {}).get("_mapping") or {})
     trigger = {key: value for key, value in extracted.items()
                if key.startswith("trigger_") or key in {"timing_mode", "monitoring_state"}}
     if event_driven:
@@ -94,7 +97,8 @@ def promote_candidate(conn, candidate: dict, extracted: dict, ticker: str, sourc
         "program": candidate.get("title"),
         "indication": None,
         "ta": None,
-        "type": (("P3_TOPLINE" if "PHASE3" in (candidate.get("phase") or "") else "P2_TOPLINE")
+        "type": (("P3_TOPLINE" if "PHASE3" in (candidate.get("phase") or "") else
+                  "P2_TOPLINE" if "PHASE2" in (candidate.get("phase") or "") else "OTHER")
                  if extracted.get("catalyst_type") in {"OTHER", "READOUT", None} else extracted["catalyst_type"]),
         "phase": candidate.get("phase"),
         "pivotal": "PHASE3" in (candidate.get("phase") or ""),
@@ -109,6 +113,7 @@ def promote_candidate(conn, candidate: dict, extracted: dict, ticker: str, sourc
                          "date_text": w.get("original"), "src": extracted.get("source_id"),
                          "text": extracted.get("statement")}],
         "auto_discovered": True,
+        "mapping_basis": registry_mapping.get("basis") or candidate.get("mapping_basis"),
         "nct_id": candidate.get("nct_id"), "guidance_published_at": published,
         "verified_window": None if event_driven else w,
         "timing_mode": "CALENDAR", **trigger,

@@ -260,5 +260,6 @@ def score_event(conn, event: dict, today: str) -> dict:
         "classification": classification, "recommendation": recommendation, "gates": gates, "sources": db.load_event_sources(conn, event["id"]),
         "features": event.get("features") or {}, "security": security,
         "timing_mode": event.get("timing_mode", "CALENDAR"), "provenance": event.get("provenance"),
+        "mapping_basis": event.get("mapping_basis"),
         **{key: value for key, value in event.items() if key.startswith("trigger_") or key == "monitoring_state"},
     }

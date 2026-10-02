@@ -24,9 +24,9 @@
     const primary=h.primary_catalyst_monitoring||{};
     const red=s.red||[], amber=s.amber||[], info=s.info||[];
     const details=[...red,...amber,...info].map(x=>`${esc(x.module||'module')}: ${esc(x.status||'INFO')}`).join(' · ');
-    const core=`<div class="notice ${primary.healthy?'blue-note':'red-note'}"><b>${esc(primary.label_he||'מצב ניטור הליבה לא ידוע')}</b> · SEC ${h.sec_monitoring_enabled?'פעיל':'כבוי'}</div>`;
+    const core=`<div class="notice ${red.length?'red-note':'blue-note'}"><b>${esc(primary.label_he||'מצב ניטור הליבה לא ידוע')}</b> · SEC ${h.sec_monitoring_enabled?'פעיל':'כבוי'}</div>`;
     if(!red.length&&!amber.length&&!info.length) return core;
-    return core+`<div class="notice ${red.length?'red-note':'blue-note'}"><b>${red.length?'אזהרת מקור':'שכבות העשרה'}</b>: ${red.length?'יש כשל מקור/פעולה אמיתי':'הנתונים זמינים אך אינם מלאים'}${amber.length?` · ${amber.length} שכבות העשרה חלקיות`:''}${info.length?` · ${info.length} שכבות מדולגות`:''}<details style="margin-top:6px"><summary>פרטים טכניים</summary><span class="company">${details}</span></details></div>`;
+    return core+`<div class="notice ${red.length?'red-note':'amber-note'}"><b>${red.length?'אזהרת מקור':`המערכת פעילה. ${amber.length} שכבות העשרה טרם השלימו ריצה מלאה.`}</b>${info.length?` · ${info.length} שכבות מדולגות`:''}<details style="margin-top:6px"><summary>פרטים טכניים</summary><span class="company">${details}</span></details></div>`;
   }
 
   function recentCatalystHtml(a){
@@ -41,6 +41,28 @@
     if(chain.length<2)return '';
     return `<div style="margin-top:9px;border-top:1px dashed #e2e8f0;padding-top:8px"><div class="company"><b>שרשרת קטליזטורים:</b> ${chain.map(x=>`${esc(eventTypeHe(x.type))}${x.start?' '+esc(x.start):''}`).join(' ← ')}</div></div>`;
   }
+
+  function eventEvidenceHtml(a){
+    const trigger=a.timing_mode==='EVENT_DRIVEN';
+    const progress=a.trigger_current!=null&&a.trigger_target!=null?`${esc(a.trigger_current)}/${esc(a.trigger_target)}`:'';
+    const window=a.date?.window;
+    const next=trigger?(progress||'ממתין לטריגר מאומת'):(window?.start?`${esc(window.start)}${window.end&&window.end!==window.start?'–'+esc(window.end):''}`:'חלון טרם אומת');
+    const quality=esc(a.state?.verification_state||'טרם אומת');
+    const links=(a.sources||[]).map(s=>`<div>${esc(s.source_type||'מקור')} · ${esc(s.published_at||'')} ${s.url?`<a href="${esc(s.url)}" target="_blank" rel="noreferrer">מקור ↗</a>`:''}</div>`).join('');
+    return `<div class="event-evidence"><span class="event-chip">${esc(eventTypeHe(a.type))}</span>${trigger?'<span class="event-chip event-driven">EVENT DRIVEN</span>':''}<div>הטריגר הבא: <b>${next}</b></div><div>אימות מקור: <b>${quality}</b>${a.mapping_basis?` · מיפוי ${esc(a.mapping_basis)}`:''}</div><details onclick="event.stopPropagation()"><summary>מקורות ואסמכתאות</summary>${links||'אין מקורות מקושרים'}</details></div>`;
+  }
+
+  function coverageHtml(){
+    const c=D?.coverage||{};
+    return `<div class="coverage-strip"><b>כיסוי מקורות</b> · ${esc(c.scanned_candidates??0)} מועמדים נבדקו · ${esc(c.total_evidence??0)} ראיות מקור · ${esc(c.review_required_count??0)} דורשים בדיקה${c.truncated?' · הסריקה חלקית':''}</div>`;
+  }
+
+  function changesTop(){
+    const rows=(D?.changes||[]).slice(0,3);
+    return rows.length?`<section class="panel"><div class="panel-head"><h3>מה השתנה?</h3><span class="spacer"></span><button class="btn" onclick="page='changes';render()">כל השינויים</button></div><div class="panel-body">${changeRows(rows)}</div></section>`:'';
+  }
+
+  changedCompact = function(){ return ''; };
 
   function freshnessHtml(mi){
     if(!mi?.available)return '';
@@ -61,7 +83,7 @@
       const chase=mi.post_event_chase_risk?`<div class="notice red-note" style="margin:9px 0 0;padding:8px"><b>⚠ מהלך חד כבר קרה.</b> ${mi.recent_return_7d!=null?`7 ימים: ${esc(pctx(mi.recent_return_7d))}. `:''}המשך מעקב ≠ נקודת כניסה חדשה.</div>`:'';
       extra+=`<div class="simple-signals" style="margin-top:8px">${simpleSignal('תשומת לב שוק',mi.attention_label_he||'—')}${simpleSignal('הקשר לתנועה',mi.context_label_he||'—')}${mi.relative_volume_20d!=null?simpleSignal('מחזור מול 20 יום',`${numx(mi.relative_volume_20d)}x`):''}${mi.same_direction_big_move_share!=null?simpleSignal('רוחב תנועה בענף',pctx(mi.same_direction_big_move_share)):''}</div>${freshnessHtml(mi)}${chase}`;
     }
-    extra+=recentCatalystHtml(a)+chainHtml(a);
+    extra+=eventEvidenceHtml(a)+recentCatalystHtml(a)+chainHtml(a);
     return html.replace('<div class="focus-open">',extra+'<div class="focus-open">');
   };
 
@@ -85,6 +107,6 @@
     let modelOpen=D.validation?.hold_through?.satisfied||D.validation?.runup?.satisfied;
     let primary=(strong.length?strong:watch).slice(0,6);
     let dedup=live.length-unique.length;
-    return pageTitle('מה מעניין עכשיו?','מסך מניות מאוחד שמבדיל בין אירוע שכבר קרה לקטליזטור הבא ומציג הקשר שוק טרי',`עודכן ${esc(D.generated_at?.replace('T',' ').slice(0,16))}`)+healthBanner()+`<div class="decision-banner ${modelOpen?'open':'locked'}"><div><b>${modelOpen?'שער אמפירי פתוח':'שערי המסחר האמפיריים עדיין נעולים'}</b><span>${modelOpen?'תוויות מתקדמות יכולות להישען גם על אימות אמפירי.':'גם setup חזק מקבל כרגע לכל היותר “עדיפות מחקר גבוהה”, לא “מועמדת להשקעה”.'}</span></div><span class="decision-lock">${modelOpen?'✓':'🔒'}</span></div><div class="simple-summary"><div class="summary-box green"><strong>${strong.length}</strong><span>עדיפות מחקר גבוהה</span></div><div class="summary-box blue"><strong>${watch.length}</strong><span>למעקב</span></div><div class="summary-box red"><strong>${avoid.length}</strong><span>לא מתאימות כרגע</span></div><div class="summary-box slate"><strong>${verify.length}</strong><span>דורשות אימות</span></div></div><section class="panel simple-panel"><div class="panel-head"><div><h3>${strong.length?'המניות שהכי שווה לבדוק עכשיו':'המניות המעניינות ביותר כרגע'}</h3><p class="panel-sub">כל טיקר מופיע פעם אחת. Market Attention הוא הקשר תיאורי בלבד ואינו משנה את הראיות הקליניות.${dedup?` אוחדו ${dedup} שורות אירוע כפולות לפי טיקר.`:''}</p></div><span class="spacer"></span><button class="btn" onclick="page='radar';render()">לכל האירועים</button></div><div class="focus-grid">${primary.map(focusCard).join('')||'<div class="empty">כרגע אין מניות שעומדות אפילו בתנאי המעקב הבסיסיים.</div>'}</div></section><section class="panel explainer"><div class="panel-head"><h3>איך לקרוא את הסימונים?</h3></div><div class="explain-grid"><div><span class="explain-dot green"></span><b>עדיפות מחקר גבוהה</b><p>Setup בולט שמצדיק מחקר עמוק; זו אינה תווית השקעה כל עוד השערים האמפיריים נעולים.</p></div><div><span class="explain-dot blue"></span><b>מעקב / מעניינת לבדיקה</b><p>יש קטליזטור עתידי, אבל חסר חלק מהתמונה.</p></div><div><span class="explain-dot red"></span><b>מהלך חד כבר קרה</b><p>דגל הקשר בלבד: מונע בלבול בין קטליזטור עתידי לבין רדיפה אחרי זינוק שכבר התרחש.</p></div><div><span class="explain-dot slate"></span><b>חסר אימות</b><p>האירוע טרם אושר מספיק מול מקור ראשוני.</p></div></div></section>`;
+    return pageTitle('מה מעניין עכשיו?','מסך מניות מאוחד שמבדיל בין אירוע שכבר קרה לקטליזטור הבא ומציג הקשר שוק טרי',`עודכן ${esc(D.generated_at?.replace('T',' ').slice(0,16))}`)+healthBanner()+changesTop()+coverageHtml()+`<div class="decision-banner ${modelOpen?'open':'locked'}"><div><b>${modelOpen?'שער אמפירי פתוח':'שערי המסחר האמפיריים עדיין נעולים'}</b><span>${modelOpen?'תוויות מתקדמות יכולות להישען גם על אימות אמפירי.':'גם setup חזק מקבל כרגע לכל היותר “עדיפות מחקר גבוהה”, לא “מועמדת להשקעה”.'}</span></div><span class="decision-lock">${modelOpen?'✓':'🔒'}</span></div><div class="simple-summary"><div class="summary-box green"><strong>${strong.length}</strong><span>עדיפות מחקר גבוהה</span></div><div class="summary-box blue"><strong>${watch.length}</strong><span>למעקב</span></div><div class="summary-box red"><strong>${avoid.length}</strong><span>לא מתאימות כרגע</span></div><div class="summary-box slate"><strong>${verify.length}</strong><span>דורשות אימות</span></div></div><section class="panel simple-panel"><div class="panel-head"><div><h3>${strong.length?'המניות שהכי שווה לבדוק עכשיו':'המניות המעניינות ביותר כרגע'}</h3><p class="panel-sub">כל טיקר מופיע פעם אחת. Market Attention הוא הקשר תיאורי בלבד ואינו משנה את הראיות הקליניות.${dedup?` אוחדו ${dedup} שורות אירוע כפולות לפי טיקר.`:''}</p></div><span class="spacer"></span><button class="btn" onclick="page='radar';render()">לכל האירועים</button></div><div class="focus-grid">${primary.map(focusCard).join('')||'<div class="empty">כרגע אין מניות שעומדות אפילו בתנאי המעקב הבסיסיים.</div>'}</div></section><section class="panel explainer"><div class="panel-head"><h3>איך לקרוא את הסימונים?</h3></div><div class="explain-grid"><div><span class="explain-dot green"></span><b>עדיפות מחקר גבוהה</b><p>Setup בולט שמצדיק מחקר עמוק; זו אינה תווית השקעה כל עוד השערים האמפיריים נעולים.</p></div><div><span class="explain-dot blue"></span><b>מעקב / מעניינת לבדיקה</b><p>יש קטליזטור עתידי, אבל חסר חלק מהתמונה.</p></div><div><span class="explain-dot red"></span><b>מהלך חד כבר קרה</b><p>דגל הקשר בלבד: מונע בלבול בין קטליזטור עתידי לבין רדיפה אחרי זינוק שכבר התרחש.</p></div><div><span class="explain-dot slate"></span><b>חסר אימות</b><p>האירוע טרם אושר מספיק מול מקור ראשוני.</p></div></div></section>`;
   };
 })();

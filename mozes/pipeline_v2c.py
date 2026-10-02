@@ -23,6 +23,22 @@ from .intelligence_store import (digest, encode, ensure_schema, finalize_owned_r
 DATA = Path(__file__).parent / 'data'
 
 
+def aggregate_status(details):
+    """An explicit module status owns its severity; legacy error keys are fallback only."""
+    fatal = bounded = False
+    for value in details.values():
+        if not isinstance(value, dict):
+            continue
+        status = value.get('status')
+        if status in {'FAILED', 'PARTIAL'}:
+            fatal = True
+        elif status in {'INCOMPLETE', 'BOUNDED'}:
+            bounded = True
+        elif status is None and (value.get('errors') or value.get('error') or value.get('conflicts')):
+            fatal = True
+    return 'PARTIAL' if fatal else 'INCOMPLETE' if bounded else 'OK'
+
+
 def validate_child_result(path, run_token, returncode):
     """Validate the atomic child result; stdout and stale files are not a contract."""
     try:
@@ -265,11 +281,7 @@ def run_pipeline(conn, *, deep=False):
             module_run = operation_start(conn, name)
             operation_finish(conn, module_run, 'SKIPPED', {'reason': 'SEC_USER_AGENT missing'})
         details['sec_skipped'] = 'SEC_USER_AGENT missing'
-    fatal = [k for k, value in details.items() if isinstance(value, dict) and
-             (value.get('status') in {'FAILED', 'PARTIAL'} or value.get('errors') or value.get('error') or value.get('conflicts'))]
-    bounded = [k for k, value in details.items() if isinstance(value, dict) and
-               value.get('status') in {'INCOMPLETE', 'BOUNDED'}]
-    status = 'PARTIAL' if fatal else 'INCOMPLETE' if bounded else 'OK'
+    status = aggregate_status(details)
     operation_finish(conn, rid, status, details)
     return {'status': status, 'details': details}
 

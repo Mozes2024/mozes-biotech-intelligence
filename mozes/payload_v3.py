@@ -206,9 +206,14 @@ def build(conn, today: date):
     resolved = current_resolved_records(conn)
     resolved.sort(key=lambda x: ((x.get("state") or {}).get("resolved_at") or "", x.get("ticker") or ""), reverse=True)
     candidates = [dict(r) for r in conn.execute(
-        "SELECT candidate_id,nct_id,sponsor,ticker,ticker_confidence,phase,title,primary_completion,last_update_posted,status,promoted_event_id,discovered_at "
+        "SELECT candidate_id,nct_id,sponsor,ticker,ticker_confidence,phase,title,primary_completion,last_update_posted,status,promoted_event_id,discovered_at,raw_json "
         "FROM discovery_candidates ORDER BY primary_completion,candidate_id"
     ).fetchall()]
+    for candidate in candidates:
+        raw = json.loads(candidate.pop("raw_json") or "{}")
+        candidate["mapping_basis"] = (raw.get("_mapping") or {}).get("basis")
+        candidate["collaborators"] = (raw.get("_mapping") or {}).get("collaborators") or []
+        candidate["matched_issuers"] = (raw.get("_mapping") or {}).get("matched_issuers") or []
     paper = PaperBook(conn).list()
     historical = readiness_summary(conn)
     refresh = _refresh_status(conn)

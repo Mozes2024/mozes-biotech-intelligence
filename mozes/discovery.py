@@ -26,15 +26,18 @@ def _candidate_id(nct_id: str, primary_completion: str | None) -> str:
 def query_url(start: str, end: str, page_size=1000, page_token=None, statuses=ACTIVE):
     advanced = (
         f"AREA[PrimaryCompletionDate]RANGE[{start},{end}] AND "
-        "AREA[Phase](PHASE2 OR PHASE3) AND AREA[LeadSponsorClass]INDUSTRY AND AREA[StudyType]INTERVENTIONAL"
+        "AREA[Phase](PHASE2 OR PHASE3 OR PHASE4) AND "
+        "(AREA[LeadSponsorClass]INDUSTRY OR AREA[CollaboratorClass]INDUSTRY) AND "
+        "AREA[StudyType]INTERVENTIONAL"
     )
     params = {
         "format": "json",
         "pageSize": str(page_size),
         "countTotal": "true",
+        "sort": "LastUpdatePostDate:desc",
         "filter.overallStatus": statuses,
         "filter.advanced": advanced,
-        "fields": "NCTId,BriefTitle,Acronym,OverallStatus,Phase,LeadSponsorName,LeadSponsorClass,PrimaryCompletionDate,LastUpdatePostDate,EnrollmentCount,Condition,InterventionName",
+        "fields": "NCTId,BriefTitle,Acronym,OverallStatus,Phase,LeadSponsorName,LeadSponsorClass,CollaboratorName,CollaboratorClass,PrimaryCompletionDate,LastUpdatePostDate,EnrollmentCount,Condition,InterventionName",
     }
     if page_token:
         params["pageToken"] = page_token
@@ -73,7 +76,25 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
     phases = design.get("phases") or study.get("Phase") or []
     if isinstance(phases, str):
         phases = [phases]
+    collaborators = sponsor_mod.get("collaborators") or []
+    if not collaborators:
+        names = study.get("CollaboratorName") or []
+        classes = study.get("CollaboratorClass") or []
+        if isinstance(names, str):
+            names = [names]
+        if isinstance(classes, str):
+            classes = [classes]
+        collaborators = [{"name": name, "class": classes[i] if i < len(classes) else None}
+                         for i, name in enumerate(names)]
     mapping = best_mapping(sponsor, sponsor_map or [])
+    matched = [best_mapping(c.get("name") or "", sponsor_map or []) for c in collaborators]
+    identities = {(str(m.get("cik") or ""), m.get("ticker")): m for m in matched if m and m.get("ticker")}
+    mapping_basis = "lead_sponsor" if mapping else None
+    if not mapping and len(identities) == 1:
+        mapping = next(iter(identities.values()))
+        mapping_basis = "collaborator"
+    elif not mapping and len(identities) > 1:
+        mapping_basis = "ambiguous_collaborators"
     interventions = [x.get("name") for x in arms.get("interventions", []) if x.get("name")]
     return {
         "candidate_id": _candidate_id(nct or "UNKNOWN", pc),
@@ -81,6 +102,10 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
         "sponsor": sponsor,
         "ticker": mapping.get("ticker") if mapping else None,
         "ticker_confidence": float(mapping.get("confidence", 0)) if mapping else 0.0,
+        "mapping_basis": mapping_basis,
+        "mapping_diagnostics": {"matched_issuers": [{"cik": cik, "ticker": ticker}
+                                                   for cik, ticker in sorted(identities)]},
+        "collaborators": collaborators,
         "phase": "/".join(phases),
         "title": ident.get("briefTitle") or study.get("BriefTitle"),
         "primary_completion": pc,
@@ -91,7 +116,9 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
         "source_type": "clinicaltrials",
         "verification_state": "DISCOVERED",
         "date_semantics": "sponsor-estimated primary completion; NOT a readout date",
-        "raw": study,
+        "raw": {**study, "_mapping": {"basis": mapping_basis, "collaborators": collaborators,
+                                       "matched_issuers": [{"cik": cik, "ticker": ticker}
+                                                           for cik, ticker in sorted(identities)]}},
     }
 
 
@@ -109,20 +136,29 @@ def discover(start: str | None = None, end: str | None = None, months=6, sponsor
     deadline = min(deadline, started + budget_seconds) if deadline is not None else started + budget_seconds
     fetcher = fetcher or cached_fetch_json
     today = today or date.today()
-    start = start or today.isoformat()
-    end = end or (today + timedelta(days=31 * months)).isoformat()
+    if resume and resume.get('version') == 1:
+        anchor = date.fromisoformat(resume['anchor_date'])
+        start, end = resume['start'], resume['end']
+        lookback_days = resume.get('lookback_days', lookback_days)
+    else:
+        anchor = today
+        start = start or anchor.isoformat()
+        end = end or (anchor + timedelta(days=31 * months)).isoformat()
+        resume = None
     out, seen = [], set()
     windows = [(start, end, ACTIVE)]
     if lookback_days:
-        windows.append(((today - timedelta(days=min(lookback_days, 1095))).isoformat(), today.isoformat(),
+        windows.append(((anchor - timedelta(days=min(lookback_days, 1095))).isoformat(), anchor.isoformat(),
                         ACTIVE + ",COMPLETED"))
-    if resume and (resume.get('start'), resume.get('end'), resume.get('today')) != (start, end, today.isoformat()):
-        resume = None
     pages_fetched = candidates_seen = 0
+    total_counts = {}
     truncated = False
     stop_reason = "complete"
     next_page_token_present = False
     resume_cursor = None
+    def cursor(window_index, token):
+        return {'version': 1, 'anchor_date': anchor.isoformat(), 'start': start, 'end': end,
+                'lookback_days': lookback_days, 'window_index': window_index, 'page_token': token}
     for window_index, (lo, hi, statuses) in enumerate(windows):
         if resume and window_index < resume.get('window_index', 0):
             continue
@@ -132,30 +168,29 @@ def discover(start: str | None = None, end: str | None = None, months=6, sponsor
             if max_pages is not None and window_pages >= max_pages:
                 truncated, stop_reason = True, "page_cap"
                 if resume_cursor is None:
-                    resume_cursor = {'start': start, 'end': end, 'today': today.isoformat(),
-                                     'window_index': window_index, 'page_token': token}
+                    resume_cursor = cursor(window_index, token)
                 break
             if monotonic() >= deadline:
                 truncated, stop_reason = True, "time_budget"
                 if resume_cursor is None:
-                    resume_cursor = {'start': start, 'end': end, 'today': today.isoformat(),
-                                     'window_index': window_index, 'page_token': token}
+                    resume_cursor = cursor(window_index, token)
                 break
-            url = query_url(lo, hi, page_size=100, page_token=token, statuses=statuses)
+            url = query_url(lo, hi, page_size=1000, page_token=token, statuses=statuses)
             try:
                 payload = fetcher(url, deadline=deadline) if fetcher is cached_fetch_json else fetcher(url)
             except TimeoutError:
                 truncated, stop_reason = True, 'time_budget'
                 if resume_cursor is None:
-                    resume_cursor = {'start': start, 'end': end, 'today': today.isoformat(),
-                                     'window_index': window_index, 'page_token': token}
+                    resume_cursor = cursor(window_index, token)
                 break
             pages_fetched += 1
             window_pages += 1
+            if payload.get('totalCount') is not None:
+                total_counts[window_index] = int(payload['totalCount'])
             for study in payload.get("studies", []):
                 candidates_seen += 1
                 candidate = study_to_candidate(study, sponsor_map)
-                if statuses != ACTIVE and candidate["status"] == "COMPLETED" and (candidate.get("last_update_posted") or "") < (today - timedelta(days=180)).isoformat():
+                if statuses != ACTIVE and candidate["status"] == "COMPLETED" and (candidate.get("last_update_posted") or "") < (anchor - timedelta(days=180)).isoformat():
                     continue
                 if candidate["nct_id"] and candidate["nct_id"] not in seen:
                     seen.add(candidate["nct_id"])
@@ -167,12 +202,15 @@ def discover(start: str | None = None, end: str | None = None, months=6, sponsor
             next_page_token_present = True
             if not truncated:
                 truncated, stop_reason = True, "page_cap"
-        if truncated and stop_reason == 'time_budget':
+        if truncated:
             break
-    meta = {"pages_fetched": pages_fetched, "candidates_seen": candidates_seen,
+    meta = {"total_count": sum(total_counts.values()) if total_counts else None,
+            "total_count_by_window": total_counts,
+            "pages_fetched": pages_fetched, "candidates_seen": candidates_seen,
             "candidates_kept": len(out), "truncated": truncated,
             "stop_reason": stop_reason, "next_page_token_present": next_page_token_present,
-            "resume_cursor": resume_cursor,
+            "resume_cursor": resume_cursor, "resume_cursor_present": resume_cursor is not None,
+            "complete": not truncated,
             "duration_ms": round((monotonic() - started) * 1000)}
     return (out, meta) if return_metadata else out
 

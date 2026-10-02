@@ -109,9 +109,10 @@ def test_discovery_queries_past_completion_and_bounds_requests():
     def fetch(url):
         calls.append(url)
         return {"studies": [{"protocolSection": {"identificationModule": {"nctId": "NCT00000001"}}}], "nextPageToken": "more"}
-    rows = discover(fetcher=fetch, today=date(2026, 10, 1), max_pages=2)
-    assert len(calls) == 4 and len(rows) == 1
-    assert "2024-10-01" in calls[-1] and "COMPLETED" in calls[-1]
+    rows, meta = discover(fetcher=fetch, today=date(2026, 10, 1), max_pages=2, return_metadata=True)
+    assert len(calls) == 2 and len(rows) == 1
+    assert meta["stop_reason"] == "page_cap" and meta["resume_cursor"]["window_index"] == 0
+    assert "2024-10-01" not in calls[-1]
 
 
 def test_discovery_finds_candidate_after_page_three_and_reports_bounded_stop():

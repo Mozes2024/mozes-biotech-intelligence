@@ -19,12 +19,13 @@ def audit_coverage(conn, limit=None):
     items = []
     for row in rows[:limit]:
         row = dict(row)
+        mapping = (json.loads(row.get("raw_json") or "{}").get("_mapping") or {})
         state = db.event_state(conn, row["promoted_event_id"]) if row["promoted_event_id"] else None
         event = conn.execute("SELECT payload FROM events WHERE id=?", (row["promoted_event_id"],)).fetchone() if state else None
         payload = json.loads(event["payload"]) if event else {}
         status = "DISCOVERY_ONLY"
         if not row["ticker"]:
-            status = "ENTITY_UNRESOLVED"
+            status = "ENTITY_AMBIGUOUS" if mapping.get("basis") == "ambiguous_collaborators" else "ENTITY_UNRESOLVED"
         elif state:
             status = "EVENT_DRIVEN_UNRESOLVED" if payload.get("timing_mode") == "EVENT_DRIVEN" and state["status"] in {"VERIFIED", "SCHEDULED"} else "ALREADY_COVERED"
             if state["verification_state"] != "VERIFIED":
@@ -34,7 +35,9 @@ def audit_coverage(conn, limit=None):
             if any(candidate_matches_statement(row, json.loads(item["payload"]).get("statement", ""))[0] for item in evidence):
                 status = "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"
         items.append({"candidate_id": row["candidate_id"], "nct_id": row["nct_id"], "ticker": row["ticker"],
-                      "event_id": row["promoted_event_id"], "status": status})
+                      "event_id": row["promoted_event_id"], "status": status,
+                      "mapping_basis": mapping.get("basis"),
+                      "matched_issuers": mapping.get("matched_issuers") or []})
     # Also surface primary statements with no registry candidate at all. This is
     # bounded review evidence, never an implicit promotion or a new scored event.
     evidence_sql = "SELECT * FROM catalyst_evidence ORDER BY retrieved_at DESC"
@@ -54,9 +57,9 @@ def audit_coverage(conn, limit=None):
     result = {"last_coverage_audit": db.utcnow(), "candidate_count": len(rows),
               "total_candidates": total_candidates, "scanned_candidates": len(rows),
               "total_evidence": total_evidence, "scanned_evidence": len(evidence_rows),
-              "missing_count": sum(x["status"] in {"DISCOVERY_ONLY", "ENTITY_UNRESOLVED", "REVIEW_REQUIRED", "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"} for x in items),
+              "missing_count": sum(x["status"] in {"DISCOVERY_ONLY", "ENTITY_UNRESOLVED", "ENTITY_AMBIGUOUS", "REVIEW_REQUIRED", "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"} for x in items),
               "review_required_count": sum(x["status"] in {"REVIEW_REQUIRED", "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"} for x in items),
-              "unmapped_count": sum(x["status"] == "ENTITY_UNRESOLVED" for x in items),
+              "unmapped_count": sum(x["status"] in {"ENTITY_UNRESOLVED", "ENTITY_AMBIGUOUS"} for x in items),
               "event_driven_count": sum(x["status"] == "EVENT_DRIVEN_UNRESOLVED" for x in items),
               "truncated": truncated, "stop_reason": "row_cap" if truncated else "complete", "items": items}
     operation_finish(conn, rid, "INCOMPLETE" if truncated else "OK", result)
