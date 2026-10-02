@@ -29,11 +29,14 @@ def parse_directory(content: str, source_url: str) -> list[dict]:
     return rows
 
 
-def fetch_directory(source_url: str) -> list[dict]:
+def fetch_directory(source_url: str, *, deadline=None) -> list[dict]:
     request = Request(source_url, headers={"User-Agent": "MOZES Biotech Intelligence listing audit"})
     started = time.monotonic()
     try:
-        with urlopen(request, timeout=30) as response:
+        remaining = 30 if deadline is None else deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError('listing audit deep deadline exhausted')
+        with urlopen(request, timeout=min(30, remaining)) as response:
             content = response.read().decode("utf-8-sig")
         rows = parse_directory(content, source_url)
         if not rows:
@@ -45,6 +48,6 @@ def fetch_directory(source_url: str) -> list[dict]:
     return rows
 
 
-def fetch_current_listings() -> list[dict]:
+def fetch_current_listings(*, deadline=None) -> list[dict]:
     # Both files must load: a partial universe would create false UNKNOWN states.
-    return fetch_directory(NASDAQ_URL) + fetch_directory(OTHER_URL)
+    return fetch_directory(NASDAQ_URL, deadline=deadline) + fetch_directory(OTHER_URL, deadline=deadline)

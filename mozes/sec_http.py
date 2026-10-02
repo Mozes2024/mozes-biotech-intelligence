@@ -45,7 +45,7 @@ def _atomic(path, raw):
 
 
 def get_text(url, *, user_agent=None, cache_dir=None, ttl=None, opener=None,
-             clock=None, sleeper=None, retries=2):
+             clock=None, sleeper=None, retries=2, deadline=None, monotonic=None):
     global _LAST_REQUEST
     user_agent = user_agent if user_agent is not None else os.environ.get('SEC_USER_AGENT', '')
     if not user_agent.strip():
@@ -55,29 +55,40 @@ def get_text(url, *, user_agent=None, cache_dir=None, ttl=None, opener=None,
         raise ValueError('SEC transport accepts official HTTPS SEC hosts only')
     opener = opener or urllib.request.urlopen
     clock, sleeper = clock or time.time, sleeper or time.sleep
+    monotonic = monotonic or time.monotonic
+
+    def remaining():
+        return float('inf') if deadline is None else deadline - monotonic()
+
+    def bounded_sleep(seconds):
+        if remaining() <= seconds:
+            raise TimeoutError('SEC deep deadline exhausted before retry or rate wait')
+        sleeper(seconds)
     root = Path(cache_dir or os.environ.get('MOZES_HTTP_CACHE', '.monitor/http-cache'))
     key = hashlib.sha256(url.encode()).hexdigest()
     body_path, meta_path = root / (key + '.body'), root / (key + '.json')
     max_age = ttl_for(url) if ttl is None else ttl
-    started = time.monotonic()
+    started = monotonic()
     try:
         meta = json.loads(meta_path.read_text())
         raw = body_path.read_bytes()
         age = clock() - float(meta['retrieved_epoch'])
         if (0 <= age <= max_age and meta['url'] == url
                 and hashlib.sha256(raw).hexdigest() == meta['sha256']):
-            record("sec", cache=True, duration_ms=(time.monotonic() - started) * 1000)
+            record("sec", cache=True, duration_ms=(monotonic() - started) * 1000)
             return raw.decode('utf-8')
     except (OSError, ValueError, KeyError, UnicodeError):
         pass
     for attempt in range(retries + 1):
-        delay = .25 - (time.monotonic() - _LAST_REQUEST)
+        if remaining() <= 0:
+            raise TimeoutError('SEC deep deadline exhausted')
+        delay = .25 - (monotonic() - _LAST_REQUEST)
         if delay > 0:
-            sleeper(delay)
-        _LAST_REQUEST = time.monotonic()
+            bounded_sleep(delay)
+        _LAST_REQUEST = monotonic()
         request = urllib.request.Request(url, headers={'User-Agent': user_agent, 'Accept-Encoding': 'identity'})
         try:
-            with opener(request, timeout=20) as response:
+            with opener(request, timeout=min(20, max(.001, remaining()))) as response:
                 raw = response.read(MAX_BYTES + 1)
             if len(raw) > MAX_BYTES:
                 raise ValueError('SEC response exceeds size budget')
@@ -87,20 +98,20 @@ def get_text(url, *, user_agent=None, cache_dir=None, ttl=None, opener=None,
             _atomic(body_path, raw)
             _atomic(meta_path, json.dumps({'url': url, 'retrieved_epoch': clock(),
                     'sha256': hashlib.sha256(raw).hexdigest()}).encode())
-            record("sec", cache=False, duration_ms=(time.monotonic() - started) * 1000)
+            record("sec", cache=False, duration_ms=(monotonic() - started) * 1000)
             return text
         except urllib.error.HTTPError as exc:
             if exc.code not in {429, 500, 502, 503, 504} or attempt == retries:
-                record("sec", cache=False, error=True, duration_ms=(time.monotonic() - started) * 1000)
+                record("sec", cache=False, error=True, duration_ms=(monotonic() - started) * 1000)
                 raise
             try:
                 retry_after = float(exc.headers.get('Retry-After', 0))
             except (ValueError, AttributeError):
                 retry_after = 0
-            sleeper(min(30, max(2 ** attempt, retry_after)))
+            bounded_sleep(min(30, max(2 ** attempt, retry_after)))
         except (urllib.error.URLError, TimeoutError):
             if attempt == retries:
-                record("sec", cache=False, error=True, duration_ms=(time.monotonic() - started) * 1000)
+                record("sec", cache=False, error=True, duration_ms=(monotonic() - started) * 1000)
                 raise
-            sleeper(2 ** attempt)
+            bounded_sleep(2 ** attempt)
     raise RuntimeError('unreachable SEC retry state')

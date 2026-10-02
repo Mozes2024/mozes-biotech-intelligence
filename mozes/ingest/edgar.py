@@ -17,9 +17,15 @@ from ..db import utcnow
 SUBMISSIONS = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 
 
-def _get(url):
+def _get(url, *, deadline=None):
     from ..sec_http import get_text
-    return get_text(url, user_agent=SEC_USER_AGENT)
+    return get_text(url, user_agent=SEC_USER_AGENT, deadline=deadline)
+
+
+def _pause(seconds, deadline):
+    if deadline is not None and time.monotonic() + seconds >= deadline:
+        raise TimeoutError('SEC deep deadline exhausted before document wait')
+    time.sleep(seconds)
 
 
 def recent_filings(cik, forms=("8-K", "10-Q", "10-K"), limit=20):
@@ -51,8 +57,8 @@ INDEX = "https://www.sec.gov/Archives/edgar/data/{cik}/{acc}/index.json"
 TICKER_MAP = "https://www.sec.gov/files/company_tickers_exchange.json"
 
 
-def recent_filings_v2(cik, forms=("8-K", "10-Q", "10-K", "6-K", "20-F"), limit=30):
-    data = json.loads(_get(SUBMISSIONS.format(cik=int(cik))))
+def recent_filings_v2(cik, forms=("8-K", "10-Q", "10-K", "6-K", "20-F"), limit=30, *, deadline=None):
+    data = json.loads(_get(SUBMISSIONS.format(cik=int(cik)), deadline=deadline))
     rec = data["filings"]["recent"]
     out = []
     for i, form in enumerate(rec["form"]):
@@ -71,17 +77,21 @@ def recent_filings_v2(cik, forms=("8-K", "10-Q", "10-K", "6-K", "20-F"), limit=3
     return out
 
 
-def filing_documents(filing, return_diagnostics=False):
+def filing_documents(filing, return_diagnostics=False, *, deadline=None):
     """Return primary document plus likely press-release exhibits from filing index.json."""
     diagnostics = []
     try:
-        idx = json.loads(_get(filing["index_url"]))
+        idx = json.loads(_get(filing["index_url"], deadline=deadline))
     except Exception as exc:
         logging.getLogger(__name__).warning("SEC exhibit index unavailable: %s", str(exc))
-        diagnostics.append({'status': 'INCOMPLETE', 'reason': 'index_unavailable', 'error': str(exc)[:240]})
+        diagnostics.append({'status': 'INCOMPLETE', 'reason': 'index_unavailable',
+                            'url': filing['index_url'], 'error': str(exc)[:240]})
         docs = [{"name": filing.get("primary_document"), "url": filing["url"], "kind": "primary"}]
         return (docs, diagnostics) if return_diagnostics else docs
     items = (idx.get("directory") or {}).get("item") or []
+    diagnostics.append({'status': 'OK' if items else 'INCOMPLETE',
+                        'reason': 'index_extracted' if items else 'index_empty',
+                        'url': filing['index_url']})
     docs = []
     for it in items:
         name = (it.get("name") or "").strip()
@@ -103,15 +113,15 @@ def filing_documents(filing, return_diagnostics=False):
     return (docs, diagnostics) if return_diagnostics else docs
 
 
-def extract_from_filing_v2(filing, return_diagnostics=False):
+def extract_from_filing_v2(filing, return_diagnostics=False, *, deadline=None):
     """Extract dated catalyst statements from the filing and EX-99 exhibits."""
     rows, diagnostics = [], []
-    docs, index_diagnostics = filing_documents(filing, return_diagnostics=True)
+    docs, index_diagnostics = filing_documents(filing, return_diagnostics=True, deadline=deadline)
     diagnostics.extend(index_diagnostics)
     for doc in docs:
-        time.sleep(0.12)
+        _pause(0.12, deadline)
         try:
-            text = html_to_text(_get(doc["url"]))
+            text = html_to_text(_get(doc["url"], deadline=deadline))
         except Exception as exc:
             logging.getLogger(__name__).warning("SEC document unavailable %s: %s", doc["url"], str(exc))
             diagnostics.append({'status': 'INCOMPLETE', 'reason': 'document_unavailable', 'url': doc['url'], 'error': str(exc)[:240]})
@@ -129,8 +139,8 @@ def extract_from_filing_v2(filing, return_diagnostics=False):
     return (rows, diagnostics) if return_diagnostics else rows
 
 
-def fetch_company_ticker_map():
+def fetch_company_ticker_map(*, deadline=None):
     """Official SEC ticker/CIK/name associations. SEC notes the map is periodically updated."""
-    raw = json.loads(_get(TICKER_MAP))
+    raw = json.loads(_get(TICKER_MAP, deadline=deadline))
     fields = raw.get("fields") or []
     return [dict(zip(fields, row)) for row in raw.get("data", [])]

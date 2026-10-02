@@ -43,15 +43,15 @@ def audit_watch_universe(conn, rows, *, provider="sec"):
     return audited
 
 
-def audit_current_universe(conn, provider="auto"):
+def audit_current_universe(conn, provider="auto", *, deadline=None):
     if provider == "auto":
         provider = "sec" if os.environ.get("SEC_USER_AGENT") else "nasdaq"
     if provider == "sec":
         from .ingest.edgar import fetch_company_ticker_map
-        rows = fetch_company_ticker_map()
+        rows = fetch_company_ticker_map(deadline=deadline) if deadline is not None else fetch_company_ticker_map()
     elif provider == "nasdaq":
         from .ingest.nasdaq_trader import fetch_current_listings
-        rows = fetch_current_listings()
+        rows = fetch_current_listings(deadline=deadline) if deadline is not None else fetch_current_listings()
     else:
         raise ValueError(f"unsupported security audit provider: {provider}")
     audited = audit_watch_universe(conn, rows, provider=provider)

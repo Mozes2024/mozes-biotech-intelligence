@@ -190,7 +190,10 @@ def cmd_refresh_v2(args):
     from .refresh import refresh_live
     conn = db.connect(DB_PATH)
     bootstrap_database(conn)
-    result = refresh_live(conn, start=args.start, end=args.end, months=args.months, do_sec_map=not args.no_sec_map, do_sec_verify=not args.no_sec_verify)
+    budget = os.environ.get('MOZES_DEEP_BUDGET_SECONDS')
+    result = refresh_live(conn, start=args.start, end=args.end, months=args.months,
+                          do_sec_map=not args.no_sec_map, do_sec_verify=not args.no_sec_verify,
+                          budget_seconds=float(budget) if budget else None)
     print(json.dumps(result, indent=2))
     result_path = os.environ.get('MOZES_RESULT_PATH')
     if result_path:

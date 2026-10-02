@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS v2e2_issuer_queue (
  ticker TEXT PRIMARY KEY, first_seen TEXT, last_seen TEXT, material_fingerprint TEXT,
  material_changed_at TEXT, last_attempt TEXT, last_success TEXT, failure_reason TEXT,
  consecutive_failures INTEGER NOT NULL DEFAULT 0, next_eligible_at TEXT, mapping_generation TEXT,
- state TEXT NOT NULL DEFAULT 'PENDING'
+ state TEXT NOT NULL DEFAULT 'PENDING', pending_material_at TEXT,
+ completed_accessions TEXT NOT NULL DEFAULT '[]'
 );
 CREATE TABLE IF NOT EXISTS v2e2_promotion_decisions (
  decision_id TEXT PRIMARY KEY, ticker TEXT, candidate_id TEXT, evidence_id TEXT,
@@ -53,6 +54,12 @@ CREATE TABLE IF NOT EXISTS v2e2_document_scans (
  source_hash TEXT, extraction_version TEXT NOT NULL, status TEXT NOT NULL,
  completeness TEXT NOT NULL, reason TEXT, scanned_at TEXT NOT NULL,
  UNIQUE(accession, document_url, extraction_version)
+);
+CREATE TABLE IF NOT EXISTS v2e2_filing_scans (
+ accession TEXT NOT NULL, extraction_version TEXT NOT NULL,
+ statements_json TEXT NOT NULL, diagnostics_json TEXT NOT NULL,
+ status TEXT NOT NULL, scanned_at TEXT NOT NULL,
+ PRIMARY KEY(accession, extraction_version)
 );
 """
 IMMUTABLE = ('v2c_financial_snapshots', 'v2c_financing_events', 'v2c_regulatory_versions')
@@ -72,15 +79,20 @@ def digest(value):
 
 def ensure_schema(conn):
     present = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2c_state'").fetchone()
-    if present and conn.execute("SELECT 1 FROM v2c_state WHERE key='schema_version' AND payload='2'").fetchone():
+    if present and conn.execute("SELECT 1 FROM v2c_state WHERE key='schema_version' AND payload='3'").fetchone():
         return
     # executescript commits transactions: call at operation boundaries, never mid-transaction.
     conn.executescript(DDL)
+    columns = {row[1] for row in conn.execute('PRAGMA table_info(v2e2_issuer_queue)')}
+    for name, definition in (('pending_material_at', 'TEXT'),
+                             ('completed_accessions', "TEXT NOT NULL DEFAULT '[]'")):
+        if name not in columns:
+            conn.execute(f'ALTER TABLE v2e2_issuer_queue ADD COLUMN {name} {definition}')
     for table in IMMUTABLE:
         for action in ('UPDATE', 'DELETE'):
             conn.execute(f"CREATE TRIGGER IF NOT EXISTS {table}_no_{action.lower()} "
                          f"BEFORE {action} ON {table} BEGIN SELECT RAISE(ABORT, 'v2c evidence is immutable'); END")
-    state_put(conn, "schema_version", 2)
+    state_put(conn, "schema_version", 3)
 
 
 def state_get(conn, key, default=None):

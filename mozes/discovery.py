@@ -41,12 +41,15 @@ def query_url(start: str, end: str, page_size=1000, page_token=None, statuses=AC
     return CTGOV_STUDIES + "?" + urllib.parse.urlencode(params)
 
 
-def fetch_json(url: str):
+def fetch_json(url: str, *, deadline=None):
     from time import monotonic
     started = monotonic()
     req = urllib.request.Request(url, headers={"User-Agent": "MOZES-Biotech-Catalyst/0.2"})
     try:
-        with urllib.request.urlopen(req, timeout=60) as r:
+        remaining = 60 if deadline is None else deadline - monotonic()
+        if remaining <= 0:
+            raise TimeoutError('CT.gov deep deadline exhausted')
+        with urllib.request.urlopen(req, timeout=min(60, remaining)) as r:
             value = json.loads(r.read().decode("utf-8"))
         record("clinicaltrials.gov", cache=False, duration_ms=(monotonic() - started) * 1000)
         return value
@@ -93,7 +96,8 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
 
 
 def discover(start: str | None = None, end: str | None = None, months=6, sponsor_map=None, fetcher=None,
-             lookback_days=730, max_pages=None, today=None, budget_seconds=120, return_metadata=False):
+             lookback_days=730, max_pages=None, today=None, budget_seconds=120, return_metadata=False,
+             deadline=None, resume=None):
     """Discover registry candidates, paginating until exhausted or budgeted.
 
     ``max_pages`` remains available as an explicit safety cap for callers, but a
@@ -102,6 +106,7 @@ def discover(start: str | None = None, end: str | None = None, months=6, sponsor
     """
     from time import monotonic
     started = monotonic()
+    deadline = min(deadline, started + budget_seconds) if deadline is not None else started + budget_seconds
     fetcher = fetcher or cached_fetch_json
     today = today or date.today()
     start = start or today.isoformat()
@@ -111,21 +116,40 @@ def discover(start: str | None = None, end: str | None = None, months=6, sponsor
     if lookback_days:
         windows.append(((today - timedelta(days=min(lookback_days, 1095))).isoformat(), today.isoformat(),
                         ACTIVE + ",COMPLETED"))
+    if resume and (resume.get('start'), resume.get('end'), resume.get('today')) != (start, end, today.isoformat()):
+        resume = None
     pages_fetched = candidates_seen = 0
     truncated = False
     stop_reason = "complete"
     next_page_token_present = False
-    for lo, hi, statuses in windows:
-        token = None
+    resume_cursor = None
+    for window_index, (lo, hi, statuses) in enumerate(windows):
+        if resume and window_index < resume.get('window_index', 0):
+            continue
+        token = resume.get('page_token') if resume and window_index == resume.get('window_index') else None
         window_pages = 0
         while True:
             if max_pages is not None and window_pages >= max_pages:
                 truncated, stop_reason = True, "page_cap"
+                if resume_cursor is None:
+                    resume_cursor = {'start': start, 'end': end, 'today': today.isoformat(),
+                                     'window_index': window_index, 'page_token': token}
                 break
-            if monotonic() - started >= budget_seconds:
+            if monotonic() >= deadline:
                 truncated, stop_reason = True, "time_budget"
+                if resume_cursor is None:
+                    resume_cursor = {'start': start, 'end': end, 'today': today.isoformat(),
+                                     'window_index': window_index, 'page_token': token}
                 break
-            payload = fetcher(query_url(lo, hi, page_size=100, page_token=token, statuses=statuses))
+            url = query_url(lo, hi, page_size=100, page_token=token, statuses=statuses)
+            try:
+                payload = fetcher(url, deadline=deadline) if fetcher is cached_fetch_json else fetcher(url)
+            except TimeoutError:
+                truncated, stop_reason = True, 'time_budget'
+                if resume_cursor is None:
+                    resume_cursor = {'start': start, 'end': end, 'today': today.isoformat(),
+                                     'window_index': window_index, 'page_token': token}
+                break
             pages_fetched += 1
             window_pages += 1
             for study in payload.get("studies", []):
@@ -143,16 +167,17 @@ def discover(start: str | None = None, end: str | None = None, months=6, sponsor
             next_page_token_present = True
             if not truncated:
                 truncated, stop_reason = True, "page_cap"
-        if truncated and stop_reason == "time_budget":
+        if truncated and stop_reason == 'time_budget':
             break
     meta = {"pages_fetched": pages_fetched, "candidates_seen": candidates_seen,
             "candidates_kept": len(out), "truncated": truncated,
             "stop_reason": stop_reason, "next_page_token_present": next_page_token_present,
+            "resume_cursor": resume_cursor,
             "duration_ms": round((monotonic() - started) * 1000)}
     return (out, meta) if return_metadata else out
 
 
-def cached_fetch_json(url):
+def cached_fetch_json(url, *, deadline=None):
     """One-day public registry cache; pagination remains bounded by discover()."""
     import os
     import time
@@ -167,7 +192,7 @@ def cached_fetch_json(url):
             return cached["data"]
     except (OSError, ValueError, KeyError, TypeError):
         pass
-    data = fetch_json(url)
+    data = fetch_json(url, deadline=deadline) if deadline is not None else fetch_json(url)
     _atomic(path, json.dumps({"at": time.time(), "data": data}).encode())
     return data
 

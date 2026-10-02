@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import uuid
 from collections import defaultdict
 from datetime import date, datetime, timezone
@@ -28,6 +29,8 @@ def validate_child_result(path, run_token, returncode):
         value = json.loads(Path(path).read_text(encoding='utf-8'))
     except (OSError, TypeError, ValueError):
         return None, 'missing_or_malformed_result'
+    if not isinstance(value, dict):
+        return None, 'result_not_object'
     if value.get('protocol') != 'mozes-v2e2-result' or value.get('run_token') != run_token:
         return None, 'wrong_result_owner_or_protocol'
     status = value.get('status')
@@ -35,6 +38,8 @@ def validate_child_result(path, run_token, returncode):
         return None, 'contradictory_success_result'
     if returncode != 0 and status not in {'FAILED', 'PARTIAL'}:
         return None, 'contradictory_failure_result'
+    if not isinstance(value.get('details'), dict):
+        return None, 'missing_result_details'
     return value, None
 
 
@@ -192,23 +197,23 @@ def run_pipeline(conn, *, deep=False):
     from .live_monitor import run_monitor
     from .live_prices import refresh_live_prices
     from .regulatory_lifecycle import quarantine_unbound_auto_events
-    os.environ.setdefault('MOZES_RUN_TOKEN', uuid.uuid4().hex)
+    os.environ['MOZES_RUN_TOKEN'] = uuid.uuid4().hex
     rid = operation_start(conn, 'pipeline', owner_token=os.environ['MOZES_RUN_TOKEN'])
     details = {'catalog': reconcile_catalog(conn), 'research': import_local_research(conn)}
     details['identity'] = identity_audit(conn)
     details['quarantined_unbound'] = quarantine_unbound_auto_events(conn)
     if deep:
         deep_id = operation_start(conn, 'deep_refresh', owner_token=os.environ['MOZES_RUN_TOKEN'])
-        # Subprocess has a hard wall-time budget. A timeout is recorded as incomplete,
-        # not disguised as a successful full scan. Cached documents survive for next time.
+        # Child: 420s total, 400s work + 20s finalization reserve. Parent:
+        # 480s safety cap, leaving 60s for process exit and SQLite reconciliation.
         conn.commit()
         cmd = [sys.executable, '-m', 'mozes', 'refresh-v2', '--months', '9', '--no-sec-map']
-        if not os.environ.get('SEC_USER_AGENT'):
-            cmd = [sys.executable, '-m', 'mozes', 'discover-v2', '--months', '9']
         result_path = Path(os.environ.get('MOZES_RESULT_PATH') or (Path('.monitor') / ('result-' + os.environ['MOZES_RUN_TOKEN'] + '.json')))
         child_env = os.environ.copy()
         child_env['MOZES_PARENT_TOKEN'] = os.environ['MOZES_RUN_TOKEN']
         child_env['MOZES_RESULT_PATH'] = str(result_path)
+        child_env['MOZES_DEEP_BUDGET_SECONDS'] = '420'
+        deep_started = time.monotonic()
         try:
             completed = subprocess.run(cmd, timeout=480, check=False, capture_output=True, text=True, env=child_env)
             rc = completed.returncode
@@ -223,7 +228,16 @@ def run_pipeline(conn, *, deep=False):
                 report['termination_reason'] = result_error or 'missing_or_invalid_child_result'
         except subprocess.TimeoutExpired:
             status, report = 'FAILED', {'termination_reason': 'parent_timeout_480_seconds'}
-            finalize_owned_runs(conn, os.environ['MOZES_RUN_TOKEN'], 'FAILED', report['termination_reason'])
+        except Exception as exc:
+            status, report = 'FAILED', {'termination_reason': 'parent_exception',
+                                        'error': type(exc).__name__}
+        report['parent_duration_seconds'] = round(time.monotonic() - deep_started, 3)
+        report['budget_seconds'] = 420
+        report['parent_timeout_seconds'] = 480
+        report['finalization_reserve_seconds'] = 20
+        if status in {'FAILED', 'PARTIAL'} or report.get('termination_reason'):
+            finalize_owned_runs(conn, os.environ['MOZES_RUN_TOKEN'], 'FAILED',
+                                report.get('termination_reason', 'child_failed'))
         operation_finish(conn, deep_id, status, report)
         details['deep_refresh'] = {**report, 'status': status}
         if report.get('coverage_audit'):
@@ -286,7 +300,9 @@ def main(argv=None):
     should_publish = fingerprint != previous.get('fingerprint') or age >= 86400
     if should_publish:
         state_put(conn, 'publish_request', {'fingerprint': fingerprint, 'at': now.isoformat()})
-    manifest = {'schema': 1, 'pipeline_complete': True, 'should_publish': should_publish,
+    manifest = {'schema': 1, 'pipeline_complete': result['status'] == 'OK',
+                'runtime_status': result['status'], 'data_publishable': True,
+                'should_publish': should_publish,
                 'fingerprint': fingerprint, 'source_sha': os.environ.get('GITHUB_SHA'), 'generated_at': utcnow()}
     Path('.monitor').mkdir(exist_ok=True)
     Path('.monitor/manifest.json').write_text(encode(manifest), encoding='utf-8')
