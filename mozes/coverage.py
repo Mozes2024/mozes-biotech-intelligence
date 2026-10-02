@@ -27,7 +27,9 @@ def audit_coverage(conn, limit=None):
         payload = json.loads(event["payload"]) if event else {}
         status = "DISCOVERY_ONLY"
         if not row["ticker"]:
-            status = "ENTITY_AMBIGUOUS" if mapping.get("basis") == "ambiguous_collaborators" else "ENTITY_UNRESOLVED"
+            status = ("ENTITY_AMBIGUOUS" if mapping.get("basis") == "ambiguous_collaborators" else
+                      "ENTITY_REVIEW_REQUIRED" if mapping.get("basis") == "unresolved_industry_lead" else
+                      "ENTITY_UNRESOLVED")
         elif state:
             status = "EVENT_DRIVEN_UNRESOLVED" if payload.get("timing_mode") == "EVENT_DRIVEN" and state["status"] in {"VERIFIED", "SCHEDULED"} else "ALREADY_COVERED"
             if state["verification_state"] != "VERIFIED":
@@ -38,6 +40,7 @@ def audit_coverage(conn, limit=None):
                 status = "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"
         queue = issuer_queue.get(row['ticker']) or {}
         reason = ('multiple_public_collaborators' if status == 'ENTITY_AMBIGUOUS' else
+                  'unresolved_industry_lead' if status == 'ENTITY_REVIEW_REQUIRED' else
                   'no_confident_issuer_mapping' if status == 'ENTITY_UNRESOLVED' else
                   'awaiting_bounded_primary_source_scan' if status == 'DISCOVERY_ONLY' and queue.get('state') == 'PENDING' else
                   'no_matching_primary_source' if status == 'DISCOVERY_ONLY' and queue.get('state') == 'SUCCESS' else
@@ -66,9 +69,9 @@ def audit_coverage(conn, limit=None):
     result = {"last_coverage_audit": db.utcnow(), "candidate_count": len(rows),
               "total_candidates": total_candidates, "scanned_candidates": len(rows),
               "total_evidence": total_evidence, "scanned_evidence": len(evidence_rows),
-              "missing_count": sum(x["status"] in {"DISCOVERY_ONLY", "ENTITY_UNRESOLVED", "ENTITY_AMBIGUOUS", "REVIEW_REQUIRED", "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"} for x in items),
-              "review_required_count": sum(x["status"] in {"REVIEW_REQUIRED", "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"} for x in items),
-              "unmapped_count": sum(x["status"] in {"ENTITY_UNRESOLVED", "ENTITY_AMBIGUOUS"} for x in items),
+              "missing_count": sum(x["status"] in {"DISCOVERY_ONLY", "ENTITY_UNRESOLVED", "ENTITY_AMBIGUOUS", "ENTITY_REVIEW_REQUIRED", "REVIEW_REQUIRED", "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"} for x in items),
+              "review_required_count": sum(x["status"] in {"ENTITY_REVIEW_REQUIRED", "REVIEW_REQUIRED", "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"} for x in items),
+              "unmapped_count": sum(x["status"] in {"ENTITY_UNRESOLVED", "ENTITY_AMBIGUOUS", "ENTITY_REVIEW_REQUIRED"} for x in items),
               "event_driven_count": sum(x["status"] == "EVENT_DRIVEN_UNRESOLVED" for x in items),
               "truncated": truncated, "stop_reason": "row_cap" if truncated else "complete", "items": items}
     operation_finish(conn, rid, "INCOMPLETE" if truncated else "OK", result)

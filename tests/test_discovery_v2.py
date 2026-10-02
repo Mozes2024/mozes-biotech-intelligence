@@ -60,6 +60,13 @@ def test_academic_lead_collaborator_mapping_and_ambiguity():
     assert candidate["ticker"] is None
     assert candidate["mapping_basis"] == "ambiguous_collaborators"
     assert len(candidate["mapping_diagnostics"]["matched_issuers"]) == 2
+    study["protocolSection"]["sponsorCollaboratorsModule"] = {
+        "leadSponsor": {"name": "Unmapped Industry Partner", "class": "INDUSTRY"},
+        "collaborators": [{"name": "ModernaTX, Inc.", "class": "INDUSTRY"}]}
+    candidate = study_to_candidate(study, maps)
+    assert candidate["ticker"] is None
+    assert candidate["verification_state"] == "REVIEW_REQUIRED"
+    assert candidate["mapping_basis"] == "unresolved_industry_lead"
 
 
 def test_cursor_owns_scan_across_date_boundary():
@@ -108,9 +115,13 @@ def test_verified_subsidiary_is_persisted_and_remaps_candidate(tmp_path, monkeyp
     joint = {'NCTId': 'NCT00000003', 'LeadSponsorName': 'University Hospital',
              'CollaboratorName': ['ExampleTX, Inc.', 'Another, Inc.'],
              'CollaboratorClass': ['INDUSTRY', 'INDUSTRY']}
-    store_candidates(conn, [study_to_candidate(older, []), study_to_candidate(joint, [
+    industry = {'NCTId': 'NCT00000004', 'LeadSponsorName': 'Unmapped Industry Partner',
+                'LeadSponsorClass': 'INDUSTRY', 'CollaboratorName': ['ExampleTX, Inc.'],
+                'CollaboratorClass': ['INDUSTRY']}
+    store_candidates(conn, [study_to_candidate(older, []), study_to_candidate(industry, []), study_to_candidate(joint, [
         {'sponsor_norm': 'another', 'sponsor': 'Another, Inc.', 'ticker': 'OTH',
          'cik': '456', 'confidence': .9}])])
+    conn.execute("UPDATE discovery_candidates SET ticker='EXM' WHERE nct_id='NCT00000004'")
     monkeypatch.setattr(refresh, 'discover', lambda **kw: ([study_to_candidate(study, kw['sponsor_map'])],
                                                           {'resume_cursor': None}))
     monkeypatch.setattr(refresh, '_verified_subsidiary_maps', lambda rows, maps, **kw: [
@@ -118,7 +129,8 @@ def test_verified_subsidiary_is_persisted_and_remaps_candidate(tmp_path, monkeyp
          'source': 'SEC-v2E-subsidiary|https://www.sec.gov/exhibit21.htm'}])
     monkeypatch.setenv('SEC_USER_AGENT', 'test@example.com')
     rows, _ = refresh.discover_registry(conn, return_metadata=True)
-    assert len(rows) == 3 and sum(row['ticker'] == 'EXM' and row['ticker_confidence'] >= .85 for row in rows) == 2
+    assert len(rows) == 4 and sum(row['ticker'] == 'EXM' and row['ticker_confidence'] >= .85 for row in rows) == 2
     assert conn.execute("SELECT ticker FROM discovery_candidates WHERE nct_id='NCT00000001'").fetchone()[0] == 'EXM'
     assert conn.execute("SELECT ticker FROM discovery_candidates WHERE nct_id='NCT00000002'").fetchone()[0] == 'EXM'
     assert conn.execute("SELECT ticker FROM discovery_candidates WHERE nct_id='NCT00000003'").fetchone()[0] is None
+    assert conn.execute("SELECT ticker FROM discovery_candidates WHERE nct_id='NCT00000004'").fetchone()[0] is None

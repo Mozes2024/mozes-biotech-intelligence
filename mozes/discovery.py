@@ -71,6 +71,7 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
     arms = ps.get("armsInterventionsModule", {})
     nct = ident.get("nctId") or study.get("NCTId")
     sponsor = (sponsor_mod.get("leadSponsor") or {}).get("name") or study.get("LeadSponsorName") or ""
+    lead_class = (sponsor_mod.get("leadSponsor") or {}).get("class") or study.get("LeadSponsorClass")
     pc = (status.get("primaryCompletionDateStruct") or {}).get("date") or study.get("PrimaryCompletionDate")
     last = (status.get("lastUpdatePostDateStruct") or {}).get("date") or study.get("LastUpdatePostDate")
     phases = design.get("phases") or study.get("Phase") or []
@@ -90,9 +91,11 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
     matched = [best_mapping(c.get("name") or "", sponsor_map or []) for c in collaborators]
     identities = {(str(m.get("cik") or ""), m.get("ticker")): m for m in matched if m and m.get("ticker")}
     mapping_basis = "lead_sponsor" if mapping else None
-    if not mapping and len(identities) == 1:
+    if not mapping and len(identities) == 1 and lead_class != "INDUSTRY":
         mapping = next(iter(identities.values()))
         mapping_basis = "collaborator"
+    elif not mapping and len(identities) == 1 and lead_class == "INDUSTRY":
+        mapping_basis = "unresolved_industry_lead"
     elif not mapping and len(identities) > 1:
         mapping_basis = "ambiguous_collaborators"
     interventions = [x.get("name") for x in arms.get("interventions", []) if x.get("name")]
@@ -115,7 +118,7 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
         "conditions": cond_mod.get("conditions") or study.get("Condition") or [],
         "interventions": interventions or study.get("InterventionName") or [],
         "source_type": "clinicaltrials",
-        "verification_state": "DISCOVERED",
+        "verification_state": "REVIEW_REQUIRED" if mapping_basis in {"ambiguous_collaborators", "unresolved_industry_lead"} else "DISCOVERED",
         "date_semantics": "sponsor-estimated primary completion; NOT a readout date",
         "raw": {**study, "_mapping": {"basis": mapping_basis,
                                        "source": mapping.get("source") if mapping else None,
