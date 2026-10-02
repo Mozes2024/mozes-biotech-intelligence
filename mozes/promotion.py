@@ -48,18 +48,25 @@ def candidate_matches_statement(candidate: dict, statement: str) -> tuple[bool, 
 
 
 def promote_candidate(conn, candidate: dict, extracted: dict, ticker: str, source_type="sec"):
-    if not is_primary(source_type) or extracted.get("reliability") == "secondary":
+    def reject(reason, **details):
+        from .intelligence_store import digest, encode
+        decision_id = digest([ticker, candidate.get('candidate_id'), extracted.get('source_id'), extracted.get('source_url'), reason])
+        with conn:
+            conn.execute("INSERT OR IGNORE INTO v2e2_promotion_decisions(decision_id,ticker,candidate_id,evidence_id,accession,outcome,reason,details,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                         (decision_id, ticker, candidate.get('candidate_id'), None, extracted.get('accession'), 'REJECTED', reason, encode(details or extracted), db.utcnow()))
         return None
+    if not is_primary(source_type) or extracted.get("reliability") == "secondary":
+        return reject('non_primary_source')
     source_url = extracted.get("source_url") or extracted.get("source_id")
     if not source_url or not source_url.startswith("https://"):
-        return None
+        return reject('missing_or_invalid_source_url')
     ok, confidence, reasons = candidate_matches_statement(candidate, extracted.get("statement", ""))
     if not ok:
-        return None
+        return reject('no_candidate_match', confidence=confidence, reasons=reasons)
     w = extracted.get("window") or {}
     event_driven = extracted.get("timing_mode") == "EVENT_DRIVEN"
     if not event_driven and w.get("precision", "unknown") == "unknown":
-        return None
+        return reject('unbounded_calendar_precision')
     event_id = f"AUTO-{ticker}-{candidate.get('nct_id') or candidate['candidate_id']}"
     previous = conn.execute("SELECT payload FROM events WHERE id=?", (event_id,)).fetchone()
     prior_event = json.loads(previous["payload"]) if previous else {}
@@ -68,7 +75,7 @@ def promote_candidate(conn, candidate: dict, extracted: dict, ticker: str, sourc
         return event_id
     published = extracted.get("published_at") or extracted.get("filed")
     if not published:
-        return None
+        return reject('missing_publication_timestamp')
     if published < prior_event.get("guidance_published_at", ""):
         return event_id
     trigger = {key: value for key, value in extracted.items()
@@ -112,6 +119,10 @@ def promote_candidate(conn, candidate: dict, extracted: dict, ticker: str, sourc
                        "date_precision": w.get("precision"), "trigger_precision": trigger.get("trigger_precision"),
                        "sec_accepted_at": extracted.get("accepted")},
     }
+    current_facet = {"source_url": source_url, "source_id": extracted.get("source_id"),
+                     "timing_mode": extracted.get("timing_mode"), "window": w,
+                     "trigger": trigger, "published_at": published}
+    event["timing_facets"] = [current_facet]
     if previous:
         # A progress observation must not erase accumulated clinical/financial inputs.
         for key in ("features", "features_as_of", "documents", "flags", "prices", "indication", "ta",
@@ -122,6 +133,11 @@ def promote_candidate(conn, candidate: dict, extracted: dict, ticker: str, sourc
         if event["chronology"][0] not in chronology:
             chronology.extend(event["chronology"])
         event["chronology"] = chronology
+        prior_facets = list(prior_event.get("timing_facets") or [])
+        fingerprints = {json.dumps(x, sort_keys=True, ensure_ascii=False) for x in prior_facets}
+        if json.dumps(current_facet, sort_keys=True, ensure_ascii=False) not in fingerprints:
+            prior_facets.append(current_facet)
+        event["timing_facets"] = prior_facets
     with conn:
         conn.execute("INSERT INTO events(id,kind,payload) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload", (event_id, "live", json.dumps(event, ensure_ascii=False)))
         conn.execute("UPDATE discovery_candidates SET promoted_event_id=? WHERE candidate_id=?", (event_id, candidate["candidate_id"]))

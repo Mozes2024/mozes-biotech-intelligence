@@ -177,12 +177,13 @@ def store_candidates(conn, candidates: list[dict], discovered_at=None):
     with conn:
         for c in candidates:
             # Retain the original row and promotion when registry estimates move.
-            prior = conn.execute("SELECT candidate_id FROM discovery_candidates WHERE nct_id=? ORDER BY (promoted_event_id IS NOT NULL) DESC,discovered_at DESC LIMIT 1", (c.get("nct_id"),)).fetchone()
+            prior = conn.execute("SELECT candidate_id,discovered_at FROM discovery_candidates WHERE nct_id=? ORDER BY (promoted_event_id IS NOT NULL) DESC,discovered_at DESC LIMIT 1", (c.get("nct_id"),)).fetchone()
             candidate_id = prior["candidate_id"] if prior else c["candidate_id"]
+            first_seen = prior["discovered_at"] if prior else discovered_at
             conn.execute(
                 "INSERT INTO discovery_candidates(candidate_id,nct_id,sponsor,ticker,ticker_confidence,phase,title,primary_completion,last_update_posted,status,raw_json,discovered_at,promoted_event_id) "
                 "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(candidate_id) DO UPDATE SET sponsor=excluded.sponsor,ticker=excluded.ticker,ticker_confidence=excluded.ticker_confidence,"
                 "phase=excluded.phase,title=excluded.title,primary_completion=excluded.primary_completion,last_update_posted=excluded.last_update_posted,status=excluded.status,raw_json=excluded.raw_json,discovered_at=excluded.discovered_at",
                 (candidate_id, c.get("nct_id"), c.get("sponsor"), c.get("ticker"), c.get("ticker_confidence"), c.get("phase"), c.get("title"),
-                 c.get("primary_completion"), c.get("last_update_posted"), c.get("status"), json.dumps(c.get("raw") or {}, ensure_ascii=False), discovered_at, None),
+                 c.get("primary_completion"), c.get("last_update_posted"), c.get("status"), json.dumps(c.get("raw") or {}, ensure_ascii=False), first_seen, None),
             )

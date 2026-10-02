@@ -5,6 +5,7 @@ import argparse
 import functools
 import http.server
 import json
+import os
 import socketserver
 import sys
 from datetime import date, datetime, timezone
@@ -191,6 +192,14 @@ def cmd_refresh_v2(args):
     bootstrap_database(conn)
     result = refresh_live(conn, start=args.start, end=args.end, months=args.months, do_sec_map=not args.no_sec_map, do_sec_verify=not args.no_sec_verify)
     print(json.dumps(result, indent=2))
+    result_path = os.environ.get('MOZES_RESULT_PATH')
+    if result_path:
+        from pathlib import Path
+        tmp = Path(result_path + '.tmp')
+        tmp.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text(json.dumps({'protocol': 'mozes-v2e2-result', 'run_token': os.environ.get('MOZES_RUN_TOKEN'),
+                                   'status': result.get('status'), 'details': result}, ensure_ascii=False), encoding='utf-8')
+        os.replace(tmp, result_path)
     return 0 if result.get("status") in {"OK", "INCOMPLETE", "BOUNDED"} else 2
 
 

@@ -33,9 +33,16 @@ def _decode_details(row):
 
 
 def _refresh_status(conn):
-    return _decode_details(conn.execute(
+    out = _decode_details(conn.execute(
         "SELECT run_id,started_at,finished_at,status,details_json FROM refresh_runs ORDER BY run_id DESC LIMIT 1"
     ).fetchone())
+    if out and out.get('status') == 'RUNNING':
+        try:
+            age = (datetime.now(timezone.utc) - datetime.fromisoformat(out['started_at'])).total_seconds()
+        except (TypeError, ValueError):
+            age = 10**9
+        out['run_state'] = 'ACTIVE_LEASE' if age <= 120 else 'ORPHANED'
+    return out
 
 
 def _monitor_status(conn):
@@ -148,6 +155,9 @@ def _health(conn, live, refresh, monitor):
         status = op.get("status")
         if status in {"PARTIAL", "FAILED"}:
             red.append({"module": name, "status": status, "details": op.get("details") or {}})
+        elif status == "RUNNING":
+            target = amber if op.get("run_state") == "ACTIVE_LEASE" else red
+            target.append({"module": name, "status": op.get("run_state", "ORPHANED"), "details": op.get("details") or {}})
         elif status in {"INCOMPLETE", "BOUNDED"}:
             amber.append({"module": name, "status": status, "details": op.get("details") or {}})
         elif status == "SKIPPED":
@@ -157,7 +167,7 @@ def _health(conn, live, refresh, monitor):
     for name, run in (("monitor", monitor), ("refresh", refresh)):
         if not run or run.get("status") in {"OK"}:
             continue
-        target = red if run.get("status") in {"PARTIAL", "FAILED"} else amber
+        target = red if run.get("status") in {"PARTIAL", "FAILED"} or run.get('run_state') == 'ORPHANED' else amber
         target.append({"module": name, "status": run.get("status"), "details": run})
     if stale_prices:
         amber.append({"module": "prices", "status": "INCOMPLETE", "reason": "stale prices", "count": len(stale_prices)})

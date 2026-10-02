@@ -71,13 +71,16 @@ def recent_filings_v2(cik, forms=("8-K", "10-Q", "10-K", "6-K", "20-F"), limit=3
     return out
 
 
-def filing_documents(filing):
+def filing_documents(filing, return_diagnostics=False):
     """Return primary document plus likely press-release exhibits from filing index.json."""
+    diagnostics = []
     try:
         idx = json.loads(_get(filing["index_url"]))
     except Exception as exc:
         logging.getLogger(__name__).warning("SEC exhibit index unavailable: %s", str(exc))
-        return [{"name": filing.get("primary_document"), "url": filing["url"], "kind": "primary"}]
+        diagnostics.append({'status': 'INCOMPLETE', 'reason': 'index_unavailable', 'error': str(exc)[:240]})
+        docs = [{"name": filing.get("primary_document"), "url": filing["url"], "kind": "primary"}]
+        return (docs, diagnostics) if return_diagnostics else docs
     items = (idx.get("directory") or {}).get("item") or []
     docs = []
     for it in items:
@@ -96,19 +99,25 @@ def filing_documents(filing):
     for d in sorted(docs, key=lambda x: 0 if x["kind"] == "primary" else 1):
         if d["url"] not in seen:
             seen.add(d["url"]); out.append(d)
-    return out or [{"name": filing.get("primary_document"), "url": filing["url"], "kind": "primary"}]
+    docs = out or [{"name": filing.get("primary_document"), "url": filing["url"], "kind": "primary"}]
+    return (docs, diagnostics) if return_diagnostics else docs
 
 
-def extract_from_filing_v2(filing):
+def extract_from_filing_v2(filing, return_diagnostics=False):
     """Extract dated catalyst statements from the filing and EX-99 exhibits."""
-    rows = []
-    for doc in filing_documents(filing):
+    rows, diagnostics = [], []
+    docs, index_diagnostics = filing_documents(filing, return_diagnostics=True)
+    diagnostics.extend(index_diagnostics)
+    for doc in docs:
         time.sleep(0.12)
         try:
             text = html_to_text(_get(doc["url"]))
         except Exception as exc:
             logging.getLogger(__name__).warning("SEC document unavailable %s: %s", doc["url"], str(exc))
+            diagnostics.append({'status': 'INCOMPLETE', 'reason': 'document_unavailable', 'url': doc['url'], 'error': str(exc)[:240]})
             continue
+        from ..intelligence_store import digest
+        diagnostics.append({'status': 'OK', 'reason': 'extracted', 'url': doc['url'], 'source_hash': digest(text), 'document_kind': doc['kind']})
         for s in extract_catalyst_statements(text, date.fromisoformat(filing["filed"]), source_id=doc["url"], reliability="primary"):
             s["document_kind"] = doc["kind"]
             s["form"] = filing["form"]
@@ -117,7 +126,7 @@ def extract_from_filing_v2(filing):
             s["accession"] = filing.get("accession")
             s["retrieved_at"] = utcnow()
             rows.append(s)
-    return rows
+    return (rows, diagnostics) if return_diagnostics else rows
 
 
 def fetch_company_ticker_map():

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 
 from .financial_intelligence import financial_context, MONTH_DAYS
 from .financing_intelligence import financing_context
@@ -52,6 +52,13 @@ def operation_health(conn):
         if row:
             item = dict(row)
             item['details'] = json.loads(item.pop('payload'))
+            if item.get('status') == 'RUNNING':
+                stamp = item.get('heartbeat_at') or item.get('started_at')
+                try:
+                    age = (datetime.now(timezone.utc) - datetime.fromisoformat(stamp)).total_seconds()
+                except (TypeError, ValueError):
+                    age = 10**9
+                item['run_state'] = 'ACTIVE_LEASE' if age <= 120 else 'ORPHANED'
             out[operation] = item
     return {'modules': out, 'regulatory_review_count': conn.execute('SELECT COUNT(*) FROM v2c_regulatory_review').fetchone()[0],
             'financial_snapshots': conn.execute('SELECT COUNT(*) FROM v2c_financial_snapshots').fetchone()[0],

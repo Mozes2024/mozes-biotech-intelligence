@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import sys
+import uuid
 from collections import defaultdict
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -15,10 +16,26 @@ from . import db
 from .config import DB_PATH
 from .data_loader import load_live, load_sources
 from .source_observability import observed
-from .intelligence_store import (digest, encode, ensure_schema, operation_finish,
-                                 operation_start, state_get, state_put, utcnow)
+from .intelligence_store import (digest, encode, ensure_schema, finalize_owned_runs,
+                                 operation_finish, operation_start, state_get, state_put, utcnow)
 
 DATA = Path(__file__).parent / 'data'
+
+
+def validate_child_result(path, run_token, returncode):
+    """Validate the atomic child result; stdout and stale files are not a contract."""
+    try:
+        value = json.loads(Path(path).read_text(encoding='utf-8'))
+    except (OSError, TypeError, ValueError):
+        return None, 'missing_or_malformed_result'
+    if value.get('protocol') != 'mozes-v2e2-result' or value.get('run_token') != run_token:
+        return None, 'wrong_result_owner_or_protocol'
+    status = value.get('status')
+    if returncode == 0 and status not in {'OK', 'INCOMPLETE', 'BOUNDED'}:
+        return None, 'contradictory_success_result'
+    if returncode != 0 and status not in {'FAILED', 'PARTIAL'}:
+        return None, 'contradictory_failure_result'
+    return value, None
 
 
 def reconcile_catalog(conn):
@@ -175,37 +192,45 @@ def run_pipeline(conn, *, deep=False):
     from .live_monitor import run_monitor
     from .live_prices import refresh_live_prices
     from .regulatory_lifecycle import quarantine_unbound_auto_events
-    rid = operation_start(conn, 'pipeline')
+    os.environ.setdefault('MOZES_RUN_TOKEN', uuid.uuid4().hex)
+    rid = operation_start(conn, 'pipeline', owner_token=os.environ['MOZES_RUN_TOKEN'])
     details = {'catalog': reconcile_catalog(conn), 'research': import_local_research(conn)}
     details['identity'] = identity_audit(conn)
     details['quarantined_unbound'] = quarantine_unbound_auto_events(conn)
     if deep:
-        deep_id = operation_start(conn, 'deep_refresh')
+        deep_id = operation_start(conn, 'deep_refresh', owner_token=os.environ['MOZES_RUN_TOKEN'])
         # Subprocess has a hard wall-time budget. A timeout is recorded as incomplete,
         # not disguised as a successful full scan. Cached documents survive for next time.
         conn.commit()
         cmd = [sys.executable, '-m', 'mozes', 'refresh-v2', '--months', '9', '--no-sec-map']
         if not os.environ.get('SEC_USER_AGENT'):
             cmd = [sys.executable, '-m', 'mozes', 'discover-v2', '--months', '9']
+        result_path = Path(os.environ.get('MOZES_RESULT_PATH') or (Path('.monitor') / ('result-' + os.environ['MOZES_RUN_TOKEN'] + '.json')))
+        child_env = os.environ.copy()
+        child_env['MOZES_PARENT_TOKEN'] = os.environ['MOZES_RUN_TOKEN']
+        child_env['MOZES_RESULT_PATH'] = str(result_path)
         try:
-            completed = subprocess.run(cmd, timeout=480, check=False, capture_output=True, text=True)
+            completed = subprocess.run(cmd, timeout=480, check=False, capture_output=True, text=True, env=child_env)
             rc = completed.returncode
             report = {'returncode': rc}
-            try:
-                child = json.loads(completed.stdout)
-                report.update({'refresh_status': child.get('status'),
-                               'ctgov_discovery': child.get('ctgov_discovery'),
-                               'source_operations': child.get('source_operations')})
-            except (TypeError, ValueError):
-                child = {}
-            status = child.get('status') if rc == 0 else 'PARTIAL'
-            status = status if status in {'OK', 'INCOMPLETE', 'BOUNDED', 'PARTIAL', 'FAILED'} else ('OK' if rc == 0 else 'PARTIAL')
+            child, result_error = validate_child_result(result_path, os.environ['MOZES_RUN_TOKEN'], rc)
+            valid = child is not None
+            if valid:
+                report.update(child.get('details') or {})
+                report['child_status'] = child.get('status')
+            status = child.get('status') if valid else 'FAILED'
+            if not valid:
+                report['termination_reason'] = result_error or 'missing_or_invalid_child_result'
         except subprocess.TimeoutExpired:
-            status, report = 'PARTIAL', {'reason': '480_second_budget_exhausted'}
+            status, report = 'FAILED', {'termination_reason': 'parent_timeout_480_seconds'}
+            finalize_owned_runs(conn, os.environ['MOZES_RUN_TOKEN'], 'FAILED', report['termination_reason'])
         operation_finish(conn, deep_id, status, report)
         details['deep_refresh'] = {**report, 'status': status}
-        from .coverage import audit_coverage
-        details['coverage_audit'] = audit_coverage(conn)
+        if report.get('coverage_audit'):
+            details['coverage_audit'] = report['coverage_audit']
+        else:
+            from .coverage import audit_coverage
+            details['coverage_audit'] = audit_coverage(conn)
     price_id = operation_start(conn, 'prices')
     try:
         details['prices'] = refresh_live_prices(conn)
@@ -249,7 +274,7 @@ def main(argv=None):
         export_payload(conn, args.output)
         conn.close()
         return 0
-    run_pipeline(conn, deep=args.deep)
+    result = run_pipeline(conn, deep=args.deep)
     payload = export_payload(conn, args.output)
     fingerprint = semantic_fingerprint(payload)
     previous = state_get(conn, 'publish_request', {})
@@ -265,6 +290,14 @@ def main(argv=None):
                 'fingerprint': fingerprint, 'source_sha': os.environ.get('GITHUB_SHA'), 'generated_at': utcnow()}
     Path('.monitor').mkdir(exist_ok=True)
     Path('.monitor/manifest.json').write_text(encode(manifest), encoding='utf-8')
+    result_path = os.environ.get('MOZES_RESULT_PATH')
+    if result_path:
+        tmp = Path(result_path + '.tmp')
+        tmp.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text(encode({'protocol': 'mozes-v2e2-result', 'run_token': os.environ.get('MOZES_RUN_TOKEN'),
+                               'status': result.get('status'), 'details': result.get('details'),
+                               'manifest': manifest}), encoding='utf-8')
+        os.replace(tmp, result_path)
     if os.environ.get('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
             fh.write(f"should_publish={'true' if should_publish else 'false'}\n")
