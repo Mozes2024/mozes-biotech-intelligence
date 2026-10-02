@@ -75,3 +75,39 @@ def test_cursor_owns_scan_across_date_boundary():
     assert first["resume_cursor"]["anchor_date"] == "2026-10-01"
     assert "2026-10-01" in urls[1] and "pageToken=second" in urls[1]
     assert second["complete"] and second["resume_cursor"] is None
+
+
+def test_subsidiary_alias_requires_exact_sec_exhibit(monkeypatch):
+    from mozes import refresh
+    from mozes.ingest import edgar
+    parent = {"sponsor": "Example, Inc.", "sponsor_norm": "example", "ticker": "EXM",
+              "cik": "123", "confidence": .9, "source": "SEC-v2C-equity"}
+    candidate = {"sponsor": "ExampleTX, Inc.", "ticker": None, "collaborators": []}
+    monkeypatch.setattr(refresh, "recent_filings_v2", lambda *a, **kw: [
+        {"index_url": "https://www.sec.gov/index", "url": "https://www.sec.gov/filing"}])
+    def get(url, **kw):
+        return ('{"directory":{"item":[{"name":"exhibit21.htm"}]}}'
+                if url.endswith('/index') else '<tr><td>ExampleTX, Inc.</td><td>Delaware</td></tr>')
+    monkeypatch.setattr(edgar, "_get", get)
+    assert refresh._verified_subsidiary_maps([candidate], [parent])[0]["ticker"] == "EXM"
+    monkeypatch.setattr(edgar, "_get", lambda url, **kw: get(url, **kw) if url.endswith('/index') else '<td>Unrelated, Inc.</td>')
+    assert refresh._verified_subsidiary_maps([candidate], [parent]) == []
+
+
+def test_verified_subsidiary_is_persisted_and_remaps_candidate(tmp_path, monkeypatch):
+    from mozes import db, refresh
+    from mozes.radar import bootstrap_database
+    conn = db.connect(tmp_path / 'alias.db')
+    bootstrap_database(conn)
+    conn.execute("INSERT INTO sponsor_ticker_map(sponsor_norm,sponsor,ticker,cik,confidence,source,updated_at) "
+                 "VALUES('example','Example, Inc.','EXM','123',.9,'SEC-v2C-equity','2026-10-02')")
+    study = {'NCTId': 'NCT00000001', 'LeadSponsorName': 'ExampleTX, Inc.', 'Phase': ['PHASE4']}
+    monkeypatch.setattr(refresh, 'discover', lambda **kw: ([study_to_candidate(study, kw['sponsor_map'])],
+                                                          {'resume_cursor': None}))
+    monkeypatch.setattr(refresh, '_verified_subsidiary_maps', lambda rows, maps, **kw: [
+        {**maps[0], 'sponsor': 'ExampleTX, Inc.', 'sponsor_norm': 'exampletx',
+         'source': 'SEC-v2E-subsidiary|https://www.sec.gov/exhibit21.htm'}])
+    monkeypatch.setenv('SEC_USER_AGENT', 'test@example.com')
+    rows, _ = refresh.discover_registry(conn, return_metadata=True)
+    assert rows[0]['ticker'] == 'EXM' and rows[0]['ticker_confidence'] >= .85
+    assert conn.execute("SELECT ticker FROM discovery_candidates WHERE nct_id='NCT00000001'").fetchone()[0] == 'EXM'

@@ -103,6 +103,7 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
         "ticker": mapping.get("ticker") if mapping else None,
         "ticker_confidence": float(mapping.get("confidence", 0)) if mapping else 0.0,
         "mapping_basis": mapping_basis,
+        "mapping_source": mapping.get("source") if mapping else None,
         "mapping_diagnostics": {"matched_issuers": [{"cik": cik, "ticker": ticker}
                                                    for cik, ticker in sorted(identities)]},
         "collaborators": collaborators,
@@ -116,7 +117,9 @@ def study_to_candidate(study: dict, sponsor_map: list[dict] | None = None) -> di
         "source_type": "clinicaltrials",
         "verification_state": "DISCOVERED",
         "date_semantics": "sponsor-estimated primary completion; NOT a readout date",
-        "raw": {**study, "_mapping": {"basis": mapping_basis, "collaborators": collaborators,
+        "raw": {**study, "_mapping": {"basis": mapping_basis,
+                                       "source": mapping.get("source") if mapping else None,
+                                       "collaborators": collaborators,
                                        "matched_issuers": [{"cik": cik, "ticker": ticker}
                                                            for cik, ticker in sorted(identities)]}},
     }

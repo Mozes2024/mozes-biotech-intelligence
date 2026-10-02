@@ -6,11 +6,13 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
+from collections import Counter
 from datetime import datetime, timezone, timedelta
 
 from . import db
-from .discovery import discover, store_candidates
+from .discovery import discover, store_candidates, study_to_candidate
 from .ingest.edgar import fetch_company_ticker_map, recent_filings_v2, extract_from_filing_v2
 from .promotion import promote_candidate
 from .universe import normalize_org
@@ -25,6 +27,58 @@ def refresh_sec_company_map(conn, *, deadline=None):
     return len(result["projection"])
 
 
+def _verified_subsidiary_maps(candidates, maps, *, deadline=None, limit=8):
+    """Resolve close issuer-name variants only after an exact SEC Exhibit 21 match."""
+    from .ingest.edgar import _get, html_to_text
+
+    names = Counter()
+    for candidate in candidates:
+        if candidate.get('ticker'):
+            continue
+        names[candidate.get('sponsor') or ''] += 1
+        names.update(c.get('name') or '' for c in candidate.get('collaborators') or [])
+    parents_by_prefix = {}
+    for parent in maps:
+        norm = parent.get('sponsor_norm') or ''
+        if parent.get('source') == 'SEC-v2C-equity' and len(norm) >= 6:
+            parents_by_prefix.setdefault(norm[:6], []).append(parent)
+    aliases = []
+    for name, _ in names.most_common():
+        if len(aliases) >= limit or (deadline is not None and time.monotonic() >= deadline):
+            break
+        norm = normalize_org(name)
+        possible = [m for m in parents_by_prefix.get(norm[:6], [])
+                    if norm.startswith(m['sponsor_norm'])
+                    and 1 <= len(norm) - len(m['sponsor_norm']) <= 4
+                    and ' ' not in norm[len(m['sponsor_norm']):]]
+        if len({(m.get('cik'), m.get('ticker')) for m in possible}) != 1:
+            continue
+        parent = possible[0]
+        if not parent.get('cik'):
+            continue
+        try:
+            filings = recent_filings_v2(parent['cik'], forms=('10-K',), limit=1, deadline=deadline)
+            if not filings:
+                continue
+            index = json.loads(_get(filings[0]['index_url'], deadline=deadline))
+            documents = (index.get('directory') or {}).get('item') or []
+            exhibit = next((d['name'] for d in documents
+                            if re.search(r'(?:ex|exhibit)[-_ .]*21', d.get('name') or '', re.I)
+                            and re.search(r'\.html?$', d.get('name') or '', re.I)), None)
+            if not exhibit:
+                continue
+            url = filings[0]['url'].rsplit('/', 1)[0] + '/' + exhibit
+            subsidiary_text = normalize_org(html_to_text(_get(url, deadline=deadline)))
+            if not re.search(r'(?<![a-z0-9])' + re.escape(norm) + r'(?![a-z0-9])', subsidiary_text):
+                continue
+            aliases.append({**parent, 'sponsor': name, 'sponsor_norm': norm,
+                            'confidence': min(float(parent['confidence']), .9),
+                            'source': 'SEC-v2E-subsidiary|' + url})
+        except (OSError, ValueError, KeyError, TimeoutError):
+            continue
+    return aliases
+
+
 def discover_registry(conn, start=None, end=None, months=6, return_metadata=False, *, deadline=None):
     from .intelligence_store import ensure_schema, state_get, state_put
     ensure_schema(conn)
@@ -32,6 +86,17 @@ def discover_registry(conn, start=None, end=None, months=6, return_metadata=Fals
     rows, meta = discover(start=start, end=end, months=months, sponsor_map=maps,
                           return_metadata=True, deadline=deadline,
                           resume=state_get(conn, 'v2e2_ctgov_cursor'))
+    if os.environ.get('SEC_USER_AGENT'):
+        aliases = _verified_subsidiary_maps(rows, maps, deadline=deadline)
+        if aliases:
+            with conn:
+                for alias in aliases:
+                    conn.execute("INSERT OR IGNORE INTO sponsor_ticker_map(sponsor_norm,sponsor,ticker,cik,confidence,source,updated_at) VALUES(?,?,?,?,?,?,?)",
+                                 (alias['sponsor_norm'], alias['sponsor'], alias['ticker'], alias['cik'],
+                                  alias['confidence'], alias['source'], db.utcnow()))
+            maps += aliases
+            rows = [study_to_candidate(row['raw'], maps) if not row.get('ticker') else row for row in rows]
+        meta['verified_subsidiary_aliases'] = len(aliases)
     store_candidates(conn, rows)
     state_put(conn, 'v2e2_ctgov_cursor', meta.get('resume_cursor'))
     return (rows, meta) if return_metadata else rows

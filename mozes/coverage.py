@@ -17,6 +17,8 @@ def audit_coverage(conn, limit=None):
     if truncated:
         rows = rows[:limit]
     items = []
+    issuer_queue = {r['ticker']: dict(r) for r in conn.execute(
+        'SELECT ticker,state,failure_reason FROM v2e2_issuer_queue').fetchall()}
     for row in rows[:limit]:
         row = dict(row)
         mapping = (json.loads(row.get("raw_json") or "{}").get("_mapping") or {})
@@ -34,8 +36,15 @@ def audit_coverage(conn, limit=None):
             evidence = conn.execute("SELECT payload FROM catalyst_evidence WHERE ticker=? ORDER BY published_at DESC LIMIT 50", (row["ticker"],)).fetchall()
             if any(candidate_matches_statement(row, json.loads(item["payload"]).get("statement", ""))[0] for item in evidence):
                 status = "PRIMARY_SOURCE_FOUND_NOT_PROMOTED"
+        queue = issuer_queue.get(row['ticker']) or {}
+        reason = ('multiple_public_collaborators' if status == 'ENTITY_AMBIGUOUS' else
+                  'no_confident_issuer_mapping' if status == 'ENTITY_UNRESOLVED' else
+                  'awaiting_bounded_primary_source_scan' if status == 'DISCOVERY_ONLY' and queue.get('state') == 'PENDING' else
+                  'no_matching_primary_source' if status == 'DISCOVERY_ONLY' and queue.get('state') == 'SUCCESS' else
+                  queue.get('failure_reason') or None)
         items.append({"candidate_id": row["candidate_id"], "nct_id": row["nct_id"], "ticker": row["ticker"],
                       "event_id": row["promoted_event_id"], "status": status,
+                      "issuer_queue_state": queue.get('state'), "disposition_reason": reason,
                       "mapping_basis": mapping.get("basis"),
                       "matched_issuers": mapping.get("matched_issuers") or []})
     # Also surface primary statements with no registry candidate at all. This is

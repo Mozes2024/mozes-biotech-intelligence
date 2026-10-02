@@ -100,6 +100,10 @@ def update_company_map(conn, rows, listings):
                           row['source_url'], now, encode(row)))
         # Remove the old SEC-derived projection, including collisions/warrants selected by v2.
         conn.execute("DELETE FROM sponsor_ticker_map WHERE source LIKE 'SEC %' OR source='SEC-v2C-equity'")
+        valid_issuers = {(row['cik'], row['ticker']) for row in result['projection']}
+        for alias in conn.execute("SELECT sponsor_norm,cik,ticker FROM sponsor_ticker_map WHERE source LIKE 'SEC-v2E-subsidiary|%'").fetchall():
+            if (str(alias['cik']).lstrip('0'), alias['ticker']) not in valid_issuers:
+                conn.execute('DELETE FROM sponsor_ticker_map WHERE sponsor_norm=?', (alias['sponsor_norm'],))
         for row in result['projection']:
             existing = conn.execute('SELECT cik,ticker,source FROM sponsor_ticker_map WHERE sponsor_norm=?',
                                     (row['sponsor_norm'],)).fetchone()
