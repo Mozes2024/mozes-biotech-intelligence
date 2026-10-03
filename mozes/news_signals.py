@@ -10,6 +10,7 @@ from email.utils import parsedate_to_datetime
 from urllib.parse import urlsplit
 
 from .live_monitor import observe, record_change
+from .priority import priority_tickers
 
 PUBLISHERS = ("reuters.com", "apnews.com", "statnews.com", "fiercebiotech.com",
               "endpts.com", "biopharmadive.com")
@@ -58,7 +59,10 @@ def poll_news(conn, *, limit=8, fetch=None, now=None):
         "ON m.ticker=d.ticker AND m.source='SEC-v2C-equity' "
         "WHERE d.ticker IS NOT NULL AND UPPER(d.phase) LIKE '%PHASE3%' "
         "GROUP BY d.ticker ORDER BY COALESCE((SELECT observed_at FROM monitor_observations "
-        "WHERE observation_key='news_poll:'||d.ticker),'') ASC,d.ticker LIMIT ?", (limit,)).fetchall()
+        "WHERE observation_key='news_poll:'||d.ticker),'') ASC,d.ticker").fetchall()
+    preferred = set(priority_tickers())
+    issuers = [row for row in issuers if row['ticker'] in preferred][:min(limit, 2)] + [
+        row for row in issuers if row['ticker'] not in preferred][:max(0, limit - min(limit, 2))]
     checked = added = 0
     errors = []
     for issuer in issuers:

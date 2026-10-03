@@ -137,11 +137,14 @@ def _candidates_for_ticker(conn, ticker):
 
 def _select_issuer_batch(conn, eligible, limit=25):
     """Give unscanned late-stage issuers a bounded share without starving older work."""
+    from .priority import priority_tickers
     oldest = sorted(eligible, key=lambda r: (r['last_attempt'] is not None,
                     r['last_attempt'] or r['first_seen'] or '', r['first_seen'] or '', r['ticker']))
+    by_ticker = {row['ticker']: row for row in eligible}
+    chosen = [ticker for ticker in priority_tickers() if ticker in by_ticker]
     material = sorted((r for r in eligible if r['pending_material_at']),
                       key=lambda r: (r['last_attempt'] is None, r['pending_material_at'], r['ticker']))[:10]
-    chosen = [r['ticker'] for r in material]
+    chosen.extend(r['ticker'] for r in material if r['ticker'] not in chosen)
     late_stage = {r['ticker'] for r in conn.execute(
         "SELECT DISTINCT ticker FROM discovery_candidates WHERE ticker IS NOT NULL "
         "AND UPPER(phase) LIKE '%PHASE3%' AND promoted_event_id IS NULL")}

@@ -50,3 +50,11 @@ def test_late_stage_gets_bounded_queue_slots(tmp_path):
             {"ticker": "P3", "last_attempt": None, "first_seen": "2026-10-01", "pending_material_at": None},
             {"ticker": "B", "last_attempt": None, "first_seen": "2026-01-02", "pending_material_at": None}]
     assert _select_issuer_batch(conn, rows, limit=2) == ["P3", "A"]
+
+
+def test_requested_issuers_precede_the_general_queue(tmp_path):
+    conn = db.connect(tmp_path / "priority.db")
+    store_candidates(conn, [_candidate("NCT00000003", "SLS")])
+    rows = [{"ticker": t, "last_attempt": None, "first_seen": "2026-01-01",
+             "pending_material_at": None} for t in ("A", "SLS", "Z")]
+    assert _select_issuer_batch(conn, rows, limit=2) == ["SLS", "A"]

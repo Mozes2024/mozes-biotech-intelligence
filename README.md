@@ -325,6 +325,9 @@ a catalyst. A headline about a trial milestone must still be checked against a
 primary source. Set `MOZES_NEWS_ENABLED=1` to enable this polling locally.
 During deep refresh, unscanned Phase 3 issuers receive up to ten SEC verification
 slots per batch, while the remaining slots continue older queued work.
+The small user-requested scheduling list in `mozes/data/priority_issuers.json`
+is checked first for SEC verification and news polling. It changes scan order
+only; it does not add events, evidence, or verification.
 
 The `change_events` ledger is append-only. Stable IDs deduplicate the same
 source/change while retaining severity escalation. The six-hour GitHub Actions
