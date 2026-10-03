@@ -76,6 +76,12 @@ def promote_candidate(conn, candidate: dict, extracted: dict, ticker: str, sourc
     published = extracted.get("published_at") or extracted.get("filed")
     if not published:
         return reject('missing_publication_timestamp')
+    if not event_driven and w.get('end') and w['end'] < published[:10]:
+        return reject('historical_observation_not_future_catalyst')
+    if (event_driven and prior_event.get('timing_mode') == 'EVENT_DRIVEN'
+            and prior_event.get('trigger_target') is not None
+            and extracted.get('trigger_target') is None):
+        return reject('weaker_milestone_cannot_replace_count_trigger')
     if published < prior_event.get("guidance_published_at", ""):
         return event_id
     registry_mapping = (json.loads(candidate.get("raw_json") or "{}").get("_mapping") or {}

@@ -17,6 +17,7 @@ from mozes.promotion import promote_candidate
 from mozes.radar import bootstrap_database, validation_status
 from mozes.source_observability import capture, record
 from mozes.timing import parse_trigger
+from mozes.timing_reconciliation import repair_promoted_timings
 from mozes.validation_evaluator import evaluate_walk_forward
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -97,6 +98,42 @@ def test_sellas_two_distinct_catalysts_and_provenance(tmp_path):
     assert coverage["event_driven_count"] == 1
     gates = validation_status(conn)
     assert not gates["runup"]["enabled"] and not gates["hold_through"]["enabled"]
+
+
+def test_weak_filing_prose_cannot_replace_verified_catalyst_timing(tmp_path):
+    conn = db.connect(tmp_path / "timing.db")
+    regal, sls009 = sellas(conn)
+    candidate = dict(conn.execute("SELECT * FROM discovery_candidates WHERE promoted_event_id=?", (regal,)).fetchone())
+    weak = extract_catalyst_statements(
+        "Potential BLA filing for GPS following final analysis of the REGAL study",
+        date(2026, 5, 11), "https://www.sec.gov/example")[0]
+    assert promote_candidate(conn, candidate, weak, "SLS") is None
+    candidate = dict(conn.execute("SELECT * FROM discovery_candidates WHERE promoted_event_id=?", (sls009,)).fetchone())
+    historical = extract_catalyst_statements(
+        "As of August 10, 2026, 28 patients enrolled in the Phase 2 SLS009 clinical trial",
+        date(2026, 8, 11), "https://www.sec.gov/example")[0]
+    assert promote_candidate(conn, candidate, historical, "SLS") is None
+    assert json.loads(conn.execute("SELECT payload FROM events WHERE id=?", (regal,)).fetchone()[0])["trigger_target"] == 80
+    assert json.loads(conn.execute("SELECT payload FROM events WHERE id=?", (sls009,)).fetchone()[0])["verified_window"]["start"] == "2026-10-01"
+
+
+def test_reconcile_recovers_count_and_future_window_from_primary_facets(tmp_path):
+    conn = db.connect(tmp_path / "repair.db")
+    regal, sls009 = sellas(conn)
+    for event_id in (regal, sls009):
+        event = json.loads(conn.execute("SELECT payload FROM events WHERE id=?", (event_id,)).fetchone()[0])
+        if event_id == regal:
+            event.update(trigger_target=None, trigger_current=None, type="FILING")
+        else:
+            event["verified_window"] = {"original": "28 patients enrolled as of August 10, 2026",
+                                        "precision": "exact", "start": "2026-08-10", "end": "2026-08-10"}
+        conn.execute("UPDATE events SET payload=? WHERE id=?", (json.dumps(event), event_id))
+    repaired = repair_promoted_timings(conn)
+    assert set((regal, sls009)) <= set(repaired)
+    recovered = json.loads(conn.execute("SELECT payload FROM events WHERE id=?", (regal,)).fetchone()[0])
+    assert (recovered["trigger_current"], recovered["trigger_target"], recovered["type"]) == (78, 80, "P3_TOPLINE")
+    recovered = json.loads(conn.execute("SELECT payload FROM events WHERE id=?", (sls009,)).fetchone()[0])
+    assert recovered["verified_window"]["start"] == "2026-10-01"
 
 
 def test_no_production_ticker_special_case():

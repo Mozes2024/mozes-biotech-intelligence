@@ -401,6 +401,8 @@ def refresh_live(conn, start=None, end=None, months=6, do_sec_map=True, do_sec_v
             if do_sec_verify:
                 details["sec_verification"] = verify_candidates_from_sec(conn, deadline=work_deadline)
                 details["sec_regulatory_discovery"] = scan_watch_universe_regulatory(conn, deadline=work_deadline)
+            from .timing_reconciliation import repair_promoted_timings
+            details["timing_repaired"] = repair_promoted_timings(conn)
             details["source_operations"] = metrics.snapshot()
             from .coverage import audit_coverage
             details["coverage_audit"] = audit_coverage(conn)
