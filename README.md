@@ -323,6 +323,14 @@ from the configured reputable-news domains. These headlines appear in “מה ה
 as investigation signals, with publisher provenance, and cannot create or verify
 a catalyst. A headline about a trial milestone must still be checked against a
 primary source. Set `MOZES_NEWS_ENABLED=1` to enable this polling locally.
+The same Phase 3 monitoring cohort checks company investor-relations pages for an
+advertised RSS/Atom feed. Known official IR starting pages are listed in
+`mozes/data/official_ir_sites.json`; other issuers can be discovered from existing
+`company_ir` event sources. Feed discovery accepts only an HTTPS feed on the same
+official host. Recent company release headlines appear separately in “מה השתנה?”
+with a link and source status. They remain investigation signals until the release
+body and its implications are verified. Missing or blocked feeds are shown as such;
+there is no fallback that silently treats a third-party feed as official.
 During deep refresh, unscanned Phase 3 issuers receive up to ten SEC verification
 slots per batch, while the remaining slots continue older queued work.
 The small user-requested scheduling list in `mozes/data/priority_issuers.json`

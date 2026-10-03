@@ -218,6 +218,11 @@ def build(conn, today: date):
     historical = readiness_summary(conn)
     refresh = _refresh_status(conn)
     monitor = _monitor_status(conn)
+    official_feeds = []
+    for row in conn.execute("SELECT observation_key,value_json,observed_at FROM monitor_observations "
+                            "WHERE observation_key LIKE 'official_feed:%' ORDER BY observation_key"):
+        official_feeds.append({"ticker": row["observation_key"].split(":", 1)[1],
+                               "observed_at": row["observed_at"], **json.loads(row["value_json"])})
     return {
         "version": VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -231,6 +236,7 @@ def build(conn, today: date):
         "watch_universe": _watch_universe(conn),
         "refresh": refresh,
         "changes": recent_changes(conn),
+        "official_feeds": official_feeds,
         "health": _health(conn, live, refresh, monitor),
         "intelligence_v2c": operation_health(conn),
         "validation": validation,
