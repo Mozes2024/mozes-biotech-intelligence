@@ -317,6 +317,15 @@ Use `SEC_USER_AGENT` for SEC access. A missing SEC identity skips that source an
 is reported in the command result. Registry changes are investigation signals;
 they never verify an actionable catalyst date.
 
+The hosted monitor also polls a bounded rotation of late-stage issuers through
+Google News RSS. It accepts recent items only when the feed identifies a publisher
+from the configured reputable-news domains. These headlines appear in “מה השתנה?”
+as investigation signals, with publisher provenance, and cannot create or verify
+a catalyst. A headline about a trial milestone must still be checked against a
+primary source. Set `MOZES_NEWS_ENABLED=1` to enable this polling locally.
+During deep refresh, unscanned Phase 3 issuers receive up to ten SEC verification
+slots per batch, while the remaining slots continue older queued work.
+
 The `change_events` ledger is append-only. Stable IDs deduplicate the same
 source/change while retaining severity escalation. The six-hour GitHub Actions
 monitor (including weekends) carries its SQLite state in a rolling workflow

@@ -207,7 +207,7 @@ from .source_observability import observed, snapshot
 
 
 @observed
-def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_company=12):
+def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_company=12, news=False):
     from .security import audit_current_universe, audit_watch_universe, NON_TRADABLE
     started = _now()
     with conn:
@@ -270,6 +270,9 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
                                 details["filings"] += 1
                 except Exception as exc:
                     details["errors"].append({"ticker": watch["ticker"], "error": str(exc)})
+        if news:
+            from .news_signals import poll_news
+            details["news"] = poll_news(conn)
         reconcile_states(conn)
         details["changes"] = conn.execute("SELECT COUNT(*) FROM change_events WHERE detected_at>=?", (started,)).fetchone()[0]
         if sec and not os.environ.get("SEC_USER_AGENT"):

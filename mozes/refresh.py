@@ -135,6 +135,25 @@ def _candidates_for_ticker(conn, ticker):
     ).fetchall()]
 
 
+def _select_issuer_batch(conn, eligible, limit=25):
+    """Give unscanned late-stage issuers a bounded share without starving older work."""
+    oldest = sorted(eligible, key=lambda r: (r['last_attempt'] is not None,
+                    r['last_attempt'] or r['first_seen'] or '', r['first_seen'] or '', r['ticker']))
+    material = sorted((r for r in eligible if r['pending_material_at']),
+                      key=lambda r: (r['last_attempt'] is None, r['pending_material_at'], r['ticker']))[:10]
+    chosen = [r['ticker'] for r in material]
+    late_stage = {r['ticker'] for r in conn.execute(
+        "SELECT DISTINCT ticker FROM discovery_candidates WHERE ticker IS NOT NULL "
+        "AND UPPER(phase) LIKE '%PHASE3%' AND promoted_event_id IS NULL")}
+    for row in oldest:
+        if len(chosen) >= min(limit, 18) or len([t for t in chosen if t in late_stage]) >= 10:
+            break
+        if row['ticker'] in late_stage and row['ticker'] not in chosen and row['last_attempt'] is None:
+            chosen.append(row['ticker'])
+    chosen.extend(r['ticker'] for r in oldest if r['ticker'] not in chosen)
+    return chosen[:limit]
+
+
 def verify_candidates_from_sec(conn, filings_per_company=12, budget_seconds=120, *, deadline=None):
     """Scan recent filings/EX-99 for mapped CT.gov candidates and promote only primary-source matches."""
     maps = [dict(r) for r in conn.execute("SELECT * FROM sponsor_ticker_map WHERE cik IS NOT NULL AND confidence>=0.85 AND (source NOT LIKE 'SEC %' OR source='SEC-v2C-equity')").fetchall()]
@@ -192,11 +211,7 @@ def verify_candidates_from_sec(conn, filings_per_company=12, budget_seconds=120,
                 conn.execute("UPDATE v2e2_issuer_queue SET state='PENDING',next_eligible_at=NULL,failure_reason=NULL WHERE ticker=?", (ticker,))
         if row['state'] != 'BLOCKED' and (not row['next_eligible_at'] or row['next_eligible_at'] <= now):
             eligible.append(row)
-    oldest = sorted(eligible, key=lambda r: (r['last_attempt'] is not None, r['last_attempt'] or r['first_seen'] or '', r['first_seen'] or '', r['ticker']))
-    priority = sorted((r for r in eligible if r['pending_material_at']),
-                      key=lambda r: (r['last_attempt'] is None, r['pending_material_at'], r['ticker']))[:10]
-    tickers = [r['ticker'] for r in priority]
-    tickers += [r['ticker'] for r in oldest if r['ticker'] not in tickers][:25 - len(tickers)]
+    tickers = _select_issuer_batch(conn, eligible)
     promoted, scanned, errors = [], 0, []
     incomplete_documents = []
     budget_exhausted = False

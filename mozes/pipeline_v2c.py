@@ -267,7 +267,8 @@ def run_pipeline(conn, *, deep=False):
     except Exception as exc:
         details['prices'] = {'status': 'FAILED', 'best_effort': True, 'error': type(exc).__name__}
     operation_finish(conn, price_id, details['prices'].get('status', 'OK'), details['prices'])
-    details['monitor'] = run_monitor(conn, audit=False, sec=False)
+    details['monitor'] = run_monitor(conn, audit=False, sec=False,
+                                     news=os.environ.get('MOZES_NEWS_ENABLED') == '1')
     from .engine_v2 import score_event
     from .radar import live_event_records
     from .paper import PaperBook
