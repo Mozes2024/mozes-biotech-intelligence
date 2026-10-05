@@ -87,6 +87,21 @@ def test_requested_issuers_are_checked_first_for_sec_reports(tmp_path, monkeypat
     assert seen == ["3", "2", "1"]
 
 
+def test_priority_monitor_limits_sec_and_news_to_requested_issuers(tmp_path, monkeypatch):
+    from mozes import live_monitor, news_signals
+    conn = db.connect(tmp_path / "fast-lane.db")
+    seen = []
+    monkeypatch.setenv("SEC_USER_AGENT", "Test Monitor test@example.com")
+    monkeypatch.setattr(db, "watch_rows", lambda _: [
+        {"ticker": "AAA", "cik": "1"}, {"ticker": "MRNA", "cik": "2"}, {"ticker": "SLS", "cik": "3"}])
+    monkeypatch.setattr(live_monitor.edgar, "recent_filings_v2", lambda cik, **kwargs: seen.append(cik) or [])
+    monkeypatch.setattr(news_signals, "poll_news", lambda conn, *, limit: {"limit": limit})
+    monkeypatch.setattr(live_monitor, "reconcile_states", lambda _: [])
+    result = run_monitor(conn, audit=False, ctgov_diff=False, news=True, priority_only=True)
+    assert seen == ["3", "2"]
+    assert result["news"]["limit"] == 2
+
+
 def test_recent_changes_retains_previous_runs_within_seven_days(tmp_path, monkeypatch):
     conn = db.connect(tmp_path / "changes.db")
     now = datetime.now(timezone.utc)

@@ -205,7 +205,8 @@ from .source_observability import observed, snapshot
 
 
 @observed
-def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_company=12, news=False):
+def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_company=12, news=False,
+                priority_only=False):
     from .security import audit_current_universe, audit_watch_universe, NON_TRADABLE
     started = _now()
     with conn:
@@ -254,6 +255,8 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
             from .priority import priority_tickers
             priority = {ticker: index for index, ticker in enumerate(priority_tickers())}
             watches = sorted(db.watch_rows(conn), key=lambda row: (priority.get(row["ticker"], len(priority)), row["ticker"]))
+            if priority_only:
+                watches = [row for row in watches if row["ticker"] in priority]
             for watch in watches:
                 if not watch.get("cik"):
                     continue
@@ -278,7 +281,7 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
                     details["errors"].append({"ticker": watch["ticker"], "error": str(exc)})
         if news:
             from .news_signals import poll_news
-            details["news"] = poll_news(conn)
+            details["news"] = poll_news(conn, limit=2 if priority_only else 8)
         reconcile_states(conn)
         details["changes"] = conn.execute("SELECT COUNT(*) FROM change_events WHERE detected_at>=?", (started,)).fetchone()[0]
         if sec and not os.environ.get("SEC_USER_AGENT"):

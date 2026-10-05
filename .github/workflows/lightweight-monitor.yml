@@ -1,11 +1,17 @@
 name: lightweight-live-monitor
 on:
   schedule:
+    - cron: '*/15 * * * *'
     - cron: '20 0,12,18 * * *'
     - cron: '20 6 * * 0,2,4,6'
     - cron: '20 6 * * 1,3,5'
   workflow_dispatch:
     inputs:
+      priority_only:
+        description: 'Check the priority issuers and their source feeds only'
+        required: false
+        default: false
+        type: boolean
       deep_refresh:
         description: 'Run bounded full discovery in addition to the lightweight pass'
         required: false
@@ -28,6 +34,7 @@ jobs:
       MOZES_HTTP_CACHE: .monitor/http-cache
       GH_TOKEN: ${{ github.token }}
       RUN_DEEP: ${{ inputs.deep_refresh == true || github.event.schedule == '20 6 * * 1,3,5' }}
+      RUN_PRIORITY: ${{ inputs.priority_only == true || github.event.schedule == '*/15 * * * *' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -43,6 +50,8 @@ jobs:
         run: |
           if [ "$RUN_DEEP" = 'true' ]; then
             python -m mozes.pipeline_v2c monitor --deep
+          elif [ "$RUN_PRIORITY" = 'true' ]; then
+            python -m mozes.pipeline_v2c monitor --priority-only
           else
             python -m mozes.pipeline_v2c monitor
           fi

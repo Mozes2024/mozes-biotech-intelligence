@@ -20,13 +20,17 @@
 
   function healthBanner(){
     const h=D?.health||{};
+    const checked=h.latest_monitor?.finished_at;
+    const checkedDate=checked?new Date(checked):null;
+    const age=checkedDate&&!isNaN(checkedDate)?Math.max(0,Math.floor((Date.now()-checkedDate.getTime())/60000)):null;
+    const freshness=`<div id="sourceFreshness" data-checked="${esc(checked||'')}" class="notice ${age===null||age>90?'red-note':'blue-note'}"><b>בדיקת מקורות אחרונה:</b> ${age===null?'שעה לא זמינה':`לפני ${age} דקות`} · האתר בודק תמונת נתונים חדשה בכל דקה כשהוא פתוח.</div>`;
     const s=h.severity||{};
     const primary=h.primary_catalyst_monitoring||{};
     const red=s.red||[], amber=s.amber||[], info=s.info||[];
     const details=[...red,...amber,...info].map(x=>`${esc(x.module||'module')}: ${esc(x.status||'INFO')}`).join(' · ');
     const core=`<div class="notice ${red.length?'red-note':'blue-note'}"><b>${esc(primary.label_he||'מצב ניטור הליבה לא ידוע')}</b> · SEC ${h.sec_monitoring_enabled?'פעיל':'כבוי'}</div>`;
-    if(!red.length&&!amber.length&&!info.length) return core;
-    return core+`<div class="notice ${red.length?'red-note':'amber-note'}"><b>${red.length?'אזהרת מקור':`המערכת פעילה. ${amber.length} שכבות העשרה טרם השלימו ריצה מלאה.`}</b>${info.length?` · ${info.length} שכבות מדולגות`:''}<details style="margin-top:6px"><summary>פרטים טכניים</summary><span class="company">${details}</span></details></div>`;
+    if(!red.length&&!amber.length&&!info.length) return freshness+core;
+    return freshness+core+`<div class="notice ${red.length?'red-note':'amber-note'}"><b>${red.length?'אזהרת מקור':`המערכת פעילה. ${amber.length} שכבות העשרה טרם השלימו ריצה מלאה.`}</b>${info.length?` · ${info.length} שכבות מדולגות`:''}<details style="margin-top:6px"><summary>פרטים טכניים</summary><span class="company">${details}</span></details></div>`;
   }
 
   function recentCatalystHtml(a){

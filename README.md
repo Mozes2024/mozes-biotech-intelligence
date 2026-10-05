@@ -338,8 +338,12 @@ is checked first for SEC verification and news polling. It changes scan order
 only; it does not add events, evidence, or verification.
 
 The `change_events` ledger is append-only. Stable IDs deduplicate the same
-source/change while retaining severity escalation. The six-hour GitHub Actions
-monitor (including weekends) carries its SQLite state in a rolling workflow
+source/change while retaining severity escalation. A short GitHub Actions pass
+checks the explicitly prioritized issuers every 15 minutes; the broad monitor
+runs about every six hours, including weekends. The browser checks for a new
+published snapshot each minute while open and shows the last source-check time.
+These are scheduled snapshots, not a continuous market-data or push-alert feed.
+The monitor carries its SQLite state in a rolling workflow
 artifact; Pages restores the latest available state before exporting the Hebrew
 “מה השתנה?” view. Artifacts expire after 90 days, so long-term archival of this
 live monitor ledger still needs a durable external or repository-backed store.

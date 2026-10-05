@@ -32,6 +32,30 @@ def test_single_producer_and_explicit_deep_slot():
     assert 'timeout-minutes:' in source
 
 
+def test_priority_schedule_uses_short_monitor_path():
+    source=(ROOT/'.github/workflows/lightweight-monitor.yml').read_text()
+    assert "cron: '*/15 * * * *'" in source
+    assert 'monitor --priority-only' in source
+    assert 'group: mozes-live-data-producer' in source
+
+
+def test_priority_pipeline_does_not_run_broad_enrichment(tmp_path, monkeypatch):
+    from mozes import db, live_monitor, pipeline_v2c
+    from mozes.intelligence_store import ensure_schema
+    conn=db.connect(tmp_path/'priority.db')
+    ensure_schema(conn)
+    monkeypatch.setattr(pipeline_v2c,'reconcile_catalog',lambda _: {'changed': [], 'conflicts': []})
+    called=[]
+    def short_monitor(_conn, **kwargs):
+        called.append(kwargs)
+        return {'status': 'OK', 'changes': 0}
+    monkeypatch.setattr(live_monitor,'run_monitor',short_monitor)
+    result=pipeline_v2c.run_priority_pipeline(conn)
+    assert result['status']=='OK'
+    assert called==[{'audit': False, 'ctgov_diff': False, 'sec': True,
+                     'news': True, 'priority_only': True}]
+
+
 def test_hosted_monitor_checks_sec_filings():
     source=(ROOT/'mozes/pipeline_v2c.py').read_text()
     tree=ast.parse(source)

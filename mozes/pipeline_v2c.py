@@ -289,12 +289,27 @@ def run_pipeline(conn, *, deep=False):
     return {'status': status, 'details': details}
 
 
+def run_priority_pipeline(conn):
+    """Short source check for the explicitly requested issuers only."""
+    from .live_monitor import run_monitor
+    rid = operation_start(conn, 'priority_monitor')
+    details = {'catalog': reconcile_catalog(conn)}
+    details['monitor'] = run_monitor(conn, audit=False, ctgov_diff=False, sec=True,
+                                     news=True, priority_only=True)
+    status = details['monitor']['status']
+    operation_finish(conn, rid, status, details)
+    return {'status': status, 'details': details}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='v2C single-owner monitor and offline publication')
     parser.add_argument('mode', choices=['monitor', 'export'])
     parser.add_argument('--deep', action='store_true')
+    parser.add_argument('--priority-only', action='store_true')
     parser.add_argument('--output', default='web/data.json')
     args = parser.parse_args(argv)
+    if args.deep and args.priority_only:
+        parser.error('--deep and --priority-only cannot be combined')
     conn = db.connect(DB_PATH)
     ensure_schema(conn)
     if args.mode == 'export':
@@ -303,7 +318,7 @@ def main(argv=None):
         export_payload(conn, args.output)
         conn.close()
         return 0
-    result = run_pipeline(conn, deep=args.deep)
+    result = run_priority_pipeline(conn) if args.priority_only else run_pipeline(conn, deep=args.deep)
     payload = export_payload(conn, args.output)
     fingerprint = semantic_fingerprint(payload)
     previous = state_get(conn, 'publish_request', {})
@@ -312,7 +327,7 @@ def main(argv=None):
         age = (now - datetime.fromisoformat(previous['at'])).total_seconds()
     except (KeyError, ValueError):
         age = 1e9
-    should_publish = fingerprint != previous.get('fingerprint') or age >= 86400
+    should_publish = fingerprint != previous.get('fingerprint') or age >= (3600 if args.priority_only else 86400)
     if should_publish:
         state_put(conn, 'publish_request', {'fingerprint': fingerprint, 'at': now.isoformat()})
     manifest = {'schema': 1, 'pipeline_complete': result['status'] == 'OK',
