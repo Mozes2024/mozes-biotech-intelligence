@@ -32,6 +32,17 @@ def test_single_producer_and_explicit_deep_slot():
     assert 'timeout-minutes:' in source
 
 
+def test_hosted_monitor_checks_sec_filings():
+    source=(ROOT/'mozes/pipeline_v2c.py').read_text()
+    tree=ast.parse(source)
+    fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='run_pipeline')
+    calls=[n for n in ast.walk(fn) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name)
+           and n.func.id=='run_monitor']
+    assert len(calls)==1
+    assert any(k.arg=='sec' and isinstance(k.value,ast.Constant) and k.value.value is True
+               for k in calls[0].keywords)
+
+
 def test_export_mode_is_offline():
     source=(ROOT/'mozes/pipeline_v2c.py').read_text()
     tree=ast.parse(source)
@@ -59,6 +70,18 @@ def test_new_change_cursor_triggers_publication_without_price_or_score_change():
     stable = semantic_fingerprint(p)
     p['generated_at'] = '2026-10-01T13:00:00Z'
     assert semantic_fingerprint(p) == stable
+
+
+def test_official_feed_status_change_triggers_publication_but_check_time_does_not():
+    from mozes.pipeline_v2c import semantic_fingerprint
+    p = {'live': [], 'summary': {}, 'official_feeds': [
+        {'ticker': 'TEST', 'status': 'no_rss_found', 'checked_at': '2026-10-01T12:00:00Z'}]}
+    before = semantic_fingerprint(p)
+    p['official_feeds'][0]['checked_at'] = '2026-10-01T18:00:00Z'
+    assert semantic_fingerprint(p) == before
+    p['official_feeds'][0]['status'] = 'active'
+    p['official_feeds'][0]['feed'] = 'https://example.com/rss'
+    assert semantic_fingerprint(p) != before
 
 
 def test_same_day_price_change_is_not_lost_to_daily_date_gate():

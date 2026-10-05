@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 from mozes import db
 from mozes.live_monitor import (classify_filing, monitor_filing, monitor_study,
-                                reconcile_states, record_change)
+                                reconcile_states, record_change, recent_changes, run_monitor)
 from mozes.radar import bootstrap_database, validation_status
 from mozes.historical import readiness_summary
 
@@ -47,6 +47,59 @@ def test_sec_financing_dedup_and_escalation(tmp_path):
     record_change(conn, severity="low", **a)
     record_change(conn, severity="high", **a)
     assert conn.execute("SELECT COUNT(*) FROM change_events").fetchone()[0] == 4
+
+
+def test_generic_sec_report_is_visible_for_review_without_claiming_catalyst(tmp_path):
+    conn = db.connect(tmp_path / "filing.db")
+    filing = {"form": "8-K", "filed": "2026-10-05", "accession": "new-report",
+              "url": "https://www.sec.gov/Archives/edgar/data/1/report.htm", "accepted": "2026-10-05T09:00:00"}
+    monitor_filing(conn, "TEST", filing, text="Item 7.01 Regulation FD Disclosure")
+    monitor_filing(conn, "TEST", filing, text="Item 7.01 Regulation FD Disclosure")
+    rows = conn.execute("SELECT change_type,verification_state FROM change_events").fetchall()
+    assert [tuple(row) for row in rows] == [("sec_filing_signal", "investigation_only")]
+
+
+def test_sec_filing_still_signals_when_document_fetch_fails(tmp_path, monkeypatch):
+    from mozes import live_monitor
+    conn = db.connect(tmp_path / "fetch-failure.db")
+    filing = {"form": "8-K", "filed": date.today().isoformat(), "accession": "fetch-failed",
+              "url": "https://www.sec.gov/Archives/edgar/data/1/report.htm"}
+    monkeypatch.setenv("SEC_USER_AGENT", "Test Monitor test@example.com")
+    monkeypatch.setattr(db, "watch_rows", lambda _: [{"ticker": "TEST", "cik": "1"}])
+    monkeypatch.setattr(live_monitor.edgar, "recent_filings_v2", lambda *args, **kwargs: [filing])
+    monkeypatch.setattr(live_monitor.edgar, "_get", lambda _: (_ for _ in ()).throw(OSError("unavailable")))
+    monkeypatch.setattr(live_monitor, "reconcile_states", lambda _: [])
+    result = run_monitor(conn, audit=False, ctgov_diff=False, news=False)
+    assert result["errors"]
+    assert conn.execute("SELECT change_type FROM change_events").fetchone()[0] == "sec_filing_signal"
+
+
+def test_requested_issuers_are_checked_first_for_sec_reports(tmp_path, monkeypatch):
+    from mozes import live_monitor
+    conn = db.connect(tmp_path / "priority-filings.db")
+    seen = []
+    monkeypatch.setenv("SEC_USER_AGENT", "Test Monitor test@example.com")
+    monkeypatch.setattr(db, "watch_rows", lambda _: [
+        {"ticker": "AAA", "cik": "1"}, {"ticker": "MRNA", "cik": "2"}, {"ticker": "SLS", "cik": "3"}])
+    monkeypatch.setattr(live_monitor.edgar, "recent_filings_v2", lambda cik, **kwargs: seen.append(cik) or [])
+    monkeypatch.setattr(live_monitor, "reconcile_states", lambda _: [])
+    run_monitor(conn, audit=False, ctgov_diff=False, news=False)
+    assert seen == ["3", "2", "1"]
+
+
+def test_recent_changes_retains_previous_runs_within_seven_days(tmp_path, monkeypatch):
+    conn = db.connect(tmp_path / "changes.db")
+    now = datetime.now(timezone.utc)
+    monkeypatch.setattr("mozes.live_monitor._now", lambda: (now - timedelta(hours=3)).isoformat())
+    record_change(conn, ticker="TEST", change_type="news_signal", previous_value=None,
+                  new_value={"headline": "Trial update"}, source_url="https://example.com/release",
+                  source_type="secondary_news")
+    with conn:
+        conn.execute("INSERT INTO monitor_runs(started_at,finished_at,status) VALUES(?,?,'OK')",
+                     ((now - timedelta(hours=2)).isoformat(), (now - timedelta(hours=2)).isoformat()))
+        conn.execute("INSERT INTO monitor_runs(started_at,finished_at,status) VALUES(?,?,'OK')",
+                     ((now - timedelta(hours=1)).isoformat(), (now - timedelta(hours=1)).isoformat()))
+    assert [row["change_type"] for row in recent_changes(conn, now=now)] == ["news_signal"]
 
 
 def test_state_and_recommendation_transitions_once(tmp_path):

@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import json
 
 from mozes import db
 from mozes.discovery import store_candidates, study_to_candidate
@@ -55,7 +56,10 @@ def test_official_company_rss_is_discovered_and_kept_as_review_signal(tmp_path):
     def fetch(url):
         return html.encode() if url == site else release if url == feed else b"<rss><channel/></rss>"
     assert poll_news(conn, fetch=fetch, now=NOW)["official_feeds"]["signals_seen"] == 1
-    assert poll_news(conn, fetch=fetch, now=NOW)["official_feeds"]["signals_seen"] == 0
+    later = NOW + timedelta(hours=1)
+    assert poll_news(conn, fetch=fetch, now=later)["official_feeds"]["signals_seen"] == 0
+    checked = json.loads(conn.execute("SELECT value_json FROM monitor_observations WHERE observation_key='official_feed:MRNA'").fetchone()[0])
+    assert checked["checked_at"] == later.isoformat()
     row = conn.execute("SELECT change_type,source_type,verification_state FROM change_events").fetchone()
     assert tuple(row) == ("company_release_signal", "company_ir", "investigation_only")
     assert conn.execute("SELECT COUNT(*) FROM event_sources").fetchone()[0] == 0

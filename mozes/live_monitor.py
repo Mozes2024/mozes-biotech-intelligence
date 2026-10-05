@@ -127,18 +127,17 @@ def classify_filing(filing, text=""):
 def monitor_filing(conn, ticker, filing, *, text=""):
     form = filing["form"].upper()
     classification = classify_filing(filing, text)
-    material = form in {"8-K", "6-K"} and any(
-        marker in text.lower() for marker in ("item 1.01", "item 8.01", "material definitive agreement")
-    )
-    if form not in FINANCING_FORMS and classification == "unknown/review required" and not material:
+    generic_report = form in {"8-K", "6-K"} and classification == "unknown/review required"
+    if form not in FINANCING_FORMS and not generic_report:
         return None
-    change_type = "sec_financing_filing" if classification != "unknown/review required" else "sec_material_filing"
+    change_type = "sec_filing_signal" if generic_report else "sec_financing_filing"
     identity = ["sec", filing.get("accession") or filing["url"], ticker, form]
     return record_change(
         conn, ticker=ticker, change_type=change_type, previous_value=None,
         new_value={"form": form, "classification": classification, "filed": filing.get("filed")},
         source_url=filing["url"], source_type="sec", source_hash=_hash([filing, text]),
-        verification_state="primary_source", severity="medium" if classification == "completed financing" else "low",
+        verification_state="investigation_only" if generic_report else "primary_source",
+        severity="medium" if classification == "completed financing" else "low",
         metadata={"classification": classification, "accepted": filing.get("accepted"),
                   "filed": filing.get("filed"), "accession": filing.get("accession")}, identity=identity,
     )
@@ -188,14 +187,13 @@ def reconcile_states(conn, *, today=None):
     return changes
 
 
-def recent_changes(conn, limit=100):
-    last = conn.execute("SELECT finished_at FROM monitor_runs WHERE status='OK' ORDER BY run_id DESC LIMIT 1 OFFSET 1").fetchone()
-    cutoff = last["finished_at"] if last else None
-    sql = "SELECT * FROM change_events"
-    args = []
-    if cutoff:
-        sql += " WHERE detected_at>?"
-        args.append(cutoff)
+def recent_changes(conn, limit=100, *, days=7, change_types=None, now=None):
+    cutoff = ((now or datetime.now(timezone.utc)) - timedelta(days=days)).isoformat()
+    sql = "SELECT * FROM change_events WHERE detected_at>=?"
+    args = [cutoff]
+    if change_types:
+        sql += " AND change_type IN (" + ",".join("?" for _ in change_types) + ")"
+        args.extend(change_types)
     sql += " ORDER BY detected_at DESC,change_id DESC LIMIT ?"
     args.append(limit)
     return [{**dict(r), "previous_value": json.loads(r["previous_value"]),
@@ -253,7 +251,10 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
                 except Exception as exc:
                     details["errors"].append({"nct": row["nct_id"], "error": str(exc)})
         if sec and os.environ.get("SEC_USER_AGENT"):
-            for watch in db.watch_rows(conn):
+            from .priority import priority_tickers
+            priority = {ticker: index for index, ticker in enumerate(priority_tickers())}
+            watches = sorted(db.watch_rows(conn), key=lambda row: (priority.get(row["ticker"], len(priority)), row["ticker"]))
+            for watch in watches:
                 if not watch.get("cik"):
                     continue
                 try:
@@ -265,7 +266,12 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
                             monitor_filing(conn, watch["ticker"], filing)
                             details["filings"] += 1
                         elif filing.get("filed", "") >= (date.today() - timedelta(days=14)).isoformat():
-                            text = edgar.html_to_text(edgar._get(filing["url"]))
+                            try:
+                                text = edgar.html_to_text(edgar._get(filing["url"]))
+                            except Exception as exc:
+                                details["errors"].append({"ticker": watch["ticker"], "filing": filing["url"],
+                                                          "error": str(exc)[:160]})
+                                text = ""
                             if monitor_filing(conn, watch["ticker"], filing, text=text):
                                 details["filings"] += 1
                 except Exception as exc:

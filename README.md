@@ -343,6 +343,11 @@ monitor (including weekends) carries its SQLite state in a rolling workflow
 artifact; Pages restores the latest available state before exporting the Hebrew
 “מה השתנה?” view. Artifacts expire after 90 days, so long-term archival of this
 live monitor ledger still needs a durable external or repository-backed store.
+The hosted pass checks new SEC 8-K/6-K filings for watched companies. Reports
+whose contents are not classified are shown as review signals rather than
+silently dropped or promoted to verified catalysts. The dashboard keeps a
+seven-day activity window and shows official-feed coverage and check times;
+the news section has its own feed so routine state changes cannot crowd it out.
 
 ## Testing
 

@@ -14,6 +14,7 @@ from .radar import bootstrap_database, current_resolved_records, live_event_reco
 from .historical import readiness_summary
 from .security import tradability
 from .live_monitor import recent_changes
+from .priority import priority_tickers
 from .live_intelligence import enrich_live_rows
 from .financial_context import enrich_financial_context, operation_health
 
@@ -223,6 +224,8 @@ def build(conn, today: date):
                             "WHERE observation_key LIKE 'official_feed:%' ORDER BY observation_key"):
         official_feeds.append({"ticker": row["observation_key"].split(":", 1)[1],
                                "observed_at": row["observed_at"], **json.loads(row["value_json"])})
+    priority = set(priority_tickers())
+    official_feeds.sort(key=lambda item: (item["ticker"] not in priority, item["ticker"]))
     return {
         "version": VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -236,6 +239,8 @@ def build(conn, today: date):
         "watch_universe": _watch_universe(conn),
         "refresh": refresh,
         "changes": recent_changes(conn),
+        "news": recent_changes(conn, limit=50, change_types=("news_signal", "company_release_signal",
+                                                       "sec_filing_signal", "sec_financing_filing", "sec_material_filing")),
         "official_feeds": official_feeds,
         "health": _health(conn, live, refresh, monitor),
         "intelligence_v2c": operation_health(conn),

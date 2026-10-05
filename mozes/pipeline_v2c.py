@@ -177,6 +177,8 @@ def semantic_fingerprint(payload):
     return digest({'live': live, 'summary': payload.get('summary'),
                    'health': {'status': health.get('status'), 'warnings': health.get('warnings')},
                    'change_cursor': (payload.get('build') or {}).get('change_cursor'),
+                   'official_feeds': [(item['ticker'], item.get('status'), item.get('feed'))
+                                      for item in payload.get('official_feeds', [])],
                    'v2c_statuses': {k: v.get('status') for k, v in (payload.get('intelligence_v2c') or {}).get('modules', {}).items() if k != 'pipeline'}})
 
 
@@ -267,7 +269,7 @@ def run_pipeline(conn, *, deep=False):
     except Exception as exc:
         details['prices'] = {'status': 'FAILED', 'best_effort': True, 'error': type(exc).__name__}
     operation_finish(conn, price_id, details['prices'].get('status', 'OK'), details['prices'])
-    details['monitor'] = run_monitor(conn, audit=False, sec=False,
+    details['monitor'] = run_monitor(conn, audit=False, sec=True,
                                      news=os.environ.get('MOZES_NEWS_ENABLED') == '1')
     from .engine_v2 import score_event
     from .radar import live_event_records

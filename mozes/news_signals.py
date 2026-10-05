@@ -103,6 +103,7 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
     errors = []
     for issuer in issuers:
         ticker = issuer["ticker"]
+        checked_at = now.isoformat()
         sites = [OFFICIAL_IR_SITES[ticker]] if ticker in OFFICIAL_IR_SITES else []
         sites += [row[0] for row in conn.execute(
             "SELECT DISTINCT es.url FROM event_sources es JOIN events e ON e.id=es.event_id "
@@ -110,17 +111,17 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
             "AND es.url IS NOT NULL", (ticker,))]
         site = next((url for url in sites if _public_https(url)), None)
         if not site:
-            observe(conn, "official_feed:" + ticker, {"status": "no_official_site"}, source_type="company_ir")
+            observe(conn, "official_feed:" + ticker, {"status": "no_official_site", "checked_at": checked_at}, source_type="company_ir")
             continue
         try:
             feed = discover_official_feed(site, fetch)
             if not feed:
-                observe(conn, "official_feed:" + ticker, {"status": "no_rss_found", "site": site},
+                observe(conn, "official_feed:" + ticker, {"status": "no_rss_found", "site": site, "checked_at": checked_at},
                         source_url=site, source_type="company_ir")
                 continue
             items = parse_official_feed(fetch(feed), site=site, now=now)
             checked += 1
-            observe(conn, "official_feed:" + ticker, {"status": "active", "site": site, "feed": feed},
+            observe(conn, "official_feed:" + ticker, {"status": "active", "site": site, "feed": feed, "checked_at": checked_at},
                     source_url=feed, source_type="company_ir")
             for item in items[:10]:
                 before = conn.total_changes
@@ -132,7 +133,7 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                 added += conn.total_changes > before
         except (OSError, ValueError, ET.ParseError, UnicodeError) as exc:
             errors.append({"ticker": ticker, "error": str(exc)[:160]})
-            observe(conn, "official_feed:" + ticker, {"status": "fetch_error", "site": site},
+            observe(conn, "official_feed:" + ticker, {"status": "fetch_error", "site": site, "checked_at": checked_at},
                     source_url=site, source_type="company_ir")
     return {"checked": checked, "signals_seen": added, "errors": errors}
 
