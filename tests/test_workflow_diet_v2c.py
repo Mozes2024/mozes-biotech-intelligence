@@ -114,3 +114,36 @@ def test_same_day_price_change_is_not_lost_to_daily_date_gate():
     before = semantic_fingerprint(p)
     p['live'][0]['market']['last_close']['close'] = 11
     assert semantic_fingerprint(p) != before
+
+
+def test_ledger_insertion_changes_fingerprint_even_if_latest_cursor_is_unchanged(tmp_path, monkeypatch):
+    from mozes import db
+    from mozes.live_monitor import record_change
+    from mozes.pipeline_v2c import export_payload, semantic_fingerprint, unpublished_changes
+    import json
+    conn = db.connect(tmp_path / 'ledger.db')
+    def add(ticker):
+        return record_change(conn, ticker=ticker, change_type='news_signal', previous_value=None,
+                             new_value={'headline': ticker}, source_url='https://example.com/',
+                             source_type='secondary_news', verification_state='investigation_only')
+    newest = add('FIRST')
+    before = export_payload(conn, tmp_path / 'data.json')
+    receipt = tmp_path / 'receipt.json'
+    receipt.write_text(json.dumps({'change_ledger': before['build']['change_ledger']}))
+    assert not unpublished_changes(before, receipt)
+    monkeypatch.setattr('mozes.live_monitor._now', lambda: '2000-01-01')
+    add('SECOND')
+    after = export_payload(conn, tmp_path / 'data.json')
+    assert after['build']['change_cursor']['change_id'] == newest
+    assert semantic_fingerprint(before) != semantic_fingerprint(after)
+    assert unpublished_changes(after, receipt)
+    # A publish request and another unchanged scan cannot acknowledge a failed deployment.
+    assert unpublished_changes(export_payload(conn, tmp_path / 'data.json'), receipt)
+    receipt.write_text(json.dumps({'change_ledger': after['build']['change_ledger']}))
+    assert not unpublished_changes(after, receipt)
+
+
+def test_pages_receipt_is_uploaded_after_deployment():
+    source = (ROOT / '.github/workflows/pages.yml').read_text()
+    assert source.index('uses: actions/deploy-pages@v4') < source.index('name: mozes-published-ledger')
+    assert 'restore_published_receipt(repo)' in (ROOT / 'scripts/restore_monitor_state.py').read_text()

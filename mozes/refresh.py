@@ -157,9 +157,11 @@ def _select_issuer_batch(conn, eligible, limit=25):
     return chosen[:limit]
 
 
-def verify_candidates_from_sec(conn, filings_per_company=12, budget_seconds=120, *, deadline=None):
+def verify_candidates_from_sec(conn, filings_per_company=12, budget_seconds=120, *, deadline=None, tickers=None):
     """Scan recent filings/EX-99 for mapped CT.gov candidates and promote only primary-source matches."""
     maps = [dict(r) for r in conn.execute("SELECT * FROM sponsor_ticker_map WHERE cik IS NOT NULL AND confidence>=0.85 AND (source NOT LIKE 'SEC %' OR source='SEC-v2C-equity')").fetchall()]
+    if tickers is not None:
+        maps = [row for row in maps if row["ticker"] in tickers]
     by_ticker = {r["ticker"]: r for r in maps}
     now = db.utcnow()
     deadline = min(deadline, time.monotonic() + budget_seconds) if deadline is not None else time.monotonic() + budget_seconds
@@ -171,6 +173,8 @@ def verify_candidates_from_sec(conn, filings_per_company=12, budget_seconds=120,
                            "FROM discovery_candidates WHERE ticker IS NOT NULL GROUP BY ticker").fetchall()
     for row in grouped:
         ticker = row['ticker']
+        if tickers is not None and ticker not in tickers:
+            continue
         candidates = _candidates_for_ticker(conn, ticker)
         fingerprint = digest([{
             key: c.get(key) for key in ('candidate_id', 'nct_id', 'sponsor', 'ticker', 'phase', 'title',
@@ -195,6 +199,8 @@ def verify_candidates_from_sec(conn, filings_per_company=12, budget_seconds=120,
                           now if changed else None, generation, 'PENDING' if mapping else 'IDENTITY_REVIEW',
                           changed, changed, changed, changed or repaired, changed or repaired))
     all_rows = conn.execute('SELECT * FROM v2e2_issuer_queue').fetchall()
+    if tickers is not None:
+        all_rows = [row for row in all_rows if row['ticker'] in tickers]
     identity_ineligible = 0
     eligible = []
     requested = 0
@@ -473,7 +479,7 @@ def _reg_event_key(ticker, kind, window):
     return "AUTO-REG-" + hashlib.sha1(raw).hexdigest()[:16]
 
 
-def scan_watch_universe_regulatory(conn, filings_per_company=10, *, today=None, deadline=None):
+def scan_watch_universe_regulatory(conn, filings_per_company=10, *, today=None, deadline=None, tickers=None):
     """SEC-first discovery for regulatory events that do not require a CT.gov candidate.
 
     Known application identities can revise their guidance. Unidentified applications
@@ -484,9 +490,11 @@ def scan_watch_universe_regulatory(conn, filings_per_company=10, *, today=None, 
     from .intelligence_store import ensure_schema, state_get, state_put
     ensure_schema(conn)
     promoted, scanned, errors, reviewed = [], 0, [], 0
-    watches = [w for w in db.watch_rows(conn) if w.get('cik')]
-    cursor = state_get(conn, 'v2e2_regulatory_cursor', '')
-    progress = state_get(conn, 'v2e2_regulatory_progress', {})
+    watches = [w for w in db.watch_rows(conn) if w.get('cik') and (tickers is None or w['ticker'] in tickers)]
+    cursor_key = 'v2e2_regulatory_cursor' if tickers is None else 'news_regulatory_cursor'
+    progress_key = 'v2e2_regulatory_progress' if tickers is None else 'news_regulatory_progress'
+    cursor = state_get(conn, cursor_key, '')
+    progress = state_get(conn, progress_key, {})
     start = next((i for i, w in enumerate(watches) if w['ticker'] > cursor), 0)
     ordered = watches[start:] + watches[:start]
     attempted = 0
@@ -506,7 +514,7 @@ def scan_watch_universe_regulatory(conn, filings_per_company=10, *, today=None, 
             break
         except Exception as exc:
             errors.append({"ticker": w["ticker"], "error": str(exc)})
-            state_put(conn, 'v2e2_regulatory_cursor', w['ticker'])
+            state_put(conn, cursor_key, w['ticker'])
             continue
         for filing in filings:
             if deadline is not None and time.monotonic() >= deadline:
@@ -533,12 +541,12 @@ def scan_watch_universe_regulatory(conn, filings_per_company=10, *, today=None, 
                 elif result["status"] == "review":
                     reviewed += 1
             progress.setdefault(w['ticker'], []).append(accession)
-            state_put(conn, 'v2e2_regulatory_progress', progress)
+            state_put(conn, progress_key, progress)
         if budget_exhausted:
             break
         progress.pop(w['ticker'], None)
-        state_put(conn, 'v2e2_regulatory_progress', progress)
-        state_put(conn, 'v2e2_regulatory_cursor', w['ticker'])
+        state_put(conn, progress_key, progress)
+        state_put(conn, cursor_key, w['ticker'])
     return {"filings_scanned": scanned, "events": sorted(set(promoted)),
             "review_required": reviewed, "errors": errors, "requested": len(watches),
             "attempted": attempted, "completed": attempted - int(budget_exhausted),

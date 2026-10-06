@@ -15,6 +15,39 @@ def gh(*args):
     return subprocess.check_output(['gh', *args], text=True, timeout=45)
 
 
+def restore_published_receipt(repo):
+    """A producer's request is not proof of a deployment; trust successful Pages only."""
+    destination = Path('.monitor/published-ledger.json')
+    destination.unlink(missing_ok=True)
+    try:
+        runs = json.loads(gh('run', 'list', '--workflow', 'pages.yml', '--branch', 'main',
+                             '--status', 'success', '--limit', '5', '--json', 'databaseId'))
+    except (subprocess.CalledProcessError, OSError, ValueError):
+        return  # Missing acknowledgement keeps publication pending; DB restore still proceeds.
+    for run in runs:
+        run_id = str(run['databaseId'])
+        try:
+            meta = json.loads(gh('api', f'repos/{repo}/actions/runs/{run_id}'))
+        except (subprocess.CalledProcessError, OSError, ValueError):
+            continue
+        if (meta.get('head_branch') != 'main' or meta.get('name') != 'deploy-pages'
+                or (meta.get('head_repository') or {}).get('full_name') != repo
+                or meta.get('conclusion') != 'success'):
+            continue
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                gh('run', 'download', run_id, '-n', 'mozes-published-ledger', '-D', tmp)
+                value = json.loads((Path(tmp) / 'publish-receipt.json').read_text(encoding='utf-8'))
+                ledger = value.get('change_ledger') if isinstance(value, dict) else None
+                if not isinstance(ledger, str) or len(ledger) != 64:
+                    continue
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(json.dumps({'change_ledger': ledger}), encoding='utf-8')
+                return
+        except (subprocess.CalledProcessError, OSError, ValueError):
+            continue
+
+
 def restore(run_id=None):
     destination = Path(os.environ.get('MOZES_DB_PATH', '.monitor/mozes-live.db'))
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -22,6 +55,7 @@ def restore(run_id=None):
         'run', 'list', '--workflow', 'lightweight-monitor.yml', '--branch', 'main', '--status', 'success',
         '--limit', '8', '--json', 'databaseId'))]
     repo = os.environ.get('GITHUB_REPOSITORY', '')
+    restore_published_receipt(repo)
     for candidate in candidates:
         if not candidate.isdigit():
             raise ValueError('source run ID must be numeric')

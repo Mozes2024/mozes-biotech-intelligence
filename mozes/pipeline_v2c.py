@@ -177,6 +177,7 @@ def semantic_fingerprint(payload):
     return digest({'live': live, 'summary': payload.get('summary'),
                    'health': {'status': health.get('status'), 'warnings': health.get('warnings')},
                    'change_cursor': (payload.get('build') or {}).get('change_cursor'),
+                   'change_ledger': (payload.get('build') or {}).get('change_ledger'),
                    'official_feeds': [(item['ticker'], item.get('status'), item.get('feed'))
                                       for item in payload.get('official_feeds', [])],
                    'v2c_statuses': {k: v.get('status') for k, v in (payload.get('intelligence_v2c') or {}).get('modules', {}).items() if k != 'pipeline'}})
@@ -189,11 +190,15 @@ def export_payload(conn, destination):
                         'source_of_truth': 'runtime_export_not_checked_in_web_data_json',
                         'change_cursor': None}
     latest_change = conn.execute('SELECT change_id,detected_at FROM change_events ORDER BY detected_at DESC,change_id DESC LIMIT 1').fetchone()
+    payload['build']['change_ledger'] = digest([row[0] for row in conn.execute(
+        'SELECT change_id FROM change_events ORDER BY change_id')])
     if latest_change:
         payload['build']['change_cursor'] = dict(latest_change)
     path = Path(destination)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
+    receipt = path.parent / 'publish-receipt.json'
+    receipt.write_text(encode({'change_ledger': payload['build']['change_ledger']}), encoding='utf-8')
     return payload
 
 
@@ -301,6 +306,16 @@ def run_priority_pipeline(conn):
     return {'status': status, 'details': details}
 
 
+def unpublished_changes(payload, receipt_path='.monitor/published-ledger.json'):
+    """Only a successful Pages deployment acknowledges the full ledger identity set."""
+    try:
+        receipt = json.loads(Path(receipt_path).read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        receipt = {}
+    ledger = (payload.get('build') or {}).get('change_ledger')
+    return ledger is not None and ledger != (receipt.get('change_ledger') if isinstance(receipt, dict) else None)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='v2C single-owner monitor and offline publication')
     parser.add_argument('mode', choices=['monitor', 'export'])
@@ -327,7 +342,8 @@ def main(argv=None):
         age = (now - datetime.fromisoformat(previous['at'])).total_seconds()
     except (KeyError, ValueError):
         age = 1e9
-    should_publish = fingerprint != previous.get('fingerprint') or age >= (3600 if args.priority_only else 86400)
+    should_publish = (unpublished_changes(payload) or fingerprint != previous.get('fingerprint')
+                      or age >= (3600 if args.priority_only else 86400))
     if should_publish:
         state_put(conn, 'publish_request', {'fingerprint': fingerprint, 'at': now.isoformat()})
     manifest = {'schema': 1, 'pipeline_complete': result['status'] == 'OK',

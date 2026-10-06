@@ -317,13 +317,28 @@ Use `SEC_USER_AGENT` for SEC access. A missing SEC identity skips that source an
 is reported in the command result. Registry changes are investigation signals;
 they never verify an actionable catalyst date.
 
-The hosted monitor also polls a bounded rotation of late-stage issuers through
-Google News RSS. It accepts recent items only when the feed identifies a publisher
-from the configured reputable-news domains. These headlines appear in “מה השתנה?”
-as investigation signals, with publisher provenance, and cannot create or verify
-a catalyst. A headline about a trial milestone must still be checked against a
-primary source. Set `MOZES_NEWS_ENABLED=1` to enable this polling locally.
-The same Phase 3 monitoring cohort checks company investor-relations pages for an
+The hosted monitor runs a dynamic sector discovery pass even in the 15-minute
+priority mode. Two direct publisher RSS feeds (Fierce Biotech and BioPharma Dive)
+and two Google News sector queries scan at most 40 recent items per feed, enrolling
+at most four issuer identities per pass. Phase 2/3, topline, readout, PDUFA, FDA
+decision, interim analysis and data-expected language create investigation signals.
+Identity must resolve uniquely against the conservative SEC equity projection;
+ambiguous or unmapped names cannot silently acquire a guessed ticker. New issuers
+join the watch universe with `source=dynamic_news_discovery`, without editing the
+priority list. Oldest-attempt rotation prevents repeated stories or failed queries
+from starving other issuers. Each issuer contributes at most six headlines, with
+stable ledger deduplication.
+
+Primary-source follow-up has a shared 30-second budget: at most 20 CT.gov studies,
+three clinical SEC filings and two regulatory SEC filings per selected issuer.
+Registry failures do not suppress independent SEC checks. Existing clinical
+matching and regulatory identity rules own any eventual promotion; headlines and
+registry completion estimates never verify a catalyst. Verification retries are
+limited to once daily, or once hourly after an error. SEC checks require the
+existing identifying `SEC_USER_AGENT`. Phase 2/3 and dynamically enrolled issuers
+also share the bounded issuer-specific news queue.
+
+The bounded monitoring cohort checks known company investor-relations pages for an
 advertised RSS/Atom feed. Known official IR starting pages are listed in
 `mozes/data/official_ir_sites.json`; other issuers can be discovered from existing
 `company_ir` event sources. Feed discovery accepts only an HTTPS feed on the same
@@ -339,7 +354,7 @@ only; it does not add events, evidence, or verification.
 
 The `change_events` ledger is append-only. Stable IDs deduplicate the same
 source/change while retaining severity escalation. A short GitHub Actions pass
-checks the explicitly prioritized issuers every 15 minutes; the broad monitor
+checks prioritized issuers plus bounded sector discovery every 15 minutes; the broad monitor
 runs about every six hours, including weekends. The browser checks for a new
 published snapshot each minute while open and shows the last source-check time.
 These are scheduled snapshots, not a continuous market-data or push-alert feed.
@@ -380,3 +395,13 @@ pytest -q
 The next milestone is not more scoring heuristics. It is a **blinded, timestamped, source-provenance historical catalog of 200-500 events with verified prices**, then walk-forward testing and a frozen live paper tape.
 
 Until that milestone is reached, the radar should be used to prioritize research, not to automate capital deployment.
+
+
+Pages publication includes a fingerprint of every ledger change ID, not just the
+latest timestamp. A producer's publish request does not acknowledge its ledger.
+Only a successful Pages deployment uploads `mozes-published-ledger`; the next
+producer restores that receipt and requests publication again whenever its full
+ledger differs. This retries after failed/cancelled deployments and publishes
+new inserts even if they do not advance the latest change cursor. A producer
+running superseded code still dispatches Pages against current `main`, using its
+first-party monitor artifact for data and current code for offline export.
