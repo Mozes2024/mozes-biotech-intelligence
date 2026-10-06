@@ -18,7 +18,7 @@ from .priority import priority_tickers
 from .live_intelligence import enrich_live_rows
 from .financial_context import enrich_financial_context, operation_health
 
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 
 
 def _decode_details(row):

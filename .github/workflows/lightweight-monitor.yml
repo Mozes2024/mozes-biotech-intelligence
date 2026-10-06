@@ -30,9 +30,8 @@ jobs:
       MOZES_HTTP_CACHE: .monitor/http-cache
       MOZES_SEC_HOT: '1'
       MOZES_PRIMARY_FEEDS: '1'
+      # Outbox rows are written to the log channel only; the persistent worker owns push delivery.
       MOZES_ALERT_DISPATCH: '1'
-      MOZES_NTFY_URL: ${{ secrets.MOZES_NTFY_URL }}
-      MOZES_WEBHOOK_URL: ${{ secrets.MOZES_WEBHOOK_URL }}
       GH_TOKEN: ${{ github.token }}
       RUN_PRIORITY: ${{ inputs.priority_only == true || github.event_name == 'schedule' }}
     steps:

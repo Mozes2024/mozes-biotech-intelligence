@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.2 — hot-lane hardening (v2G)
+
+- Each hot-pass source runs in isolation; one failing feed yields `PARTIAL`, and dispatch always runs.
+- Outbox `sending` rows carry a 2-minute lease and are recovered (or dead-lettered) after a crash.
+- Feed URLs verified live on 2026-10-06; real samples stored in `tests/fixtures/feeds/`.
+  Business Wire / PR Newswire / GlobeNewswire URLs corrected; FDA still unverified (401 from the capture host).
+- Nasdaq halts parsed from the `ndaq:` namespace (the old parser accepted zero real items);
+  news/regulatory codes vs volatility pauses, identity = ticker + code + halt time.
+- P1 only for watchlist tickers; unattributed FDA/wire signals are P3 and not pushed by default
+  (`MOZES_ALERT_MIN_PRIORITY`). FDA/wire headlines resolve tickers via company and product aliases.
+- Classifier v2: negation/hedge guards, positive+negative = mixed, 8-K/6-K and bare "phase 2/3"
+  no longer imply materiality; regression corpus `tests/fixtures/headline_corpus.tsv`.
+- Single push owner: Actions workflows no longer receive push secrets; `push_allowed()` guards it in code.
+- Cross-source consolidation: the same story for a ticker within 30 minutes is linked (`alert_links`), not re-pushed.
+- Worker sleeps to fixed deadlines; feeds send a contact User-Agent.
+
 ## 0.3.1 — breaking-catalyst hot lane (v2F)
 
 - Split GitHub Actions hot vs deep concurrency; hot cron every ~15m on offset minutes.

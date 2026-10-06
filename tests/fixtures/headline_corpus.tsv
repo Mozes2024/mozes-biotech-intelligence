@@ -1,0 +1,88 @@
+# polarity	material	origin	strictness	headline
+# origin=feed:* rows are verbatim headlines captured 2026-10-06 (tests/fixtures/feeds);
+# origin=curated rows are hand-written edge cases. strictness=must rows may never regress.
+unknown	0	feed:businesswire_health	soft	The More Life Company Advancing U.S. Compounded Pharmaceutical Commercialization Pathway for Quicksome™
+unknown	0	feed:businesswire_health	soft	Front Range Pharmaceuticals Announces FDA Clearance to Initiate Phase 2 Trial of FRP-003 in Long COVID
+unknown	0	feed:businesswire_health	soft	Ray Therapeutics Celebrates 2026 Nobel Prize for Foundational Discoveries in Optogenetics
+unknown	0	feed:businesswire_health	must	Amylyx Pharmaceuticals to Present Topline Data from Phase 3 LUCIDITY Clinical Trial of Avexitide in Post-Bariatric Hypoglycemia at ObesityWeek® 2026 Annual Meeting
+unknown	0	feed:businesswire_health	soft	Stoke Therapeutics Announces Presentations of STK-002, an Investigational Medicine for the Treatment of Autosomal Dominant Optic Atrophy (ADOA), at the American Academy of Ophthalmology (AAO) 2026 Annual Meeting
+positive	1	feed:businesswire_clinical_trials	must	Kairos Pharma Reports Positive, Statistically Significant Interim Efficacy Data from Phase 2 Trial of ENV-105 in Metastatic Prostate Cancer
+unknown	0	feed:businesswire_health	soft	Vir Biotechnology to Present Expanded Phase 2 SOLSTICE Results for Elebsiran and Tobevibart in Hepatitis Delta at AASLD’s The Liver Meeting® 2026
+unknown	0	feed:businesswire_health	soft	Verastem Oncology Announces Inducement Grants Under Nasdaq Listing Rule 5635(c)(4)
+positive	1	feed:businesswire_health	must	Genmab and AbbVie Announce Epcoritamab in Combination with R-CHOP Demonstrates Statistically Significant Improvement in Progression-Free Survival in Patients with Newly Diagnosed Diffuse Large B-Cell Lymphoma
+unknown	0	feed:businesswire_clinical_trials	soft	NeuWire Medical Announces FDA IDE Approval for STROKE-REWIRE Pivotal Study in Chronic Ischemic Stroke
+unknown	0	feed:businesswire_clinical_trials	soft	Science Corp. Announces Long-Term (36 Months) Results of PRIMA BCI Clinical Trial Showing Durable Vision Restoration in Blind Patients Suffering from Geographic Atrophy
+unknown	0	feed:businesswire_health	soft	Nitto Avecia Achieves Third Consecutive FDA Inspection with No Action Indicated
+unknown	0	feed:businesswire_health	soft	Cedra Healthcare Selects RxERP to Support Compliant Expansion into Pharmaceutical Distribution
+positive	1	feed:prnewswire_health	must	ViiV Healthcare’s long-acting HIV treatment Cabenuva (cabotegravir + rilpivirine) meets primary endpoint of superior viral suppression vs. daily oral therapy in people with viremia
+unknown	0	feed:businesswire_health	soft	Croma-Pharma élargit son portefeuille de produits au Canada avec saypha® lips Lidocaine et Exprecell™
+unknown	0	feed:globenewswire_biotech	soft	Italfarmaco and VeriSIM Life Partner to Develop Novel HDAC-Targeting Therapeutics for Neuromuscular, Fibrotic, and Rare Diseases
+unknown	0	feed:globenewswire_biotech	soft	Avilar Therapeutics Names Leslie Meltzer, Ph.D. as Chief Executive Officer
+unknown	0	feed:globenewswire_biotech	soft	Applied Biologics Announces Manufacturing Milestone in APPB-515 Osteoarthritis Gene Therapy Program
+unknown	0	feed:globenewswire_biotech	soft	PacBio and TychoBio Collaborate to Train AI Models for Rare Disease RNA Therapeutics
+unknown	0	feed:globenewswire_biotech	must	Conexeu Sciences Advances Ten Minute Tissue™ Toward Planned FDA 510(k) Submission
+unknown	0	feed:globenewswire_biotech	soft	vTv Therapeutics to Host Virtual KOL Event on Hypoglycemia in Type 1 Diabetes and the Cadisegliatin Phase 3 Program on October 20, 2026
+unknown	0	feed:prnewswire_biotech	soft	LB Pharmaceuticals to Host In-Person and Virtual R&D Day on October 27, 2026: Advancing LB‑102 with a Focus on Schizophrenia Treatment
+unknown	0	feed:prnewswire_health	soft	Pelthos Therapeutics Announces Expanded Formulary Coverage for ZELSUVMI® (berdazimer) Topical Gel, 10.3%
+unknown	0	feed:prnewswire_biotech	soft	Marvel Biosciences Signs Letter of Intent with Novatech for Phase 1 Trial of MB-204 and Provides Corporate Update
+unknown	0	feed:prnewswire_biotech	must	Resolution Therapeutics to present interim Phase I/II EMERALD study data on RTX001 as a late-breaker at AASLD 2026
+unknown	0	feed:prnewswire_biotech	soft	Rewind Therapeutics Secures Additional Financing to Advance Oral GPR17 Remyelination Program
+unknown	0	feed:prnewswire_biotech	soft	One04 Therapeutics to present late-breaking interim Phase 1 results for CPV-104 in C3 glomerulopathy at ASN Kidney Week followed by Virtual KOL Event
+unknown	0	feed:globenewswire_biotech	soft	Spyre Therapeutics Announces Pricing of $350.0 Million Public Offering of Common Stock
+unknown	0	feed:globenewswire_biotech	soft	Parkinson's Disease Market Poised for Expansion During the Forecast Period (2026-2036) Amid JUVMO Approval and Emerging Therapeutic Innovations | DelveInsight
+unknown	0	feed:prnewswire_health	soft	Mint Pharmaceuticals Inc. and Bayer Inc. Expand Distribution Partnership in Canada
+unknown	0	feed:prnewswire_health	soft	After years of hype, AI value is finally emerging in pharma, ZS research shows
+positive	1	curated	must	Acme Therapeutics Announces Phase 3 Trial Met Its Primary Endpoint
+positive	1	curated	must	FDA Approves Acme's ZYX-101 for Treatment of Rare Disease
+positive	1	curated	must	Acme Receives FDA Accelerated Approval for ZYX-101
+positive	1	curated	soft	U.S. FDA Grants Accelerated Approval to Acme's Lymphoma Therapy
+positive	1	curated	must	Acme Announces Positive Topline Results from Pivotal Phase 3 Study
+positive	1	curated	soft	Acme Enters into Definitive Agreement to be Acquired by BigPharma for $5 Billion
+positive	1	curated	must	FDA Lifts Clinical Hold on Acme's Phase 2 Program
+positive	1	curated	must	Acme Announces FDA Has Lifted the Partial Clinical Hold on ZYX-101
+positive	1	curated	must	Clinical Hold on ZYX-101 Has Been Removed by FDA
+positive	1	curated	soft	Acme's NDA Accepted for Priority Review with PDUFA Date in March
+positive	1	curated	must	Acme Reports Low Discontinuation Rate and Statistically Significant Weight Loss in Phase 2
+positive	1	curated	soft	FDA Advisory Committee Votes 10-2 in Favor of Acme's Drug
+positive	1	curated	soft	European Commission Approves Acme's Therapy for Adults with Severe Asthma
+positive	1	curated	soft	FDA Approves Label Expansion for Acme's Drug
+positive	1	curated	soft	Acme Reports Statistically Significant Reduction in Seizures; Safety Signal Under Review
+positive	1	curated	soft	Acme Seeking FDA Approval for ZYX-101 After Positive Phase 2 Results
+unknown	1	curated	must	Acme Passes Interim Futility Analysis; Phase 3 Trial to Continue as Planned
+unknown	1	curated	must	Independent Data Monitoring Committee Recommends Trial Continue After Futility Analysis
+unknown	0	curated	must	Treatment discontinuation rates were low across arms
+unknown	0	curated	must	No Clinical Hold Imposed After FDA Review of Safety Data
+unknown	0	curated	must	Acme Plans to Seek FDA Approval in 2027
+unknown	0	curated	must	Acme Submits BLA Seeking Accelerated Approval for ZYX-101
+unknown	0	curated	soft	Data Support Potential FDA Approval Decision in 2027
+unknown	0	curated	must	Acme Expects Topline Data in the Fourth Quarter of 2026
+unknown	0	curated	must	Acme to Report Topline Results on October 20
+unknown	1	curated	soft	Acme Announces Topline Results from Phase 3 RESOLVE Trial
+unknown	1	curated	soft	Acme Announces Trading Halt Pending News
+unknown	0	curated	must	Acme Files 8-K Regarding Executive Departure
+unknown	0	curated	must	Acme Submits Form 6-K With Quarterly Report
+unknown	0	curated	soft	Acme Announces Phase 2 Trial Initiation
+unknown	1	curated	soft	FDA Approval Decision for ZYX-101 Expected by Year-End
+unknown	0	curated	soft	Acme Highlights Pipeline Progress and Upcoming Milestones
+negative	1	curated	must	Acme's Phase 3 Trial Did Not Meet Primary Endpoint
+negative	1	curated	must	Acme Receives Complete Response Letter from FDA for ZYX-101
+negative	1	curated	must	FDA Places Clinical Hold on Acme's Gene Therapy Trial
+negative	1	curated	must	Acme Discontinues Development of ZYX-202 Following Interim Data
+negative	1	curated	must	Phase 3 Study Stopped for Futility at Interim Analysis
+negative	1	curated	soft	Acme Announces PDUFA Date Extended by Three Months
+negative	1	curated	soft	FDA Issues Refuse to File Letter for Acme's BLA
+negative	1	curated	must	Acme Failed to Demonstrate Statistically Significant Improvement on Primary Endpoint
+negative	1	curated	soft	Acme Withdraws Its Marketing Application in Europe
+negative	1	curated	soft	Acme Missed the Primary Endpoint in Phase 2b Study
+negative	1	curated	soft	Acme Terminates Phase 3 Trial After Review of Interim Data
+negative	1	curated	soft	Acme Results Were Not Statistically Significant Versus Placebo
+negative	1	curated	soft	FDA Advisory Committee Voted 3-8 Against Approval of Acme's Drug
+negative	1	curated	soft	Acme Halts Phase 2 Study After Patient Deaths
+mixed	1	curated	must	Phase 3 Met Primary Endpoint but FDA Issues Complete Response Letter
+mixed	1	curated	soft	Acme Reports Numerical Trend in Overall Survival That Did Not Reach Statistical Significance
+mixed	1	curated	must	Study Met Primary Endpoint; Key Secondary Endpoint Did Not Reach Statistical Significance
+mixed	1	curated	soft	Acme Reports Mixed Results from Phase 2 Trial
+mixed	1	curated	soft	Acme Receives FDA Approval for One Indication and a Complete Response Letter for Another
+negative	1	curated	soft	Acme Resubmits BLA; FDA Places New Clinical Hold on Second Program
+unknown	1	curated	must	Acme Resubmits BLA Following Complete Response Letter
+positive	1	curated	soft	Health Canada Approves Acme's First-in-Class Therapy

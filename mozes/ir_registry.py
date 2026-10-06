@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 FILE = Path(__file__).parent / "data" / "official_ir_sites.json"
+PRODUCTS_FILE = Path(__file__).parent / "data" / "product_aliases.json"
 _TICKER = re.compile(r"^[A-Z][A-Z0-9.]{0,9}$")
 
 
@@ -53,3 +54,38 @@ def ir_feed(ticker):
 
 def ir_entries():
     return list(load_ir_registry().values())
+
+
+def load_aliases():
+    """Company names (registry) and product names (product_aliases.json) per ticker."""
+    aliases = {}
+    for row in ir_entries():
+        names = [part.strip() for part in re.split(r"\s*/\s*", row.get("company") or "")]
+        aliases.setdefault(row["ticker"], []).extend(
+            ("company", name) for name in names if len(name) >= 5)
+    try:
+        products = json.loads(PRODUCTS_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        products = {}
+    for ticker, names in (products or {}).items():
+        ticker = str(ticker).upper()
+        if _TICKER.fullmatch(ticker) and isinstance(names, list):
+            aliases.setdefault(ticker, []).extend(
+                ("product", str(name).strip()) for name in names if len(str(name).strip()) >= 3)
+    return aliases
+
+
+def resolve_alias(text, aliases=None):
+    """Unique ticker whose company/product name appears in text, else None (ambiguity is not a match)."""
+    text = text or ""
+    matches = {}
+    for ticker, names in (aliases if aliases is not None else load_aliases()).items():
+        for kind, name in names:
+            pattern = r"(?<![\w-])" + re.escape(name).replace(r"\ ", r"[\s-]+") + r"(?![\w-])"
+            if re.search(pattern, text, re.I):
+                matches.setdefault(ticker, (kind, name))
+                break
+    if len(matches) != 1:
+        return None
+    ticker, (kind, name) = next(iter(matches.items()))
+    return {"ticker": ticker, "source": f"alias_{kind}", "matched": name}

@@ -9,7 +9,6 @@ import argparse
 import json
 import os
 import time
-import urllib.request
 from datetime import datetime, timezone
 
 from . import db
@@ -19,15 +18,13 @@ from .ir_registry import ir_entries
 from .latency_metrics import summary as latency_summary
 from .live_monitor import run_monitor
 from .news_signals import poll_official_feeds
-from .primary_feeds import poll_fda_feeds, poll_nasdaq_halts, poll_wire_feeds
+from .primary_feeds import fetch_feed, poll_fda_feeds, poll_nasdaq_halts, poll_wire_feeds
 from .priority import priority_tickers
 from .sec_http import enable_hot_mode
 
 
 def _fetch(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "MozesBiotechHotMonitor/1.0"})
-    with urllib.request.urlopen(request, timeout=12) as response:
-        return response.read(4_000_000)
+    return fetch_feed(url, timeout=12)
 
 
 def seed_priority_watches(conn):
@@ -43,48 +40,93 @@ def seed_priority_watches(conn):
     return {"seeded": len(priority_tickers()), "new": added}
 
 
-def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True):
+def _step(conn, details, name, function):
+    """Run one source in isolation so a single failing feed cannot drop the pass."""
+    details["steps"].append(name)
+    try:
+        return function()
+    except Exception as exc:  # noqa: BLE001 - every source failure must be contained
+        try:
+            conn.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        details["errors"][name] = f"{type(exc).__name__}: {exc}"[:240]
+        return None
+
+
+def _error_count(value):
+    if isinstance(value, (list, tuple, dict)):
+        return len(value)
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 1
+
+
+def _watch_tickers(conn):
+    return [row["ticker"] for row in db.watch_rows(conn)] or list(priority_tickers())
+
+
+def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True, fetch=None):
     """One bounded hot cycle: primary feeds → priority IR/SEC/news → outbox dispatch."""
+    fetch = fetch or _fetch
     enable_hot_mode(True)
     started = datetime.now(timezone.utc).isoformat()
-    details = {"started_at": started, "feeds": {}, "monitor": None, "alerts": None}
+    details = {"started_at": started, "feeds": {}, "monitor": None, "alerts": None, "errors": {}, "steps": []}
     try:
-        details["watch_seed"] = seed_priority_watches(conn)
-        details["feeds"]["fda"] = poll_fda_feeds(conn, fetch=_fetch)
+        details["watch_seed"] = _step(conn, details, "watch_seed", lambda: seed_priority_watches(conn))
+        details["feeds"]["fda"] = _step(conn, details, "fda", lambda: poll_fda_feeds(conn, fetch=fetch))
         if include_wires:
-            details["feeds"]["wires"] = poll_wire_feeds(conn, fetch=_fetch)
-        # Always poll configured company IR/RSS for the hot cohort.
-        issuers = [{"ticker": row["ticker"], "sponsor": row.get("company") or row["ticker"]}
-                   for row in ir_entries() if row["ticker"] in set(priority_tickers())]
-        details["feeds"]["company_ir"] = poll_official_feeds(conn, issuers, fetch=_fetch, now=datetime.now(timezone.utc))
-        watches = [row["ticker"] for row in db.watch_rows(conn)]
-        details["feeds"]["nasdaq_halts"] = poll_nasdaq_halts(
-            conn, fetch=_fetch, watch_tickers=watches or list(priority_tickers()))
+            details["feeds"]["wires"] = _step(conn, details, "wires", lambda: poll_wire_feeds(conn, fetch=fetch))
+
+        def company_ir():
+            hot = set(priority_tickers())
+            issuers = [{"ticker": row["ticker"], "sponsor": row.get("company") or row["ticker"]}
+                       for row in ir_entries() if row["ticker"] in hot]
+            return poll_official_feeds(conn, issuers, fetch=fetch, now=datetime.now(timezone.utc))
+
+        details["feeds"]["company_ir"] = _step(conn, details, "company_ir", company_ir)
+        details["feeds"]["nasdaq_halts"] = _step(
+            conn, details, "nasdaq_halts",
+            lambda: poll_nasdaq_halts(conn, fetch=fetch, watch_tickers=_watch_tickers(conn)))
         if include_sec and os.environ.get("SEC_USER_AGENT"):
-            details["monitor"] = run_monitor(
+            details["monitor"] = _step(conn, details, "sec_monitor", lambda: run_monitor(
                 conn, audit=False, ctgov_diff=False, sec=True, news=True,
-                filings_per_company=6, priority_only=True)
+                filings_per_company=6, priority_only=True))
         if dispatch:
-            details["alerts"] = sync_new_changes(conn, since_iso=started)
-            details["alerts"]["flush"] = dispatch_pending(conn)
-        details["latency"] = latency_summary(conn, limit=200)
-        details["status"] = "OK"
-    except Exception as exc:
-        details["status"] = "FAILED"
-        details["error"] = f"{type(exc).__name__}: {exc}"[:240]
+            details["alerts"] = _step(conn, details, "alert_sync",
+                                      lambda: sync_new_changes(conn, since_iso=started))
+            details["alerts_flush"] = _step(conn, details, "alert_dispatch", lambda: dispatch_pending(conn))
+        details["latency"] = _step(conn, details, "latency", lambda: latency_summary(conn, limit=200))
     finally:
         enable_hot_mode(False)
+    feed_errors = sum(_error_count((value or {}).get("errors")) for value in details["feeds"].values()
+                      if isinstance(value, dict))
+    if details["errors"] and len(details["errors"]) == len(details["steps"]):
+        details["status"] = "FAILED"
+    elif details["errors"] or feed_errors:
+        details["status"] = "PARTIAL"
+    else:
+        details["status"] = "OK"
+    details["feed_errors"] = feed_errors
     return details
 
 
 def run_worker(*, interval_seconds=60, once=False):
     conn = db.connect(os.environ.get("MOZES_DB_PATH", DB_PATH))
+    interval = max(15, int(interval_seconds))
+    deadline = time.monotonic()
     while True:
         result = run_hot_pass(conn)
-        print(json.dumps(result, ensure_ascii=False, default=str))
+        print(json.dumps(result, ensure_ascii=False, default=str), flush=True)
         if once:
             break
-        time.sleep(max(15, int(interval_seconds)))
+        # Fixed-cadence deadlines: a slow pass shortens the next sleep instead of drifting.
+        deadline += interval
+        now = time.monotonic()
+        if deadline < now:
+            deadline = now
+        time.sleep(max(0.0, deadline - now))
     conn.close()
     return 0 if result.get("status") == "OK" else 2
 

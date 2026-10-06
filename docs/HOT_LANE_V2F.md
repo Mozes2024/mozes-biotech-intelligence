@@ -31,6 +31,32 @@ point-in-time gates, CT.gov discovery-only rules, or locked RUN-UP/HOLD unlocks.
 - No MNPI / non-public sources.
 - Telegram/email push channels are deferred (outbox supports ntfy/webhook/log).
 
+## v2G hardening (code review follow-up)
+
+| Concern | Resolution |
+| --- | --- |
+| One failing source dropped the whole pass | `run_hot_pass` isolates each step; status `OK` / `PARTIAL` / `FAILED` (all failed) |
+| Rows stuck in `sending` after a crash | 2-minute lease in `send_after`; `recover_stale_sending` → `failed` or `dead` |
+| Guessed feed URLs | `scripts/capture_feed_fixtures.py` verifies status + XML; samples in `tests/fixtures/feeds/` |
+| Nasdaq halt parser | `ndaq:IssueSymbol` / `ReasonCode` / `HaltDate`+`HaltTime` (ET); no `<link>` in real items |
+| P1 noise | P1 only for watched tickers; no ticker → P3 (not queued at default `MOZES_ALERT_MIN_PRIORITY=P2`) |
+| Classifier errors | Hedge/negation guards, mixed on conflict; corpus regression test |
+| Duplicate push from Actions and worker | Push secrets removed from workflows; `push_allowed()` blocks push inside Actions |
+| Same story from several sources | `alert_links`: same ticker, 30 min, headline similarity ≥ 0.55 |
+
+Feed status on 2026-10-06 (from the capture host):
+
+| Feed | Status |
+| --- | --- |
+| Business Wire Health, Clinical Trials | 200, valid RSS |
+| PR Newswire Biotechnology, All Health | 200, valid RSS |
+| GlobeNewswire Biotechnology, Clinical Study | 200 via curl; Python on Windows needs an up-to-date CA bundle |
+| Nasdaq trade halts | 200, `ndaq:` namespace |
+| FDA press / drugs / biologics RSS | 401 for the whole fda.gov site from this host — unverified |
+
+Halt codes: `T1 T2 T3 T12 H10 H11` → `nasdaq_halt_signal` (critical, P1 when watched);
+`LUDP LUDS M` → `nasdaq_volatility_pause` (high, P2). Other codes are ignored.
+
 ## Operator setup
 
 ```bash

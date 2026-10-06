@@ -9,7 +9,6 @@ from mozes.alert_dispatch import dispatch_pending, enqueue_change, sync_new_chan
 from mozes.latency_metrics import summary
 from mozes.live_monitor import monitor_study, record_change
 from mozes.materiality import classify_outcome
-from mozes.primary_feeds import poll_nasdaq_halts
 from mozes.sec_http import enable_hot_mode, ttl_for
 
 
@@ -127,35 +126,34 @@ def test_primary_completion_type_change_is_tracked(tmp_path):
     assert json.loads(row["new_value"]) == "ACTUAL"
 
 
-def test_nasdaq_halt_feed_records_critical_change(tmp_path):
-    conn = db.connect(tmp_path / "halts.db")
-    payload = f"""<?xml version='1.0'?><rss><channel>
-      <item><title>SLS T1 News Pending</title>
-      <link>https://www.nasdaqtrader.com/Trader.aspx?id=TradeHalts</link>
-      <pubDate>{NOW.strftime('%a, %d %b %Y %H:%M:%S GMT')}</pubDate>
-      <description>Issue Symbol: SLS Halt Code: T1</description></item>
-    </channel></rss>""".encode()
-    result = poll_nasdaq_halts(conn, fetch=lambda _: payload, now=NOW, watch_tickers=["SLS"])
-    assert result["signals_seen"] == 1
-    assert conn.execute("SELECT severity,change_type FROM change_events").fetchone()[0] == "critical"
-
-
 def test_html_ir_fallback_when_no_rss(tmp_path):
     from mozes.news_signals import poll_official_feeds
     conn = db.connect(tmp_path / "ir.db")
     issuer = {"ticker": "SLS", "sponsor": "SELLAS", "cik": "1"}
 
+    page = {"html": b'<html><body><a href="/press-releases">Press Releases</a>'
+                    b'<a href="/news-releases/sellas-reports-second-quarter-2026-results">'
+                    b'SELLAS Reports Second Quarter 2026 Financial Results</a></body></html>'}
+
     def fetch(url):
         if url.endswith("/"):
-            return b'<html><head></head><body><a href="/press-releases/item-1">Release</a></body></html>'
+            return page["html"]
         raise AssertionError(url)
 
-    result = poll_official_feeds(conn, [issuer], fetch=fetch, now=NOW)
-    assert result["signals_seen"] == 1
+    baseline = poll_official_feeds(conn, [issuer], fetch=fetch, now=NOW)
+    assert baseline["signals_seen"] == 0  # first sighting of an undated index is a baseline
     obs = json.loads(conn.execute(
         "SELECT value_json FROM monitor_observations WHERE observation_key=?",
         ("official_feed:SLS",)).fetchone()[0])
-    assert obs["status"] == "html_fallback"
+    assert obs["status"] == "html_fallback" and obs["index_links"] == 1  # nav link filtered
+
+    page["html"] = page["html"].replace(
+        b"</body>", b'<a href="/news-releases/sellas-announces-phase-3-regal-topline-results">'
+                    b'SELLAS Announces Phase 3 REGAL Topline Results</a></body>')
+    result = poll_official_feeds(conn, [issuer], fetch=fetch, now=NOW)
+    assert result["signals_seen"] == 1
+    headline = json.loads(conn.execute("SELECT new_value FROM change_events").fetchone()[0])["headline"]
+    assert headline == "SELLAS Announces Phase 3 REGAL Topline Results"
 
 
 def test_sync_new_changes_dispatches_without_pages(tmp_path):

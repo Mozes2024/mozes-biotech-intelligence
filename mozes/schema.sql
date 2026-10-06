@@ -279,6 +279,16 @@ CREATE TABLE IF NOT EXISTS alert_outbox (
 );
 CREATE INDEX IF NOT EXISTS idx_alert_outbox_pending
   ON alert_outbox(status, send_after, created_at);
+-- Cross-source corroboration: later reports of an already-alerted story are linked, not re-pushed.
+CREATE TABLE IF NOT EXISTS alert_links (
+  change_id TEXT PRIMARY KEY,
+  primary_change_id TEXT NOT NULL,
+  ticker TEXT,
+  similarity REAL NOT NULL,
+  source_type TEXT,
+  linked_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_alert_links_primary ON alert_links(primary_change_id);
 CREATE TABLE IF NOT EXISTS alert_deliveries (
   delivery_id TEXT PRIMARY KEY,
   alert_id TEXT NOT NULL REFERENCES alert_outbox(alert_id),

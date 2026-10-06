@@ -1,6 +1,7 @@
 """Bounded secondary-news discovery. Headlines never verify clinical catalysts."""
 from __future__ import annotations
 
+import http.client
 import re
 import os
 import time
@@ -119,6 +120,9 @@ class _PressLinks(HTMLParser):
         super().__init__()
         self.site = site
         self.links = []
+        self.entries = []
+        self._current = None
+        self._text = []
 
     def handle_starttag(self, tag, attrs):
         if tag != "a":
@@ -132,9 +136,29 @@ class _PressLinks(HTMLParser):
         path = (urlsplit(url).path or "").lower()
         if any(token in path for token in ("press", "news", "release", "media", "announcement")):
             self.links.append(url)
+            self._current, self._text = url, []
+
+    def handle_data(self, data):
+        if self._current:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._current:
+            self.entries.append({"url": self._current, "title": " ".join("".join(self._text).split())})
+            self._current, self._text = None, []
 
 
-def discover_press_index(site, fetch):
+_ARTICLE_SLUG = re.compile(r"(?:\d{4,}|[a-z0-9]+(?:-[a-z0-9]+){3,})", re.I)
+
+
+def _looks_like_release(entry):
+    """Index/navigation links ('press-releases', 'default.aspx') are not releases."""
+    last = (urlsplit(entry["url"]).path or "").rstrip("/").rsplit("/", 1)[-1]
+    title = entry.get("title") or ""
+    return bool(_ARTICLE_SLUG.search(last)) and len(title) >= 25 and len(title.split()) >= 4
+
+
+def discover_press_index(site, fetch, *, entries=False):
     """When IR advertises no RSS, fall back to same-host press/news index links."""
     if not _public_https(site):
         return []
@@ -142,6 +166,13 @@ def discover_press_index(site, fetch):
     html = raw.decode("utf-8", errors="replace") if isinstance(raw, (bytes, bytearray)) else str(raw)
     parser = _PressLinks(site)
     parser.feed(html)
+    if entries:
+        seen, out = set(), []
+        for entry in parser.entries:
+            if entry["url"] not in seen and _looks_like_release(entry):
+                seen.add(entry["url"])
+                out.append(entry)
+        return out[:12]
     # Deduplicate while preserving order; cap crawl fan-out.
     return list(dict.fromkeys(parser.links))[:12]
 
@@ -181,17 +212,26 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                         source_url=feed, source_type="company_ir")
             else:
                 # no_rss_found is no longer a dead end: HTML press index is Stage-1 discovery.
-                index_links = discover_press_index(site, fetch)
+                entries = discover_press_index(site, fetch, entries=True)
                 observe(conn, "official_feed:" + ticker,
-                        {"status": "html_fallback" if index_links else "no_rss_found",
-                         "site": site, "index_links": len(index_links), "checked_at": checked_at},
+                        {"status": "html_fallback" if entries else "no_rss_found",
+                         "site": site, "index_links": len(entries), "checked_at": checked_at},
                         source_url=site, source_type="company_ir")
                 feed_url = site
-                for link in index_links[:5]:
-                    items.append({"title": urlsplit(link).path.rsplit("/", 1)[-1] or link,
-                                  "url": link, "published_at": now.isoformat()})
-                if index_links:
+                # An HTML index has no dates: the first sighting is a baseline, only later additions are news.
+                seen_key = "official_html_seen:" + ticker
+                prior = conn.execute("SELECT value_json FROM monitor_observations WHERE observation_key=?",
+                                     (seen_key,)).fetchone()
+                seen_urls = set(json.loads(prior[0]).get("urls", [])) if prior else None
+                if entries:
+                    merged = list(dict.fromkeys([e["url"] for e in entries] + sorted(seen_urls or [])))[:200]
+                    observe(conn, seen_key, {"urls": merged}, source_url=site, source_type="company_ir")
                     checked += 1
+                if seen_urls is not None:
+                    for entry in entries[:5]:
+                        if entry["url"] not in seen_urls:
+                            items.append({"title": entry["title"], "url": entry["url"],
+                                          "published_at": now.isoformat()})
             for item in items[:10]:
                 before = conn.total_changes
                 record_change(conn, ticker=ticker, change_type="company_release_signal", previous_value=None,
@@ -201,8 +241,8 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                               metadata={"feed_url": feed_url, "headline_only": True,
                                         "html_fallback": not bool(feed)})
                 added += conn.total_changes > before
-        except (OSError, ValueError, ET.ParseError, UnicodeError) as exc:
-            errors.append({"ticker": ticker, "error": str(exc)[:160]})
+        except (OSError, ValueError, ET.ParseError, UnicodeError, http.client.HTTPException) as exc:
+            errors.append({"ticker": ticker, "error": f"{type(exc).__name__}: {exc}"[:160]})
             observe(conn, "official_feed:" + ticker, {"status": "fetch_error", "site": site, "checked_at": checked_at},
                     source_url=site, source_type="company_ir")
     return {"checked": checked, "signals_seen": added, "errors": errors}

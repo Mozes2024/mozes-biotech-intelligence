@@ -300,21 +300,26 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
             from .news_signals import poll_news
             details["news"] = poll_news(conn, limit=2 if priority_only else 8)
         if os.environ.get("MOZES_PRIMARY_FEEDS", "0") == "1":
-            from .primary_feeds import poll_fda_feeds, poll_nasdaq_halts, poll_wire_feeds
+            from .primary_feeds import fetch_feed, poll_fda_feeds, poll_nasdaq_halts, poll_wire_feeds
             from .priority import priority_tickers as _priority_tickers
-            import urllib.request
 
             def _feed_fetch(url):
-                with urllib.request.urlopen(urllib.request.Request(
-                        url, headers={"User-Agent": "MozesBiotechMonitor/1.0"}), timeout=8) as response:
-                    return response.read(4_000_000)
+                return fetch_feed(url, timeout=8)
 
+            def _isolated(name, function):
+                try:
+                    return function()
+                except Exception as exc:  # noqa: BLE001 - one feed must not abort the monitor
+                    details["errors"].append({"primary_feed": name, "error": f"{type(exc).__name__}: {exc}"[:200]})
+                    return {"errors": 1}
+
+            watch_tickers = [row["ticker"] for row in db.watch_rows(conn)] or list(_priority_tickers())
             details["primary_feeds"] = {
-                "fda": poll_fda_feeds(conn, fetch=_feed_fetch),
-                "wires": poll_wire_feeds(conn, fetch=_feed_fetch) if not priority_only else {"skipped": True},
-                "nasdaq_halts": poll_nasdaq_halts(
-                    conn, fetch=_feed_fetch,
-                    watch_tickers=[row["ticker"] for row in db.watch_rows(conn)] or list(_priority_tickers())),
+                "fda": _isolated("fda", lambda: poll_fda_feeds(conn, fetch=_feed_fetch)),
+                "wires": (_isolated("wires", lambda: poll_wire_feeds(conn, fetch=_feed_fetch))
+                          if not priority_only else {"skipped": True}),
+                "nasdaq_halts": _isolated("nasdaq_halts", lambda: poll_nasdaq_halts(
+                    conn, fetch=_feed_fetch, watch_tickers=watch_tickers)),
             }
         reconcile_states(conn)
         details["changes"] = conn.execute("SELECT COUNT(*) FROM change_events WHERE detected_at>=?", (started,)).fetchone()[0]

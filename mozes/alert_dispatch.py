@@ -5,16 +5,18 @@ Telegram/email delivery channels are intentionally deferred.
 """
 from __future__ import annotations
 
+import difflib
 import hashlib
 import json
 import os
-import urllib.error
+import re
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
 from . import db
 from .latency_metrics import mark_queued, mark_sent, record_detection
-from .materiality import alert_priority, classify_outcome, should_enqueue
+from .materiality import PRIORITY_RANK, alert_priority, classify_outcome, should_enqueue
+from .priority import priority_tickers
 
 STAGE1 = "stage1"
 STAGE2 = "stage2"
@@ -33,15 +35,31 @@ def _delivery_id(alert_id, attempt):
     return "DLV-" + hashlib.sha256(_json([alert_id, attempt]).encode()).hexdigest()[:24]
 
 
+def push_allowed():
+    """The persistent worker owns push; Actions runs keep a separate DB and would duplicate alerts."""
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        return os.environ.get("MOZES_PUSH_FROM_ACTIONS") == "1"
+    return True
+
+
 def configured_channels():
     channels = []
-    if os.environ.get("MOZES_NTFY_URL"):
+    if push_allowed() and os.environ.get("MOZES_NTFY_URL"):
         channels.append("ntfy")
-    if os.environ.get("MOZES_WEBHOOK_URL"):
+    if push_allowed() and os.environ.get("MOZES_WEBHOOK_URL"):
         channels.append("webhook")
     if os.environ.get("MOZES_ALERT_LOG", "1") == "1" and not channels:
         channels.append("log")
     return tuple(channels) or ("log",)
+
+
+def is_watched(conn, ticker):
+    if not ticker:
+        return False
+    ticker = str(ticker).upper()
+    if ticker in set(priority_tickers()):
+        return True
+    return conn.execute("SELECT 1 FROM watch_universe WHERE ticker=? AND active=1", (ticker,)).fetchone() is not None
 
 
 def build_stage1_payload(conn, change_id):
@@ -56,7 +74,9 @@ def build_stage1_payload(conn, change_id):
     elif new_value is not None:
         text_bits.append(str(new_value))
     outcome = classify_outcome(" ".join(text_bits))
-    priority = alert_priority(row["change_type"], row["severity"], outcome)
+    watched = is_watched(conn, row["ticker"])
+    priority = alert_priority(row["change_type"], row["severity"], outcome,
+                              ticker=row["ticker"], watched=watched)
     published = None
     if isinstance(new_value, dict):
         published = new_value.get("published_at") or new_value.get("accepted")
@@ -65,6 +85,7 @@ def build_stage1_payload(conn, change_id):
         "stage": STAGE1,
         "priority": priority,
         "ticker": row["ticker"],
+        "watched": watched,
         "change_id": change_id,
         "change_type": row["change_type"],
         "severity": row["severity"],
@@ -113,8 +134,87 @@ def enqueue_change(conn, change_id, *, stage=STAGE1, channels=None, send_after=N
     return created
 
 
+CONSOLIDATION_WINDOW_MINUTES = 30
+_STOPWORDS = frozenset(
+    "the and for with from that this its into over announces announce announced reports report reported "
+    "inc ltd corp plc company therapeutics pharmaceuticals pharma biotherapeutics biosciences "
+    "results data trial study phase patients".split())
+
+
+def _headline_of(payload):
+    value = payload.get("new_value")
+    if isinstance(value, dict):
+        return str(value.get("headline") or value.get("title") or "")
+    return ""
+
+
+def _tokens(text):
+    return {word for word in re.findall(r"[a-z0-9][a-z0-9-]{2,}", (text or "").lower()) if word not in _STOPWORDS}
+
+
+def headline_similarity(left, right):
+    a, b = _tokens(left), _tokens(right)
+    jaccard = len(a & b) / len(a | b) if a and b else 0.0
+    ratio = difflib.SequenceMatcher(None, (left or "").lower(), (right or "").lower()).ratio()
+    return max(jaccard, ratio)
+
+
+def find_primary_alert(conn, payload, *, window_minutes=CONSOLIDATION_WINDOW_MINUTES, threshold=0.55):
+    """Earlier Stage-1 alert for the same ticker and story within the window, if any."""
+    ticker, headline = payload.get("ticker"), _headline_of(payload)
+    if not ticker or not headline:
+        return None
+    try:
+        detected = datetime.fromisoformat(str(payload.get("detected_at")))
+    except ValueError:
+        detected = datetime.now(timezone.utc)
+    since = (detected - timedelta(minutes=window_minutes)).isoformat()
+    rows = conn.execute(
+        "SELECT change_id, payload_json FROM alert_outbox WHERE stage=? AND change_id<>? AND created_at>=? "
+        "ORDER BY created_at ASC",
+        (STAGE1, payload["change_id"], since),
+    ).fetchall()
+    for row in rows:
+        other = json.loads(row["payload_json"])
+        if other.get("ticker") != ticker:
+            continue
+        similarity = headline_similarity(headline, _headline_of(other))
+        if similarity >= threshold:
+            return {"change_id": row["change_id"], "similarity": round(similarity, 3)}
+    return None
+
+
+def link_corroboration(conn, *, change_id, primary_change_id, ticker, similarity, source_type):
+    with conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO alert_links(change_id,primary_change_id,ticker,similarity,source_type,linked_at) "
+            "VALUES(?,?,?,?,?,?)",
+            (change_id, primary_change_id, ticker, similarity, source_type, db.utcnow()),
+        )
+
+
+def corroborations(conn, primary_change_id):
+    return [dict(row) for row in conn.execute(
+        "SELECT * FROM alert_links WHERE primary_change_id=? ORDER BY linked_at", (primary_change_id,))]
+
+
+def _min_priority():
+    value = os.environ.get("MOZES_ALERT_MIN_PRIORITY", "P2").upper()
+    return PRIORITY_RANK.get(value, 2)
+
+
 def enqueue_from_change_row(conn, *, change_id, change_type, severity):
+    """Gate: alertable type, priority at or above MOZES_ALERT_MIN_PRIORITY, not a duplicate story."""
     if not should_enqueue(change_type, severity):
+        return []
+    payload = build_stage1_payload(conn, change_id)
+    if PRIORITY_RANK.get(payload["priority"], 3) > _min_priority():
+        return []
+    primary = find_primary_alert(conn, payload)
+    if primary:
+        link_corroboration(conn, change_id=change_id, primary_change_id=primary["change_id"],
+                           ticker=payload["ticker"], similarity=primary["similarity"],
+                           source_type=payload.get("source_type"))
         return []
     return enqueue_change(conn, change_id, stage=STAGE1)
 
@@ -186,23 +286,50 @@ def _backoff_seconds(attempts):
     return min(3600, 30 * (2 ** max(0, attempts - 1)))
 
 
+MAX_ATTEMPTS = 8
+SENDING_LEASE_SECONDS = 120
+
+
+def recover_stale_sending(conn, *, now=None):
+    """Release rows whose sender died mid-flight; the lease expiry lives in send_after."""
+    now_iso = (now or datetime.now(timezone.utc)).isoformat()
+    with conn:
+        dead = conn.execute(
+            "UPDATE alert_outbox SET status='dead', last_error='sending lease expired' "
+            "WHERE status='sending' AND send_after<=? AND attempts>=?",
+            (now_iso, MAX_ATTEMPTS),
+        ).rowcount
+        retried = conn.execute(
+            "UPDATE alert_outbox SET status='failed', last_error='sending lease expired' "
+            "WHERE status='sending' AND send_after<=?",
+            (now_iso,),
+        ).rowcount
+    return {"retried": retried, "dead": dead}
+
+
 def dispatch_pending(conn, *, limit=50, now=None, sender=None):
-    """Claim pending rows, send once, retry with exponential backoff, dead-letter after 8 attempts."""
+    """Claim pending rows, send once, retry with exponential backoff, dead-letter after 8 attempts.
+
+    Delivery is at-least-once: a crash after the provider accepted but before the row is
+    marked sent will resend once the lease expires.
+    """
     now = now or datetime.now(timezone.utc)
     now_iso = now.isoformat()
+    recovered = recover_stale_sending(conn, now=now)
+    lease_until = (now + timedelta(seconds=SENDING_LEASE_SECONDS)).isoformat()
     rows = conn.execute(
         "SELECT * FROM alert_outbox WHERE status IN ('pending','failed') AND send_after<=? "
         "ORDER BY created_at ASC LIMIT ?",
         (now_iso, limit),
     ).fetchall()
-    results = {"sent": 0, "failed": 0, "dead": 0, "errors": []}
+    results = {"sent": 0, "failed": 0, "dead": 0, "errors": [], "recovered": recovered}
     for row in rows:
         alert_id = row["alert_id"]
         with conn:
             claimed = conn.execute(
-                "UPDATE alert_outbox SET status='sending', attempts=attempts+1 "
+                "UPDATE alert_outbox SET status='sending', attempts=attempts+1, send_after=? "
                 "WHERE alert_id=? AND status IN ('pending','failed')",
-                (alert_id,),
+                (lease_until, alert_id),
             )
         if claimed.rowcount != 1:
             continue
@@ -228,9 +355,9 @@ def dispatch_pending(conn, *, limit=50, now=None, sender=None):
                 )
             mark_sent(conn, alert_id=alert_id, sent_at=now_iso)
             results["sent"] += 1
-        except (OSError, urllib.error.URLError, urllib.error.HTTPError, RuntimeError, KeyError, ValueError) as exc:
-            error = str(exc)[:240]
-            if attempt >= 8:
+        except Exception as exc:  # noqa: BLE001 - any adapter failure is a retryable delivery error
+            error = f"{type(exc).__name__}: {exc}"[:240]
+            if attempt >= MAX_ATTEMPTS:
                 status, results["dead"] = "dead", results["dead"] + 1
                 send_after = now_iso
             else:
@@ -257,7 +384,8 @@ def sync_new_changes(conn, *, since_iso=None, limit=100):
         rows = conn.execute(
             "SELECT c.change_id,c.change_type,c.severity FROM change_events c "
             "LEFT JOIN alert_outbox o ON o.change_id=c.change_id AND o.stage=? "
-            "WHERE o.alert_id IS NULL ORDER BY c.detected_at DESC LIMIT ?",
+            "WHERE o.alert_id IS NULL AND c.change_id NOT IN (SELECT change_id FROM alert_links) "
+            "ORDER BY c.detected_at DESC LIMIT ?",
             (STAGE1, limit),
         ).fetchall()
     queued = []
