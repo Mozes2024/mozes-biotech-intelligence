@@ -1,6 +1,11 @@
 name: feed-probe
 on:
   workflow_dispatch:
+    inputs:
+      extra:
+        description: 'Space-separated candidate feed URLs to probe'
+        required: false
+        default: ''
 permissions:
   contents: read
 jobs:
@@ -14,7 +19,9 @@ jobs:
           python-version: '3.11'
       - run: pip install -e .
       - name: Probe hot-lane feeds (status, XML, item counts)
-        run: python scripts/capture_feed_fixtures.py --save --list-fda
+        env:
+          EXTRA: ${{ inputs.extra }}
+        run: python scripts/capture_feed_fixtures.py --save --extra "$EXTRA"
       - uses: actions/upload-artifact@v4
         with:
           name: feed-samples

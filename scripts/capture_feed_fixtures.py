@@ -63,7 +63,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--save", action="store_true")
     parser.add_argument("--list-fda", action="store_true", help="print RSS links advertised by fda.gov")
+    parser.add_argument("--extra", default="", help="space-separated candidate URLs to probe (not saved)")
     args = parser.parse_args(argv)
+    for index, url in enumerate(args.extra.split()):
+        print(json.dumps(probe(f"extra_{index}", url)[0], indent=2))
     if args.list_fda:
         try:
             print(json.dumps({"fda_rss_links": list_fda_rss()}, indent=2))
