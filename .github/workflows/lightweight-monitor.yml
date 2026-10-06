@@ -71,5 +71,5 @@ jobs:
           if [ "$current" = "$GITHUB_SHA" ]; then
             gh workflow run pages.yml --ref main -f source_run_id="$GITHUB_RUN_ID"
           else
-            echo 'Newer code exists; its CI publication will restore this data.'
+            gh workflow run pages.yml --ref main -f source_run_id="$GITHUB_RUN_ID"
           fi

@@ -62,6 +62,12 @@ jobs:
       - name: Export current code against stored data (offline)
         if: steps.guard.outputs.current == 'true'
         run: python -m mozes.pipeline_v2c export
+      - uses: actions/upload-artifact@v4
+        if: steps.guard.outputs.current == 'true'
+        with:
+          name: mozes-publish-request
+          path: web/publish-receipt.json
+          retention-days: 7
       - uses: actions/configure-pages@v5
         if: steps.guard.outputs.current == 'true'
       - uses: actions/upload-pages-artifact@v3
@@ -80,3 +86,13 @@ jobs:
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: mozes-publish-request
+          path: /tmp/mozes-published
+      - name: Acknowledge ledger only after successful deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: mozes-published-ledger
+          path: /tmp/mozes-published/publish-receipt.json
+          retention-days: 90
