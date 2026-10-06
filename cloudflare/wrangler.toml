@@ -1,6 +1,6 @@
 name = "mozes-hot-clock"
 main = "src/index.js"
-compatibility_date = "2026-10-01"
+compatibility_date = "2026-08-01"
 
 [vars]
 GITHUB_REPO = "Mozes2024/mozes-biotech-intelligence"
