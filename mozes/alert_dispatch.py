@@ -1,7 +1,7 @@
-"""Transactional alert outbox + push adapters (ntfy / webhook / log).
+"""Transactional alert outbox + push adapters (ntfy / email / webhook / log).
 
 Dashboard/Pages publication is a consumer, never the alert transport.
-Telegram/email delivery channels are intentionally deferred.
+Telegram delivery is intentionally deferred.
 """
 from __future__ import annotations
 
@@ -10,7 +10,10 @@ import hashlib
 import json
 import os
 import re
+import smtplib
+import ssl
 import urllib.request
+from email.message import EmailMessage
 from datetime import datetime, timedelta, timezone
 
 from . import db
@@ -20,7 +23,7 @@ from .priority import priority_tickers
 
 STAGE1 = "stage1"
 STAGE2 = "stage2"
-CHANNELS = ("ntfy", "webhook", "log")
+CHANNELS = ("ntfy", "email", "webhook", "log")
 
 
 def _json(value):
@@ -46,6 +49,8 @@ def configured_channels():
     channels = []
     if push_allowed() and os.environ.get("MOZES_NTFY_URL"):
         channels.append("ntfy")
+    if push_allowed() and os.environ.get("MOZES_SMTP_USER") and os.environ.get("MOZES_SMTP_PASSWORD"):
+        channels.append("email")
     if push_allowed() and os.environ.get("MOZES_WEBHOOK_URL"):
         channels.append("webhook")
     if os.environ.get("MOZES_ALERT_LOG", "1") == "1" and not channels:
@@ -265,6 +270,36 @@ def send_ntfy(payload):
         return {"provider_message_id": f"ntfy:{response.status}", "raw": raw[:500]}
 
 
+def _email_subject(payload):
+    return " ".join(str(part) for part in (
+        "MOZES", payload.get("priority"), payload.get("ticker") or "", payload.get("change_type"),
+    ) if part)
+
+
+def send_email(payload, *, smtp_factory=None):
+    """SMTP defaults to Gmail (App Password); the recipient defaults to the sending account."""
+    user = os.environ["MOZES_SMTP_USER"]
+    host = os.environ.get("MOZES_SMTP_HOST") or "smtp.gmail.com"
+    port = int(os.environ.get("MOZES_SMTP_PORT") or 465)
+    message = EmailMessage()
+    message["Subject"] = _email_subject(payload)
+    message["From"] = os.environ.get("MOZES_ALERT_EMAIL_FROM") or user
+    message["To"] = os.environ.get("MOZES_ALERT_EMAIL_TO") or user
+    if payload.get("priority") == "P1":
+        message["X-Priority"] = "1"
+    message.set_content(_format_message(payload))
+    context = ssl.create_default_context()
+    if smtp_factory is None:
+        smtp_factory = smtplib.SMTP_SSL if port == 465 else smtplib.SMTP
+    kwargs = {"context": context} if smtp_factory is smtplib.SMTP_SSL else {}
+    with smtp_factory(host, port, timeout=20, **kwargs) as server:
+        if port != 465:
+            server.starttls(context=context)
+        server.login(user, os.environ["MOZES_SMTP_PASSWORD"])
+        server.send_message(message)
+    return {"provider_message_id": f"email:{message['To']}", "raw": message["Subject"]}
+
+
 def send_webhook(payload):
     url = os.environ["MOZES_WEBHOOK_URL"]
     text, status = _post_json(url, payload)
@@ -277,6 +312,7 @@ def send_log(payload):
 
 ADAPTERS = {
     "ntfy": send_ntfy,
+    "email": send_email,
     "webhook": send_webhook,
     "log": send_log,
 }

@@ -37,6 +37,9 @@ jobs:
       MOZES_PUSH_FROM_ACTIONS: '1'
       MOZES_NTFY_URL: ${{ secrets.MOZES_NTFY_URL }}
       MOZES_WEBHOOK_URL: ${{ secrets.MOZES_WEBHOOK_URL }}
+      MOZES_SMTP_USER: ${{ secrets.MOZES_SMTP_USER }}
+      MOZES_SMTP_PASSWORD: ${{ secrets.MOZES_SMTP_PASSWORD }}
+      MOZES_ALERT_EMAIL_TO: ${{ secrets.MOZES_ALERT_EMAIL_TO }}
       GH_TOKEN: ${{ github.token }}
       RUN_PRIORITY: ${{ inputs.priority_only == true || github.event_name == 'schedule' }}
     steps:

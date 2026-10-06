@@ -18,11 +18,17 @@ step on any DB is a silent warm-up: backlog becomes the baseline instead of a bu
 
 ## One-time setup
 
-1. **ntfy**: install the ntfy app, subscribe to a long random topic (e.g. `mozes-7f3k9q2x`).
-2. **Repo secret**:
-   ```bash
-   gh secret set MOZES_NTFY_URL --body "https://ntfy.sh/<topic>"
-   ```
+1. **Alert channel** (either or both):
+   - Email (Gmail): enable 2-Step Verification, create an App Password at
+     https://myaccount.google.com/apppasswords, then
+     ```bash
+     gh secret set MOZES_SMTP_USER --body "you@gmail.com"
+     gh secret set MOZES_SMTP_PASSWORD           # paste the 16-character App Password
+     gh secret set MOZES_ALERT_EMAIL_TO --body "other@example.com"   # optional; default = MOZES_SMTP_USER
+     ```
+   - ntfy: subscribe to a long random topic in the app, then
+     `gh secret set MOZES_NTFY_URL --body "https://ntfy.sh/<topic>"`.
+2. (Reserved.)
 3. **GitHub token for the Worker**: GitHub → Settings → Developer settings → Fine-grained tokens →
    *Only select repositories*: `mozes-biotech-intelligence` → Repository permissions → **Actions: Read and write**.
 4. **Cloudflare** (free account, no card):

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from mozes import db, hot_monitor
+from mozes import alert_dispatch, db, hot_monitor
 from mozes.alert_dispatch import (
     configured_channels, corroborations, dispatch_pending, enqueue_change, headline_similarity,
 )
@@ -32,7 +32,8 @@ def _feed(name):
 @pytest.fixture(autouse=True)
 def _no_push_env(monkeypatch):
     for key in ("MOZES_NTFY_URL", "MOZES_WEBHOOK_URL", "GITHUB_ACTIONS", "MOZES_PUSH_FROM_ACTIONS",
-                "MOZES_ALERT_MIN_PRIORITY", "SEC_USER_AGENT"):
+                "MOZES_ALERT_MIN_PRIORITY", "SEC_USER_AGENT", "MOZES_SMTP_USER", "MOZES_SMTP_PASSWORD",
+                "MOZES_SMTP_HOST", "MOZES_SMTP_PORT", "MOZES_ALERT_EMAIL_TO", "MOZES_ALERT_EMAIL_FROM"):
         monkeypatch.delenv(key, raising=False)
 
 
@@ -245,8 +246,52 @@ def test_only_the_hot_workflow_pushes():
             assert "MOZES_NTFY_URL: ${{ secrets.MOZES_NTFY_URL }}" in text
             assert "MOZES_PUSH_FROM_ACTIONS: '1'" in text
             assert "group: mozes-hot-monitor" in text and "cancel-in-progress: false" in text
+            assert "MOZES_SMTP_PASSWORD: ${{ secrets.MOZES_SMTP_PASSWORD }}" in text
         else:
-            assert "MOZES_NTFY_URL" not in text and "MOZES_PUSH_FROM_ACTIONS" not in text, path.name
+            for key in ("MOZES_NTFY_URL", "MOZES_SMTP_PASSWORD", "MOZES_PUSH_FROM_ACTIONS"):
+                assert key not in text, (path.name, key)
+
+
+def test_email_channel_needs_credentials_and_the_actions_opt_in(monkeypatch):
+    monkeypatch.setenv("MOZES_SMTP_USER", "me@gmail.com")
+    assert "email" not in alert_dispatch.configured_channels()
+    monkeypatch.setenv("MOZES_SMTP_PASSWORD", "app-password")
+    assert "email" in alert_dispatch.configured_channels()
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    assert "email" not in alert_dispatch.configured_channels()
+    monkeypatch.setenv("MOZES_PUSH_FROM_ACTIONS", "1")
+    assert "email" in alert_dispatch.configured_channels()
+
+
+def test_send_email_uses_gmail_ssl_and_defaults_recipient_to_sender(monkeypatch):
+    monkeypatch.setenv("MOZES_SMTP_USER", "me@gmail.com")
+    monkeypatch.setenv("MOZES_SMTP_PASSWORD", "app-password")
+    sent = {}
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout):
+            sent["server"] = (host, port)
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
+        def login(self, user, password):
+            sent["login"] = (user, password)
+        def send_message(self, message):
+            sent["message"] = message
+
+    result = alert_dispatch.send_email(
+        {"priority": "P1", "ticker": "GMAB", "change_type": "wire_release_signal", "stage": "stage1",
+         "new_value": {"headline": "Genmab announces positive topline results"}, "outcome": {}},
+        smtp_factory=FakeSMTP,
+    )
+    message = sent["message"]
+    assert sent["server"] == ("smtp.gmail.com", 465)
+    assert sent["login"] == ("me@gmail.com", "app-password")
+    assert message["To"] == "me@gmail.com" and message["X-Priority"] == "1"
+    assert message["Subject"] == "MOZES P1 GMAB wire_release_signal"
+    assert "positive topline" in message.get_content()
+    assert result["provider_message_id"] == "email:me@gmail.com"
 
 
 def test_pass_fetcher_prefetches_once_and_replays_errors():
