@@ -1,0 +1,11 @@
+.git
+.github
+.monitor
+_reviews
+tests
+web
+docs
+scripts
+*.db
+.env
+**/__pycache__

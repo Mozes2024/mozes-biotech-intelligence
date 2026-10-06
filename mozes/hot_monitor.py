@@ -8,8 +8,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sqlite3
 import time
+import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 
 from . import db
 from .alert_dispatch import dispatch_pending, sync_new_changes
@@ -90,9 +93,20 @@ def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True, f
             conn, details, "nasdaq_halts",
             lambda: poll_nasdaq_halts(conn, fetch=fetch, watch_tickers=_watch_tickers(conn)))
         if include_sec and os.environ.get("SEC_USER_AGENT"):
-            details["monitor"] = _step(conn, details, "sec_monitor", lambda: run_monitor(
-                conn, audit=False, ctgov_diff=False, sec=True, news=True,
-                filings_per_company=6, priority_only=True))
+            def sec_monitor():
+                # The hot pass owns dispatch (and may be a silent warm-up); run_monitor must not send.
+                previous = os.environ.get("MOZES_ALERT_DISPATCH")
+                os.environ["MOZES_ALERT_DISPATCH"] = "0"
+                try:
+                    return run_monitor(conn, audit=False, ctgov_diff=False, sec=True, news=True,
+                                       filings_per_company=6, priority_only=True)
+                finally:
+                    if previous is None:
+                        os.environ.pop("MOZES_ALERT_DISPATCH", None)
+                    else:
+                        os.environ["MOZES_ALERT_DISPATCH"] = previous
+
+            details["monitor"] = _step(conn, details, "sec_monitor", sec_monitor)
         if dispatch:
             details["alerts"] = _step(conn, details, "alert_sync",
                                       lambda: sync_new_changes(conn, since_iso=started))
@@ -112,21 +126,82 @@ def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True, f
     return details
 
 
-def run_worker(*, interval_seconds=60, once=False):
+def heartbeat(status, *, url=None, fetch=None):
+    """Dead-man's switch ping (e.g. healthchecks.io); a FAILED pass pings <url>/fail."""
+    url = url if url is not None else os.environ.get("MOZES_HEARTBEAT_URL", "")
+    if not url:
+        return None
+    target = url.rstrip("/") + "/fail" if status == "FAILED" else url
+    try:
+        (fetch or (lambda u: urllib.request.urlopen(
+            urllib.request.Request(u, headers={"User-Agent": "MozesBiotechWorker/1.0"}), timeout=10).read()))(target)
+        return target
+    except Exception:  # noqa: BLE001 - monitoring must never stop the worker
+        return None
+
+
+def backup_db(conn, *, directory=None, keep=None, now=None):
+    """Online SQLite backup into MOZES_BACKUP_DIR, keeping the newest N copies."""
+    directory = directory or os.environ.get("MOZES_BACKUP_DIR", "")
+    if not directory:
+        return None
+    keep = int(keep or os.environ.get("MOZES_BACKUP_KEEP", "8"))
+    stamp = (now or datetime.now(timezone.utc)).strftime("%Y%m%dT%H%M%SZ")
+    folder = Path(directory)
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / f"mozes-hot-{stamp}.db"
+    destination = sqlite3.connect(str(target))
+    try:
+        conn.backup(destination)
+    finally:
+        destination.close()
+    for old in sorted(folder.glob("mozes-hot-*.db"))[:-keep]:
+        old.unlink(missing_ok=True)
+    return str(target)
+
+
+def is_fresh_db(conn):
+    return conn.execute("SELECT COUNT(*) FROM change_events").fetchone()[0] == 0
+
+
+def silence_warmup(conn):
+    """On an empty DB the first pass sees hours of backlog; it becomes the baseline, not pushes."""
+    with conn:
+        return conn.execute(
+            "UPDATE alert_outbox SET status='dead', last_error='warm-up baseline' "
+            "WHERE status IN ('pending','failed')").rowcount
+
+
+def run_worker(*, interval_seconds=60, once=False, max_passes=None, sleep=time.sleep):
     conn = db.connect(os.environ.get("MOZES_DB_PATH", DB_PATH))
     interval = max(15, int(interval_seconds))
+    backup_every = float(os.environ.get("MOZES_BACKUP_HOURS", "6")) * 3600
+    last_backup = time.monotonic()
+    warmup = is_fresh_db(conn)
     deadline = time.monotonic()
+    passes = 0
     while True:
-        result = run_hot_pass(conn)
+        result = run_hot_pass(conn, dispatch=not warmup)
+        if warmup:
+            result["warmup_silenced"] = silence_warmup(conn)
+            warmup = False
+        result["heartbeat"] = heartbeat(result.get("status"))
+        if time.monotonic() - last_backup >= backup_every:
+            try:
+                result["backup"] = backup_db(conn)
+            except (OSError, sqlite3.Error) as exc:
+                result["backup_error"] = str(exc)[:200]
+            last_backup = time.monotonic()
         print(json.dumps(result, ensure_ascii=False, default=str), flush=True)
-        if once:
+        passes += 1
+        if once or (max_passes and passes >= max_passes):
             break
         # Fixed-cadence deadlines: a slow pass shortens the next sleep instead of drifting.
         deadline += interval
         now = time.monotonic()
         if deadline < now:
             deadline = now
-        time.sleep(max(0.0, deadline - now))
+        sleep(max(0.0, deadline - now))
     conn.close()
     return 0 if result.get("status") == "OK" else 2
 

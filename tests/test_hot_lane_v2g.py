@@ -279,6 +279,70 @@ def test_headline_similarity_scale():
     assert headline_similarity("Acme Met Primary Endpoint", "Acme Names New CFO") < 0.55
 
 
+# 9 — worker operations ----------------------------------------------------------------------
+
+def test_heartbeat_pings_and_fail_suffix():
+    seen = []
+    assert hot_monitor.heartbeat("OK", url="https://hc.example/abc", fetch=seen.append) == "https://hc.example/abc"
+    assert hot_monitor.heartbeat("PARTIAL", url="https://hc.example/abc", fetch=seen.append) == "https://hc.example/abc"
+    assert hot_monitor.heartbeat("FAILED", url="https://hc.example/abc/", fetch=seen.append) == "https://hc.example/abc/fail"
+    assert hot_monitor.heartbeat("OK", url="", fetch=seen.append) is None
+
+    def down(_url):
+        raise OSError("no route")
+
+    assert hot_monitor.heartbeat("OK", url="https://hc.example/abc", fetch=down) is None
+
+
+def test_backup_rotation_keeps_newest(tmp_path):
+    conn = db.connect(tmp_path / "live.db")
+    _queued_alert(conn)
+    base = datetime(2026, 10, 6, tzinfo=timezone.utc)
+    for hour in range(5):
+        hot_monitor.backup_db(conn, directory=tmp_path / "bk", keep=3, now=base + timedelta(hours=hour))
+    files = sorted(p.name for p in (tmp_path / "bk").glob("*.db"))
+    assert files == ["mozes-hot-20261006T020000Z.db", "mozes-hot-20261006T030000Z.db", "mozes-hot-20261006T040000Z.db"]
+    import sqlite3
+    copy = sqlite3.connect(tmp_path / "bk" / files[-1])
+    assert copy.execute("SELECT COUNT(*) FROM alert_outbox").fetchone()[0] == 1
+
+
+def test_fresh_worker_first_pass_is_silent_baseline(tmp_path, monkeypatch):
+    monkeypatch.setenv("MOZES_DB_PATH", str(tmp_path / "worker.db"))
+    dispatched = []
+
+    headlines = ["Genmab announces positive topline results in DLBCL", "FDA approves Genmab's Rina-S in ovarian cancer"]
+
+    def fake_pass(conn, dispatch=True, **_kwargs):
+        record_change(
+            conn, ticker="GMAB", change_type="company_release_signal", previous_value=None,
+            new_value={"headline": headlines[len(dispatched)]},
+            source_url=f"https://ir.genmab.com/news/{len(dispatched)}", source_type="company_ir", severity="high",
+            identity=["company_release", "GMAB", str(len(dispatched))],
+        )
+        dispatched.append(dispatch)
+        if dispatch:
+            dispatch_pending(conn, now=datetime.now(timezone.utc) + timedelta(seconds=1))
+        return {"status": "OK"}
+
+    monkeypatch.setattr(hot_monitor, "run_hot_pass", fake_pass)
+    hot_monitor.run_worker(interval_seconds=15, max_passes=2, sleep=lambda _s: None)
+    assert dispatched == [False, True]
+    conn = db.connect(tmp_path / "worker.db")
+    statuses = sorted(r[0] for r in conn.execute("SELECT status FROM alert_outbox"))
+    assert statuses == ["dead", "sent"]
+    assert conn.execute("SELECT last_error FROM alert_outbox WHERE status='dead'").fetchone()[0] == "warm-up baseline"
+
+
+def test_deploy_files_reference_worker_entrypoint():
+    root = Path(__file__).resolve().parents[1]
+    assert "mozes.hot_monitor" in (root / "Dockerfile").read_text(encoding="utf-8")
+    unit = (root / "deploy" / "mozes-hot.service").read_text(encoding="utf-8")
+    assert "mozes.hot_monitor" in unit and "Restart=always" in unit
+    env = (root / "deploy" / "hot.env.example").read_text(encoding="utf-8")
+    assert "MOZES_HEARTBEAT_URL=" in env and "MOZES_NTFY_URL=" in env
+
+
 # 5 — classifier regression corpus ----------------------------------------------------------
 
 def _corpus():

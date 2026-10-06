@@ -16,6 +16,9 @@
 - Single push owner: Actions workflows no longer receive push secrets; `push_allowed()` guards it in code.
 - Cross-source consolidation: the same story for a ticker within 30 minutes is linked (`alert_links`), not re-pushed.
 - Worker sleeps to fixed deadlines; feeds send a contact User-Agent.
+- Worker deployment: `Dockerfile`, `deploy/mozes-hot.service`, `deploy/hot.env.example`,
+  `docs/WORKER_DEPLOY.md`; heartbeat ping (`MOZES_HEARTBEAT_URL`, `/fail` on FAILED), rotating
+  online SQLite backups, and a silent warm-up pass on an empty DB. CI builds the image.
 
 ## 0.3.1 — breaking-catalyst hot lane (v2F)
 

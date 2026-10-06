@@ -2,9 +2,9 @@ name: ci
 on:
   push:
     branches: [main]
-    paths: ['mozes/**', 'tests/**', 'web/**', 'scripts/**', 'pyproject.toml', '.github/workflows/**']
+    paths: ['mozes/**', 'tests/**', 'web/**', 'scripts/**', 'pyproject.toml', '.github/workflows/**', 'Dockerfile', 'deploy/**']
   pull_request:
-    paths: ['mozes/**', 'tests/**', 'web/**', 'scripts/**', 'pyproject.toml', '.github/workflows/**']
+    paths: ['mozes/**', 'tests/**', 'web/**', 'scripts/**', 'pyproject.toml', '.github/workflows/**', 'Dockerfile', 'deploy/**']
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -37,3 +37,13 @@ jobs:
           mozes export-v3
           test -s web/data.json
           test -s web/financial_context_ui.js
+  worker-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the hot-lane worker image
+        run: docker build -t mozes-hot:ci .
+      - name: Worker imports and data files are packaged
+        run: |
+          docker run --rm mozes-hot:ci python -c "import mozes.hot_monitor, mozes.ir_registry as r; assert r.load_aliases()['GMAB']; print('ok')"
