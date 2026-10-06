@@ -1,53 +1,53 @@
-# Hot-lane worker deployment
+# Hot-lane deployment (free)
 
-GitHub Actions keeps research refresh and Pages; it never pushes alerts. The worker is the
-single push owner and needs a process that stays up (not serverless).
+Everything runs on free tiers; no server, no card.
 
-## What the worker does every 60 s
+| Piece | Free tier | Role |
+|---|---|---|
+| Cloudflare Worker `mozes-hot-clock` (`cloudflare/`) | Workers Free: cron every minute | Clock: dispatches `lightweight-monitor.yml` every minute unless a run is active; warns via ntfy if no run succeeded for 45 min |
+| GitHub Actions `lightweight-monitor.yml` | Public repo: unlimited minutes | Compute: FDA / wires / Nasdaq halts / company IR / priority SEC → outbox → push. Single push owner (`MOZES_PUSH_FROM_ACTIONS=1`) |
+| ntfy.sh | Free | Phone push |
+| GitHub Pages | Free | Site, rebuilt at most every 15 min |
 
-FDA / wire / Nasdaq-halt / company-IR feeds → priority SEC + news → outbox dispatch →
-heartbeat ping. Every `MOZES_BACKUP_HOURS` it writes an online SQLite backup.
+GitHub's own `schedule` drifts by hours, so it remains only as a fallback. Vercel Hobby cron is
+once a day, so it can't act as the clock.
 
-On an empty DB the first pass is a silent warm-up: hours of backlog become the baseline
-(outbox rows marked `dead` / `warm-up baseline`) instead of a burst of pushes.
+The workflow is one serialized lineage (`concurrency: mozes-hot-monitor`, never cancelled), and each
+run restores the previous run's DB, so the outbox stays exactly-once. The first run of the hot
+step on any DB is a silent warm-up: backlog becomes the baseline instead of a burst of pushes.
 
-## Option A — Linux VM with systemd
+## One-time setup
 
-```bash
-sudo useradd --system --home /opt/mozes mozes
-sudo git clone https://github.com/Mozes2024/mozes-biotech-intelligence /opt/mozes
-cd /opt/mozes && sudo python3 -m venv .venv && sudo .venv/bin/pip install . tzdata
-sudo mkdir -p /etc/mozes /var/lib/mozes && sudo chown mozes:mozes /var/lib/mozes
-sudo cp deploy/hot.env.example /etc/mozes/hot.env && sudo chmod 600 /etc/mozes/hot.env
-sudo nano /etc/mozes/hot.env          # SEC_USER_AGENT, MOZES_NTFY_URL, MOZES_HEARTBEAT_URL
-sudo cp deploy/mozes-hot.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now mozes-hot
-journalctl -u mozes-hot -f            # one JSON line per pass
-```
+1. **ntfy**: install the ntfy app, subscribe to a long random topic (e.g. `mozes-7f3k9q2x`).
+2. **Repo secret**:
+   ```bash
+   gh secret set MOZES_NTFY_URL --body "https://ntfy.sh/<topic>"
+   ```
+3. **GitHub token for the Worker**: GitHub → Settings → Developer settings → Fine-grained tokens →
+   *Only select repositories*: `mozes-biotech-intelligence` → Repository permissions → **Actions: Read and write**.
+4. **Cloudflare** (free account, no card):
+   ```bash
+   cd cloudflare
+   npx wrangler login
+   npx wrangler secret put GITHUB_TOKEN     # paste the token from step 3
+   npx wrangler secret put NTFY_URL         # optional: same ntfy URL, for the "monitor stale" warning
+   npx wrangler deploy
+   ```
+5. Check: `npx wrangler tail` shows `dispatched` / `busy` every minute, and
+   `gh run list --workflow lightweight-monitor.yml` shows runs about one minute apart.
 
-Update: `cd /opt/mozes && sudo git pull && sudo .venv/bin/pip install . && sudo systemctl restart mozes-hot`.
+To stop the minute clock: `npx wrangler delete` (the GitHub fallback crons keep running).
 
-## Option B — Docker
+## Latency
 
-```bash
-docker build -t mozes-hot .
-docker run -d --name mozes-hot --restart unless-stopped \
-  --env-file deploy/hot.env -v mozes-data:/data mozes-hot
-docker logs -f mozes-hot
-```
+A push arrives about 1–2 minutes after the source publishes: up to 1 min waiting for the tick, then
+roughly 1 min of runner start-up and the pass (feeds are fetched in parallel).
 
-## Optional: start from the Actions monitor DB
+## Optional: always-on server instead
 
-With `gh` authenticated and `GITHUB_REPOSITORY=Mozes2024/mozes-biotech-intelligence`:
+If a free or owned always-on machine is available, `python -m mozes.hot_monitor --interval 60`
+does the same loop in-process (heartbeat, backups). Use **either** that **or** the Actions push owner,
+never both: remove `MOZES_NTFY_URL` from the repo secrets before starting a server worker.
 
-```bash
-MOZES_DB_PATH=/var/lib/mozes/mozes-hot.db python scripts/restore_monitor_state.py
-```
-
-A restored DB is not empty, so there is no warm-up pass; only changes that are new to it are pushed.
-
-## Checks after deploy
-
-- `status` in the log is `OK` or `PARTIAL` (a single feed error is `PARTIAL`, not an outage).
-- The heartbeat check shows pings every minute; it alerts if the worker stops.
-- `ls /var/lib/mozes/backups` shows a new backup every `MOZES_BACKUP_HOURS`.
+- Docker: `docker build -t mozes-hot . && docker run -d --restart unless-stopped --env-file deploy/hot.env -v mozes-data:/data mozes-hot`
+- systemd: copy `deploy/mozes-hot.service`, put env in `/etc/mozes/hot.env` (see `deploy/hot.env.example`).

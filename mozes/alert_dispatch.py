@@ -36,7 +36,7 @@ def _delivery_id(alert_id, attempt):
 
 
 def push_allowed():
-    """The persistent worker owns push; Actions runs keep a separate DB and would duplicate alerts."""
+    """Exactly one lineage may push; on Actions that is the serialized hot workflow, opted in explicitly."""
     if os.environ.get("GITHUB_ACTIONS") == "true":
         return os.environ.get("MOZES_PUSH_FROM_ACTIONS") == "1"
     return True

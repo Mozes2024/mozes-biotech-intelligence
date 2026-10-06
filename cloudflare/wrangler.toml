@@ -1,0 +1,15 @@
+name = "mozes-hot-clock"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+GITHUB_REPO = "Mozes2024/mozes-biotech-intelligence"
+WORKFLOW_FILE = "lightweight-monitor.yml"
+GITHUB_REF = "main"
+
+[triggers]
+crons = ["* * * * *"]
+
+# Secrets (never in this file):
+#   npx wrangler secret put GITHUB_TOKEN   # fine-grained token: this repo only, Actions = Read and write
+#   npx wrangler secret put NTFY_URL       # optional, for the stale-monitor warning

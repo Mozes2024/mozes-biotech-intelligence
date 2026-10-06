@@ -1,7 +1,8 @@
 name: lightweight-live-monitor
 on:
+  # Primary clock: the free Cloudflare Worker in cloudflare/ dispatches this every minute
+  # (GitHub's schedule drifts by hours); the crons below are only a fallback.
   schedule:
-    # Offset minutes reduce GitHub scheduler contention at :00.
     - cron: '7,22,37,52 * * * *'
     - cron: '20 0,12,18 * * *'
     - cron: '20 6 * * 0,2,4,6'
@@ -29,9 +30,13 @@ jobs:
       MOZES_NEWS_ENABLED: '1'
       MOZES_HTTP_CACHE: .monitor/http-cache
       MOZES_SEC_HOT: '1'
-      MOZES_PRIMARY_FEEDS: '1'
-      # Outbox rows are written to the log channel only; the persistent worker owns push delivery.
+      # FDA / wires / halts are polled by the hot step below, not again by the monitor step.
+      MOZES_PRIMARY_FEEDS: '0'
       MOZES_ALERT_DISPATCH: '1'
+      # No always-on server: this workflow (one serialized lineage) is the single push owner.
+      MOZES_PUSH_FROM_ACTIONS: '1'
+      MOZES_NTFY_URL: ${{ secrets.MOZES_NTFY_URL }}
+      MOZES_WEBHOOK_URL: ${{ secrets.MOZES_WEBHOOK_URL }}
       GH_TOKEN: ${{ github.token }}
       RUN_PRIORITY: ${{ inputs.priority_only == true || github.event_name == 'schedule' }}
     steps:
@@ -44,6 +49,8 @@ jobs:
       - run: pip install -e .
       - name: Restore the single monitor-state lineage
         run: python scripts/restore_monitor_state.py
+      - name: Hot feeds (FDA, wires, Nasdaq halts, company IR) + push
+        run: python -m mozes.hot_monitor --once --no-sec --allow-partial
       - name: Hot priority observe + alert outbox
         id: data
         run: |
@@ -60,8 +67,15 @@ jobs:
             .monitor/manifest.json
             .monitor/http-cache
           include-hidden-files: true
-          retention-days: 90
+          # Runs are minute-frequent; restore only needs the newest successful lineage.
+          retention-days: 3
       - name: Publish only changed data or the daily heartbeat
         if: steps.data.outputs.should_publish == 'true'
         run: |
-          gh workflow run pages.yml --ref main -f source_run_id="$GITHUB_RUN_ID"
+          # Pages is a consumer, not the alert path: rebuild at most every 15 minutes.
+          last=$(gh run list --workflow pages.yml --limit 1 --json createdAt --jq '.[0].createdAt // ""')
+          if [ -n "$last" ] && [ $(( $(date +%s) - $(date -d "$last" +%s) )) -lt 900 ]; then
+            echo "Pages rebuilt <15 min ago; this change ships with the next publish."
+          else
+            gh workflow run pages.yml --ref main -f source_run_id="$GITHUB_RUN_ID"
+          fi

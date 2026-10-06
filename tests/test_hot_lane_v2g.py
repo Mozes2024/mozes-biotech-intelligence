@@ -236,11 +236,52 @@ def test_actions_runs_never_push(monkeypatch):
     assert configured_channels() == ("ntfy",)
 
 
-def test_workflows_do_not_receive_push_secrets():
+def test_only_the_hot_workflow_pushes():
+    """Free hosting: the serialized hot workflow is the single push owner; nothing else gets push secrets."""
     root = Path(__file__).resolve().parents[1] / ".github" / "workflows"
     for path in root.glob("*.yml"):
         text = path.read_text(encoding="utf-8")
-        assert "MOZES_NTFY_URL" not in text and "MOZES_WEBHOOK_URL" not in text, path.name
+        if path.name == "lightweight-monitor.yml":
+            assert "MOZES_NTFY_URL: ${{ secrets.MOZES_NTFY_URL }}" in text
+            assert "MOZES_PUSH_FROM_ACTIONS: '1'" in text
+            assert "group: mozes-hot-monitor" in text and "cancel-in-progress: false" in text
+        else:
+            assert "MOZES_NTFY_URL" not in text and "MOZES_PUSH_FROM_ACTIONS" not in text, path.name
+
+
+def test_pass_fetcher_prefetches_once_and_replays_errors():
+    calls = []
+
+    def fetch(url):
+        calls.append(url)
+        if url.endswith("bad"):
+            raise OSError("down")
+        return url.encode()
+
+    fetcher = hot_monitor.PassFetcher(fetch=fetch, workers=4)
+    fetcher.prefetch(["https://a", "https://b", "https://bad", "https://a"])
+    assert sorted(calls) == ["https://a", "https://b", "https://bad"]
+    assert fetcher("https://a") == b"https://a"
+    with pytest.raises(OSError):
+        fetcher("https://bad")
+    assert fetcher("https://c") == b"https://c"
+    assert len(calls) == 4
+
+
+def test_existing_db_gets_one_silent_hot_baseline(tmp_path, monkeypatch):
+    conn = db.connect(tmp_path / "actions.db")
+    _queued_alert(conn)  # an Actions DB that already has history
+    seen = []
+
+    def fake_pass(conn, dispatch=True, **_kwargs):
+        seen.append(dispatch)
+        return {"status": "OK"}
+
+    monkeypatch.setattr(hot_monitor, "run_hot_pass", fake_pass)
+    first = hot_monitor.run_hot_cycle(conn)
+    second = hot_monitor.run_hot_cycle(conn)
+    assert seen == [False, True]
+    assert first["warmup_silenced"] == 1 and "warmup_silenced" not in second
 
 
 # 7 — cross-source consolidation -------------------------------------------------------------

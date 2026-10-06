@@ -11,6 +11,7 @@ import os
 import sqlite3
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,13 +22,53 @@ from .ir_registry import ir_entries
 from .latency_metrics import summary as latency_summary
 from .live_monitor import run_monitor
 from .news_signals import poll_official_feeds
-from .primary_feeds import fetch_feed, poll_fda_feeds, poll_nasdaq_halts, poll_wire_feeds
+from .primary_feeds import (
+    FDA_FEEDS, NASDAQ_HALTS_FEED, WIRE_FEEDS, fetch_feed, poll_fda_feeds, poll_nasdaq_halts, poll_wire_feeds,
+)
 from .priority import priority_tickers
 from .sec_http import enable_hot_mode
 
 
 def _fetch(url):
     return fetch_feed(url, timeout=12)
+
+
+class PassFetcher:
+    """Per-pass cache with a parallel prefetch, so ~50 feeds cost one timeout, not fifty."""
+
+    def __init__(self, fetch=_fetch, workers=8):
+        self._fetch, self._workers, self._results = fetch, workers, {}
+
+    def prefetch(self, urls):
+        pending = [url for url in dict.fromkeys(urls) if url and url not in self._results]
+        if not pending:
+            return
+        with ThreadPoolExecutor(max_workers=self._workers) as pool:
+            for url, outcome in zip(pending, pool.map(self._capture, pending)):
+                self._results[url] = outcome
+
+    def _capture(self, url):
+        try:
+            return ("ok", self._fetch(url))
+        except Exception as exc:  # noqa: BLE001 - replayed to the caller on __call__
+            return ("error", exc)
+
+    def __call__(self, url):
+        if url not in self._results:
+            self._results[url] = self._capture(url)
+        kind, value = self._results[url]
+        if kind == "error":
+            raise value
+        return value
+
+
+def hot_urls():
+    hot = set(priority_tickers())
+    urls = [url for _name, url in FDA_FEEDS] + [url for _name, url in WIRE_FEEDS] + [NASDAQ_HALTS_FEED]
+    for row in ir_entries():
+        if row["ticker"] in hot:
+            urls.append(row.get("feed_url") or row["site"])
+    return urls
 
 
 def seed_priority_watches(conn):
@@ -72,7 +113,9 @@ def _watch_tickers(conn):
 
 def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True, fetch=None):
     """One bounded hot cycle: primary feeds → priority IR/SEC/news → outbox dispatch."""
-    fetch = fetch or _fetch
+    if fetch is None:
+        fetch = PassFetcher()
+        fetch.prefetch(hot_urls())
     enable_hot_mode(True)
     started = datetime.now(timezone.utc).isoformat()
     details = {"started_at": started, "feeds": {}, "monitor": None, "alerts": None, "errors": {}, "steps": []}
@@ -160,8 +203,29 @@ def backup_db(conn, *, directory=None, keep=None, now=None):
     return str(target)
 
 
-def is_fresh_db(conn):
-    return conn.execute("SELECT COUNT(*) FROM change_events").fetchone()[0] == 0
+WARMUP_MARKER = "hot_lane:initialized"
+
+
+def needs_warmup(conn):
+    """True for an empty DB or one the hot lane has never polled (e.g. an existing Actions DB)."""
+    return conn.execute("SELECT 1 FROM monitor_observations WHERE observation_key=?",
+                        (WARMUP_MARKER,)).fetchone() is None
+
+
+def mark_initialized(conn):
+    from .live_monitor import observe
+    observe(conn, WARMUP_MARKER, {"initialized_at": datetime.now(timezone.utc).isoformat()},
+            source_type="hot_lane")
+
+
+def run_hot_cycle(conn, **kwargs):
+    """A hot pass that silently baselines the first time it runs against a DB."""
+    warmup = needs_warmup(conn)
+    result = run_hot_pass(conn, **{**kwargs, "dispatch": kwargs.get("dispatch", True) and not warmup})
+    if warmup:
+        result["warmup_silenced"] = silence_warmup(conn)
+        mark_initialized(conn)
+    return result
 
 
 def silence_warmup(conn):
@@ -177,14 +241,10 @@ def run_worker(*, interval_seconds=60, once=False, max_passes=None, sleep=time.s
     interval = max(15, int(interval_seconds))
     backup_every = float(os.environ.get("MOZES_BACKUP_HOURS", "6")) * 3600
     last_backup = time.monotonic()
-    warmup = is_fresh_db(conn)
     deadline = time.monotonic()
     passes = 0
     while True:
-        result = run_hot_pass(conn, dispatch=not warmup)
-        if warmup:
-            result["warmup_silenced"] = silence_warmup(conn)
-            warmup = False
+        result = run_hot_cycle(conn)
         result["heartbeat"] = heartbeat(result.get("status"))
         if time.monotonic() - last_backup >= backup_every:
             try:
@@ -213,14 +273,17 @@ def main(argv=None):
     parser.add_argument("--no-wires", action="store_true")
     parser.add_argument("--no-sec", action="store_true")
     parser.add_argument("--no-dispatch", action="store_true")
+    parser.add_argument("--allow-partial", action="store_true", help="exit 0 when some sources failed")
     args = parser.parse_args(argv)
     if args.once or args.no_wires or args.no_sec or args.no_dispatch:
         conn = db.connect(os.environ.get("MOZES_DB_PATH", DB_PATH))
-        result = run_hot_pass(
+        result = run_hot_cycle(
             conn, include_sec=not args.no_sec, include_wires=not args.no_wires,
             dispatch=not args.no_dispatch)
         print(json.dumps(result, ensure_ascii=False, default=str))
         conn.close()
+        if args.allow_partial and result.get("status") == "PARTIAL":
+            return 0
         return 0 if result.get("status") == "OK" else 2
     return run_worker(interval_seconds=args.interval, once=False)
 
