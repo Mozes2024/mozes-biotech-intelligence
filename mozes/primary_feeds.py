@@ -16,11 +16,10 @@ from .live_monitor import observe, record_change
 from .materiality import classify_outcome
 
 FDA_FEEDS = (
-    # fda.gov answers 401 to some networks (including the dev box used to capture fixtures),
-    # so these stay unverified until a runner observation reports them active.
+    # fda.gov answers 401 to some networks; verify with the feed-probe workflow, not locally.
     ("fda_press_releases", "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/press-releases/rss.xml"),
     ("fda_drugs", "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/drugs/rss.xml"),
-    ("fda_biologics", "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/biologics/rss.xml"),
+    ("fda_biologics", "https://www.fda.gov/AboutFDA/ContactFDA/StayInformed/RSSFeeds/Biologics/rss.xml"),
 )
 
 WIRE_FEEDS = (

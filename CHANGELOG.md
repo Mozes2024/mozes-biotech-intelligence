@@ -5,7 +5,8 @@
 - Each hot-pass source runs in isolation; one failing feed yields `PARTIAL`, and dispatch always runs.
 - Outbox `sending` rows carry a 2-minute lease and are recovered (or dead-lettered) after a crash.
 - Feed URLs verified live on 2026-10-06; real samples stored in `tests/fixtures/feeds/`.
-  Business Wire / PR Newswire / GlobeNewswire URLs corrected; FDA still unverified (401 from the capture host).
+  Business Wire / PR Newswire / GlobeNewswire / FDA Biologics URLs corrected; all verified from a
+  GitHub runner via the new manual `feed-probe` workflow.
 - Nasdaq halts parsed from the `ndaq:` namespace (the old parser accepted zero real items);
   news/regulatory codes vs volatility pauses, identity = ticker + code + halt time.
 - P1 only for watchlist tickers; unattributed FDA/wire signals are P3 and not pushed by default

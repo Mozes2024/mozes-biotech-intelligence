@@ -174,6 +174,20 @@ def test_gmab_oct5_release_replays_as_single_p1_alert(tmp_path):
     assert json.loads(alerts[0]["payload_json"])["priority"] == "P1"
 
 
+def test_fda_fixtures_from_runner_record_without_paging(tmp_path):
+    """fda.gov blocks the dev host; these samples were captured by the feed-probe workflow."""
+    from mozes.primary_feeds import FDA_FEEDS, poll_fda_feeds
+    conn = db.connect(tmp_path / "fda.db")
+    feeds = {url: _feed(name) for name, url in FDA_FEEDS}
+    result = poll_fda_feeds(conn, fetch=lambda url: feeds[url], now=CAPTURED,
+                            resolve_headline=lambda conn, headline: None)
+    assert result["errors"] == 0 and result["signals_seen"] >= 1
+    unattributed = conn.execute("SELECT COUNT(*) FROM change_events WHERE ticker IS NULL").fetchone()[0]
+    queued = {r[0] for r in conn.execute(
+        "SELECT o.change_id FROM alert_outbox o JOIN change_events c USING(change_id) WHERE c.ticker IS NULL")}
+    assert unattributed >= 1 and queued == set()
+
+
 def test_alias_resolution_is_unique_or_nothing():
     assert resolve_alias("Genmab and AbbVie Announce Epcoritamab Data")["ticker"] == "GMAB"
     assert resolve_alias("FDA approves Rezdiffra label update")["ticker"] == "MDGL"
