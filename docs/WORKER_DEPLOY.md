@@ -5,7 +5,7 @@ Everything runs on free tiers; no server, no card.
 | Piece | Free tier | Role |
 |---|---|---|
 | Cloudflare Worker `mozes-hot-clock` (`cloudflare/`) | Workers Free: cron every minute | Clock: dispatches `lightweight-monitor.yml` every minute unless a run is active; warns via ntfy if no run succeeded for 45 min |
-| GitHub Actions `lightweight-monitor.yml` | Public repo: unlimited minutes | Compute: FDA / wires / Nasdaq halts / company IR / priority SEC → outbox → push. Single push owner (`MOZES_PUSH_FROM_ACTIONS=1`) |
+| GitHub Actions `lightweight-monitor.yml` | Public repo: unlimited minutes | Compute: FDA / wires / Nasdaq halts / company IR / priority SEC ג†’ outbox ג†’ push. Single push owner (`MOZES_PUSH_FROM_ACTIONS=1`) |
 | ntfy.sh | Free | Phone push |
 | GitHub Pages | Free | Site, rebuilt at most every 15 min |
 
@@ -28,10 +28,9 @@ step on any DB is a silent warm-up: backlog becomes the baseline instead of a bu
      ```
    - ntfy: subscribe to a long random topic in the app, then
      `gh secret set MOZES_NTFY_URL --body "https://ntfy.sh/<topic>"`.
-2. (Reserved.)
-3. **GitHub token for the Worker**: GitHub → Settings → Developer settings → Fine-grained tokens →
-   *Only select repositories*: `mozes-biotech-intelligence` → Repository permissions → **Actions: Read and write**.
-4. **Cloudflare** (free account, no card):
+2. **GitHub token for the Worker**: GitHub ג†’ Settings ג†’ Developer settings ג†’ Fine-grained tokens ג†’
+   *Only select repositories*: `mozes-biotech-intelligence` ג†’ Repository permissions ג†’ **Actions: Read and write**.
+3. **Cloudflare** (free account, no card):
    ```bash
    cd cloudflare
    npx wrangler login
@@ -39,14 +38,14 @@ step on any DB is a silent warm-up: backlog becomes the baseline instead of a bu
    npx wrangler secret put NTFY_URL         # optional: same ntfy URL, for the "monitor stale" warning
    npx wrangler deploy
    ```
-5. Check: `npx wrangler tail` shows `dispatched` / `busy` every minute, and
+4. Check: `npx wrangler tail` shows `dispatched` / `busy` every minute, and
    `gh run list --workflow lightweight-monitor.yml` shows runs about one minute apart.
 
 To stop the minute clock: `npx wrangler delete` (the GitHub fallback crons keep running).
 
 ## Latency
 
-A push arrives about 1–2 minutes after the source publishes: up to 1 min waiting for the tick, then
+A push arrives about 1ג€“2 minutes after the source publishes: up to 1 min waiting for the tick, then
 roughly 1 min of runner start-up and the pass (feeds are fetched in parallel).
 
 ## Optional: always-on server instead
