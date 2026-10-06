@@ -48,10 +48,27 @@ def probe(name, url):
     return info, body
 
 
+FDA_RSS_INDEX = "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds"
+
+
+def list_fda_rss():
+    request = urllib.request.Request(FDA_RSS_INDEX, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(request, timeout=20) as response:
+        html = response.read(2_000_000).decode("utf-8", "replace")
+    import re
+    return sorted(set(re.findall(r'href="([^"]*rss[^"]*\.xml)"', html)))
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--save", action="store_true")
+    parser.add_argument("--list-fda", action="store_true", help="print RSS links advertised by fda.gov")
     args = parser.parse_args(argv)
+    if args.list_fda:
+        try:
+            print(json.dumps({"fda_rss_links": list_fda_rss()}, indent=2))
+        except (OSError, urllib.error.URLError) as exc:
+            print(json.dumps({"fda_rss_links_error": str(exc)[:160]}))
     feeds = list(FDA_FEEDS) + list(WIRE_FEEDS) + [("nasdaq_halts", NASDAQ_HALTS_FEED)]
     report = []
     for name, url in feeds:

@@ -14,4 +14,9 @@ jobs:
           python-version: '3.11'
       - run: pip install -e .
       - name: Probe hot-lane feeds (status, XML, item counts)
-        run: python scripts/capture_feed_fixtures.py
+        run: python scripts/capture_feed_fixtures.py --save --list-fda
+      - uses: actions/upload-artifact@v4
+        with:
+          name: feed-samples
+          path: tests/fixtures/feeds/
+          retention-days: 7
