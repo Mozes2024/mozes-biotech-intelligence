@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 
 FILE = Path(__file__).parent / "data" / "priority_issuers.json"
+# SEC fair-access budget: keep hot cohort bounded but large enough for a real watchlist.
+HOT_CAP = 40
 
 
 def priority_tickers():
@@ -15,6 +17,6 @@ def priority_tickers():
         return ()
     if not isinstance(values, list):
         return ()
-    return tuple(dict.fromkeys(t for value in values[:5]
+    return tuple(dict.fromkeys(t for value in values[:HOT_CAP]
                                if isinstance(value, str)
                                if (t := value.strip().upper()) and re.fullmatch(r"[A-Z][A-Z0-9.]{0,9}", t)))

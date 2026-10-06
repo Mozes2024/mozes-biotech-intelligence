@@ -18,9 +18,11 @@ from urllib.parse import urlsplit
 
 from .live_monitor import observe, record_change
 from .priority import priority_tickers
+from .ir_registry import load_ir_registry, ir_site
 
 PUBLISHERS = ("reuters.com", "apnews.com", "statnews.com", "fiercebiotech.com",
-              "endpts.com", "biopharmadive.com", "businesswire.com", "globenewswire.com")
+              "endpts.com", "biopharmadive.com", "businesswire.com", "globenewswire.com",
+              "prnewswire.com", "accesswire.com")
 TOPICS = re.compile(r"\b(trial|clinical|phase\s*[123]|topline|readout|results|endpoint|"
                     r"fda|approval|milestone|offering|financing|acquisition|merger)\b", re.I)
 MATERIAL = re.compile(r"\b(phase\s*[23](?:\s*/\s*3)?|top[ -]?line(?: data)?|read[ -]?out|"
@@ -33,7 +35,7 @@ GLOBAL_QUERIES = (
 )
 
 
-OFFICIAL_IR_SITES = json.loads((Path(__file__).parent / "data" / "official_ir_sites.json").read_text(encoding="utf-8"))
+OFFICIAL_IR_SITES = {ticker: row["site"] for ticker, row in load_ir_registry().items()}
 
 
 def _public_https(url):
@@ -110,14 +112,54 @@ def parse_official_feed(payload, *, site, now=None, max_age_hours=48):
     return rows
 
 
+class _PressLinks(HTMLParser):
+    """Collect same-host HTTPS anchors that look like press-release index entries."""
+
+    def __init__(self, site):
+        super().__init__()
+        self.site = site
+        self.links = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag != "a":
+            return
+        href = dict(attrs).get("href")
+        if not href:
+            return
+        url = urllib.parse.urljoin(self.site, href)
+        if not _same_official_host(url, self.site):
+            return
+        path = (urlsplit(url).path or "").lower()
+        if any(token in path for token in ("press", "news", "release", "media", "announcement")):
+            self.links.append(url)
+
+
+def discover_press_index(site, fetch):
+    """When IR advertises no RSS, fall back to same-host press/news index links."""
+    if not _public_https(site):
+        return []
+    raw = fetch(site)
+    html = raw.decode("utf-8", errors="replace") if isinstance(raw, (bytes, bytearray)) else str(raw)
+    parser = _PressLinks(site)
+    parser.feed(html)
+    # Deduplicate while preserving order; cap crawl fan-out.
+    return list(dict.fromkeys(parser.links))[:12]
+
+
 def poll_official_feeds(conn, issuers, *, fetch, now):
     """Follow official company releases for the bounded late-stage news cohort."""
     checked = added = 0
     errors = []
+    registry = load_ir_registry()
     for issuer in issuers:
         ticker = issuer["ticker"]
         checked_at = now.isoformat()
-        sites = [OFFICIAL_IR_SITES[ticker]] if ticker in OFFICIAL_IR_SITES else []
+        entry = registry.get(ticker) or {}
+        sites = []
+        if entry.get("site"):
+            sites.append(entry["site"])
+        elif ticker in OFFICIAL_IR_SITES:
+            sites.append(OFFICIAL_IR_SITES[ticker])
         sites += [row[0] for row in conn.execute(
             "SELECT DISTINCT es.url FROM event_sources es JOIN events e ON e.id=es.event_id "
             "WHERE json_extract(e.payload,'$.ticker')=? AND es.source_type='company_ir' "
@@ -127,22 +169,37 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
             observe(conn, "official_feed:" + ticker, {"status": "no_official_site", "checked_at": checked_at}, source_type="company_ir")
             continue
         try:
-            feed = discover_official_feed(site, fetch)
-            if not feed:
-                observe(conn, "official_feed:" + ticker, {"status": "no_rss_found", "site": site, "checked_at": checked_at},
+            known_feed = entry.get("feed_url")
+            feed = known_feed if (known_feed and _same_official_host(known_feed, site)) else discover_official_feed(site, fetch)
+            items = []
+            feed_url = feed
+            if feed:
+                items = parse_official_feed(fetch(feed), site=site, now=now)
+                checked += 1
+                observe(conn, "official_feed:" + ticker, {"status": "active", "site": site, "feed": feed,
+                                                          "checked_at": checked_at, "known_feed": bool(known_feed)},
+                        source_url=feed, source_type="company_ir")
+            else:
+                # no_rss_found is no longer a dead end: HTML press index is Stage-1 discovery.
+                index_links = discover_press_index(site, fetch)
+                observe(conn, "official_feed:" + ticker,
+                        {"status": "html_fallback" if index_links else "no_rss_found",
+                         "site": site, "index_links": len(index_links), "checked_at": checked_at},
                         source_url=site, source_type="company_ir")
-                continue
-            items = parse_official_feed(fetch(feed), site=site, now=now)
-            checked += 1
-            observe(conn, "official_feed:" + ticker, {"status": "active", "site": site, "feed": feed, "checked_at": checked_at},
-                    source_url=feed, source_type="company_ir")
+                feed_url = site
+                for link in index_links[:5]:
+                    items.append({"title": urlsplit(link).path.rsplit("/", 1)[-1] or link,
+                                  "url": link, "published_at": now.isoformat()})
+                if index_links:
+                    checked += 1
             for item in items[:10]:
                 before = conn.total_changes
                 record_change(conn, ticker=ticker, change_type="company_release_signal", previous_value=None,
                               new_value={"headline": item["title"], "published_at": item["published_at"]},
                               source_url=item["url"], source_type="company_ir", severity="medium",
                               verification_state="investigation_only", identity=["company_release", ticker, item["url"]],
-                              metadata={"feed_url": feed, "headline_only": True})
+                              metadata={"feed_url": feed_url, "headline_only": True,
+                                        "html_fallback": not bool(feed)})
                 added += conn.total_changes > before
         except (OSError, ValueError, ET.ParseError, UnicodeError) as exc:
             errors.append({"ticker": ticker, "error": str(exc)[:160]})
@@ -210,20 +267,37 @@ def resolve_headline(conn, headline, mappings=None):
 
 
 def verify_discovered(conn, issuers, *, fetch, now, deadline):
-    """Registry estimates remain discovery; promotion uses the existing SEC matcher."""
+    """Registry estimates remain discovery; promotion uses the existing SEC matcher.
+
+    Material headlines escalate retries in minutes (0/1/3/10/30/60), not a flat 24h cooldown.
+    """
     from .discovery import study_to_candidate, store_candidates
+    from .materiality import classify_outcome, MATERIAL_HEADLINE
     errors, checked = [], []
+    material_schedule_hours = (0, 1 / 60, 3 / 60, 10 / 60, 30 / 60, 1.0)
     for issuer in issuers:
         if time.monotonic() >= deadline:
             break
         ticker = issuer['ticker']
         key = 'news_verification:' + ticker
-        prior = conn.execute('SELECT value_json FROM monitor_observations WHERE observation_key=?', (key,)).fetchone()
-        if prior:
-            stamp = json.loads(prior[0]).get('checked_at')
-            retry_hours = 1 if json.loads(prior[0]).get('status') == 'fetch_error' else 24
+        prior_row = conn.execute('SELECT value_json FROM monitor_observations WHERE observation_key=?', (key,)).fetchone()
+        material = bool(issuer.get('material') or MATERIAL_HEADLINE.search(str(issuer.get('headline') or '')))
+        if prior_row:
+            prior = json.loads(prior_row[0])
+            stamp = prior.get('checked_at')
+            attempts = int(prior.get('attempts') or 1)
+            if prior.get('status') == 'fetch_error':
+                retry_hours = 1 / 60
+            elif material:
+                idx = min(attempts, len(material_schedule_hours) - 1)
+                retry_hours = material_schedule_hours[idx]
+            else:
+                retry_hours = 24
             if stamp and now - datetime.fromisoformat(stamp) < timedelta(hours=retry_hours):
                 continue
+            next_attempts = attempts + 1
+        else:
+            next_attempts = 1
         status = 'attempted'
         try:
             url = 'https://clinicaltrials.gov/api/v2/studies?' + urllib.parse.urlencode({
@@ -256,15 +330,19 @@ def verify_discovered(conn, issuers, *, fetch, now, deadline):
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 status = 'fetch_error'
                 errors.append({'ticker': ticker, 'source': 'sec', 'error': str(exc)[:160]})
-        observe(conn, key, {'status': status, 'checked_at': now.isoformat()}, source_type='clinicaltrials')
+        observe(conn, key, {'status': status, 'checked_at': now.isoformat(),
+                            'attempts': next_attempts, 'material': material,
+                            'outcome': classify_outcome(str(issuer.get('headline') or ''))},
+                source_type='clinicaltrials')
     return {'checked': checked, 'errors': errors, 'budget_exhausted': time.monotonic() >= deadline}
 
 
-def discover_news_issuers(conn, *, fetch, now, max_issuers=4):
-    """Two publisher feeds and two queries, 40 headlines each, four identities per pass."""
+def discover_news_issuers(conn, *, fetch, now, max_issuers=8):
+    """Two publisher feeds and two queries; budget is request-priority, not a hard four-name starve."""
     from . import db
     enrolled, signals, errors, candidates = {}, 0, [], {}
     from .universe import normalize_org
+    from .materiality import MATERIAL_HEADLINE
     mappings = [{**dict(row), '_headline_name': normalize_org(row['sponsor'])} for row in conn.execute(
         "SELECT * FROM sponsor_ticker_map WHERE source='SEC-v2C-equity' AND confidence>=0.85 AND cik IS NOT NULL")]
     feeds = [(url, url) for url in DIRECT_FEEDS]
@@ -277,14 +355,23 @@ def discover_news_issuers(conn, *, fetch, now, max_issuers=4):
                     continue
                 issuer = resolve_headline(conn, item['title'], mappings)
                 if issuer:
-                    candidates.setdefault(issuer['ticker'], {'issuer': issuer, 'items': []})['items'].append(item)
+                    bucket = candidates.setdefault(issuer['ticker'], {'issuer': issuer, 'items': [], 'material': False})
+                    bucket['items'].append(item)
+                    if MATERIAL_HEADLINE.search(item['title'] + ' ' + item.get('summary', '')):
+                        bucket['material'] = True
         except (OSError, ValueError, ET.ParseError) as exc:
             errors.append({'url': url, 'error': str(exc)[:160]})
-    # Oldest discovery scan first: repeated headlines cannot starve new identities.
+    # Material + never-scanned first; aging bonus for oldest unverified.
     scanned_at = {row['observation_key'].split(':', 1)[1]: row['observed_at'] for row in conn.execute(
         "SELECT observation_key,observed_at FROM monitor_observations WHERE observation_key LIKE 'news_discovery:%'")}
-    for ticker in sorted(candidates, key=lambda t: (scanned_at.get(t, ''), t))[:max_issuers]:
-        issuer = candidates[ticker]['issuer']
+    ordered = sorted(
+        candidates,
+        key=lambda t: (0 if candidates[t]['material'] else 1, scanned_at.get(t, ''), t),
+    )[:max_issuers]
+    for ticker in ordered:
+        issuer = dict(candidates[ticker]['issuer'])
+        issuer['material'] = candidates[ticker]['material']
+        issuer['headline'] = candidates[ticker]['items'][0]['title']
         enrolled[ticker] = issuer
         watch = conn.execute('SELECT 1 FROM watch_universe WHERE ticker=?', (ticker,)).fetchone()
         if not watch:
@@ -365,5 +452,14 @@ def poll_news(conn, *, limit=8, fetch=None, now=None):
             observe(conn, 'news_poll:' + ticker, {'checked_at': now.isoformat(), 'status': 'fetch_error'}, source_type='secondary_news')
     official_issuers = {row['ticker']: row for row in issuers}
     official_issuers.update({row['ticker']: row for row in discovered})
+    # Always include the configured hot IR cohort, even before discovery candidates exist.
+    for ticker in priority_tickers():
+        if ticker in official_issuers:
+            continue
+        entry = load_ir_registry().get(ticker) or {}
+        official_issuers[ticker] = {
+            "ticker": ticker,
+            "company": entry.get("company") or ticker,
+        }
     official = poll_official_feeds(conn, list(official_issuers.values()), fetch=fetch, now=now)
     return {"checked": checked, "signals_seen": added + dynamic["signals_seen"], "errors": errors, "official_feeds": official, "discovery": dynamic}

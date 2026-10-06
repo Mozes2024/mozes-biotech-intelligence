@@ -122,7 +122,7 @@ def test_dynamic_zentalis_not_in_watchlist_enrolls_review_signal(tmp_path):
     assert conn.execute("SELECT COUNT(*) FROM events WHERE kind='live'").fetchone()[0] == 0
     payload = export_payload(conn, tmp_path / 'web' / 'data.json')
     assert any(c['ticker'] == 'ZNTL' for c in payload['changes'])
-    assert json.loads((tmp_path / 'web' / 'data.json').read_text())['build']['change_ledger']
+    assert json.loads((tmp_path / 'web' / 'data.json').read_text(encoding='utf-8'))['build']['change_ledger']
     urls.clear()
     assert poll_news(conn, limit=2, fetch=fetch, now=NOW)['signals_seen'] == 0
     assert not any('clinicaltrials.gov' in u for u in urls)

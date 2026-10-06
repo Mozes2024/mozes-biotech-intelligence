@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mozes-biotech-catalyst"
-version = "0.3.0"
+version = "0.3.1"
 description = "Verified, point-in-time biotech catalyst intelligence: discovery, provenance, scoring, validation and paper signals."
 readme = "README.md"
 requires-python = ">=3.10"

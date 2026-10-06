@@ -19,15 +19,31 @@ from .source_observability import record
 
 _LAST_REQUEST = 0.0
 MAX_BYTES = 16 * 1024 * 1024
+_HOT_MODE = False
+HOT_SUBMISSIONS_TTL = 60
 
 
-def ttl_for(url):
+def enable_hot_mode(enabled=True):
+    """Hot lane may refresh submissions every 60s; archived docs stay long-lived."""
+    global _HOT_MODE
+    _HOT_MODE = bool(enabled)
+    return _HOT_MODE
+
+
+def hot_mode_enabled():
+    return _HOT_MODE or os.environ.get('MOZES_SEC_HOT', '') == '1'
+
+
+def ttl_for(url, *, hot=None):
     parsed = urlparse(url)
     if '/Archives/edgar/data/' in parsed.path and not parsed.path.endswith('index.json'):
         return 365 * 86400
     if '/companyfacts/' in parsed.path or 'company_tickers' in parsed.path:
         return 86400
     if '/submissions/' in parsed.path:
+        use_hot = hot_mode_enabled() if hot is None else bool(hot)
+        if use_hot:
+            return int(os.environ.get('MOZES_SEC_HOT_TTL', HOT_SUBMISSIONS_TTL))
         return 900
     return 3600
 

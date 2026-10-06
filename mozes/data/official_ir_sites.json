@@ -1,4 +1,202 @@
 {
-  "SLS": "https://ir.sellaslifesciences.com/",
-  "MRNA": "https://investors.modernatx.com/"
+  "SLS": {
+    "company": "SELLAS Life Sciences",
+    "site": "https://ir.sellaslifesciences.com/",
+    "feed_url": null
+  },
+  "MRNA": {
+    "company": "Moderna",
+    "site": "https://investors.modernatx.com/",
+    "feed_url": "https://investors.modernatx.com/feed/rss2"
+  },
+  "GMAB": {
+    "company": "Genmab",
+    "site": "https://ir.genmab.com/",
+    "feed_url": "https://ir.genmab.com/rss/news-releases.xml"
+  },
+  "BNTX": {
+    "company": "BioNTech",
+    "site": "https://investors.biontech.de/",
+    "feed_url": "https://investors.biontech.de/rss/news-releases.xml"
+  },
+  "REGN": {
+    "company": "Regeneron",
+    "site": "https://investor.regeneron.com/",
+    "feed_url": "https://investor.regeneron.com/rss/news-releases.xml"
+  },
+  "VRTX": {
+    "company": "Vertex",
+    "site": "https://investors.vrtx.com/",
+    "feed_url": "https://investors.vrtx.com/rss/news-releases.xml"
+  },
+  "AMGN": {
+    "company": "Amgen",
+    "site": "https://investors.amgen.com/",
+    "feed_url": "https://investors.amgen.com/rss/news-releases.xml"
+  },
+  "BIIB": {
+    "company": "Biogen",
+    "site": "https://investors.biogen.com/",
+    "feed_url": "https://investors.biogen.com/rss/news-releases.xml"
+  },
+  "GILD": {
+    "company": "Gilead",
+    "site": "https://investors.gilead.com/",
+    "feed_url": null
+  },
+  "EXEL": {
+    "company": "Exelixis",
+    "site": "https://ir.exelixis.com/",
+    "feed_url": "https://ir.exelixis.com/rss/news-releases.xml"
+  },
+  "IONS": {
+    "company": "Ionis",
+    "site": "https://ir.ionispharma.com/",
+    "feed_url": "https://ir.ionispharma.com/rss/news-releases.xml"
+  },
+  "ARWR": {
+    "company": "Arrowhead",
+    "site": "https://ir.arrowheadpharma.com/",
+    "feed_url": "https://ir.arrowheadpharma.com/rss/news-releases.xml"
+  },
+  "ALNY": {
+    "company": "Alnylam",
+    "site": "https://investors.alnylam.com/",
+    "feed_url": null
+  },
+  "MDGL": {
+    "company": "Madrigal",
+    "site": "https://ir.madrigalpharma.com/",
+    "feed_url": "https://ir.madrigalpharma.com/rss/news-releases.xml"
+  },
+  "CYTK": {
+    "company": "Cytokinetics",
+    "site": "https://ir.cytokinetics.com/",
+    "feed_url": null
+  },
+  "VKTX": {
+    "company": "Viking Therapeutics",
+    "site": "https://ir.vikingtherapeutics.com/",
+    "feed_url": null
+  },
+  "RARE": {
+    "company": "Ultragenyx",
+    "site": "https://ir.ultragenyx.com/",
+    "feed_url": "https://ir.ultragenyx.com/rss/news-releases.xml"
+  },
+  "NTLA": {
+    "company": "Intellia",
+    "site": "https://ir.intelliatx.com/",
+    "feed_url": "https://ir.intelliatx.com/rss/news-releases.xml"
+  },
+  "CRSP": {
+    "company": "CRISPR Therapeutics",
+    "site": "https://investors.crisprtx.com/",
+    "feed_url": null
+  },
+  "BEAM": {
+    "company": "Beam Therapeutics",
+    "site": "https://investors.beamtx.com/",
+    "feed_url": "https://investors.beamtx.com/rss/news-releases.xml"
+  },
+  "EDIT": {
+    "company": "Editas Medicine",
+    "site": "https://investors.editasmedicine.com/",
+    "feed_url": null
+  },
+  "ASND": {
+    "company": "Ascendis Pharma",
+    "site": "https://investors.ascendispharma.com/",
+    "feed_url": "https://investors.ascendispharma.com/rss/news-releases.xml"
+  },
+  "ARGX": {
+    "company": "argenx",
+    "site": "https://investors.argenx.com/",
+    "feed_url": null
+  },
+  "LEGN": {
+    "company": "Legend Biotech",
+    "site": "https://ir.legendbiotech.com/",
+    "feed_url": null
+  },
+  "BGNE": {
+    "company": "BeOne / BeiGene",
+    "site": "https://ir.beigene.com/",
+    "feed_url": null
+  },
+  "BPMC": {
+    "company": "Blueprint Medicines",
+    "site": "https://ir.blueprintmedicines.com/",
+    "feed_url": "https://ir.blueprintmedicines.com/rss/news-releases.xml"
+  },
+  "INSM": {
+    "company": "Insmed",
+    "site": "https://investor.insmed.com/",
+    "feed_url": null
+  },
+  "NBIX": {
+    "company": "Neurocrine",
+    "site": "https://ir.neurocrine.com/",
+    "feed_url": null
+  },
+  "ACAD": {
+    "company": "Acadia",
+    "site": "https://ir.acadia-pharm.com/",
+    "feed_url": null
+  },
+  "AXSM": {
+    "company": "Axsome",
+    "site": "https://ir.axsome.com/",
+    "feed_url": null
+  },
+  "RYTM": {
+    "company": "Rhythm Pharmaceuticals",
+    "site": "https://ir.rhythmtx.com/",
+    "feed_url": "https://ir.rhythmtx.com/rss/news-releases.xml"
+  },
+  "TVTX": {
+    "company": "Travere",
+    "site": "https://ir.travere.com/",
+    "feed_url": null
+  },
+  "IOVA": {
+    "company": "Iovance",
+    "site": "https://ir.iovance.com/",
+    "feed_url": "https://ir.iovance.com/rss/news-releases.xml"
+  },
+  "BCRX": {
+    "company": "BioCryst",
+    "site": "https://ir.biocryst.com/",
+    "feed_url": "https://ir.biocryst.com/rss/news-releases.xml"
+  },
+  "RCKT": {
+    "company": "Rocket Pharmaceuticals",
+    "site": "https://ir.rocketpharma.com/",
+    "feed_url": "https://ir.rocketpharma.com/rss/news-releases.xml"
+  },
+  "KRYS": {
+    "company": "Krystal Biotech",
+    "site": "https://ir.krystalbiotech.com/",
+    "feed_url": null
+  },
+  "SRPT": {
+    "company": "Sarepta",
+    "site": "https://investorrelations.sarepta.com/",
+    "feed_url": null
+  },
+  "INCY": {
+    "company": "Incyte",
+    "site": "https://investor.incyte.com/",
+    "feed_url": null
+  },
+  "UTHR": {
+    "company": "United Therapeutics",
+    "site": "https://ir.unither.com/",
+    "feed_url": null
+  },
+  "REPL": {
+    "company": "Replimune",
+    "site": "https://ir.replimune.com/",
+    "feed_url": null
+  }
 }

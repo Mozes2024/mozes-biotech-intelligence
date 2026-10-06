@@ -340,6 +340,31 @@ def cmd_monitor_live(args):
     return 0 if result["status"] == "OK" else 2
 
 
+def cmd_hot_monitor(args):
+    from .hot_monitor import run_hot_pass, run_worker
+    if args.once or args.no_wires or args.no_sec or args.no_dispatch:
+        conn = db.connect(DB_PATH)
+        result = run_hot_pass(conn, include_sec=not args.no_sec, include_wires=not args.no_wires,
+                              dispatch=not args.no_dispatch)
+        print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
+        conn.close()
+        return 0 if result.get("status") == "OK" else 2
+    return run_worker(interval_seconds=args.interval, once=False)
+
+
+def cmd_dispatch_alerts(args):
+    from .alert_dispatch import dispatch_pending, sync_new_changes
+    from .latency_metrics import summary as latency_summary
+    from .radar import bootstrap_database
+    conn = db.connect(DB_PATH)
+    bootstrap_database(conn)
+    queued = sync_new_changes(conn, limit=args.limit) if not args.flush_only else {"queued": 0}
+    flushed = dispatch_pending(conn, limit=args.limit)
+    print(json.dumps({"queued": queued, "dispatch": flushed, "latency": latency_summary(conn)},
+                     ensure_ascii=False, indent=2, default=str))
+    return 0
+
+
 def main(argv=None):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -431,6 +456,15 @@ def main(argv=None):
     s.add_argument("--no-ctgov", action="store_true")
     s.add_argument("--no-sec", action="store_true")
     s.add_argument("--filings", type=int, default=12)
+    s = sp("hot-monitor", cmd_hot_monitor, "breaking-catalyst hot lane (feeds + outbox); prefer a persistent worker")
+    s.add_argument("--interval", type=int, default=60)
+    s.add_argument("--once", action="store_true")
+    s.add_argument("--no-wires", action="store_true")
+    s.add_argument("--no-sec", action="store_true")
+    s.add_argument("--no-dispatch", action="store_true")
+    s = sp("dispatch-alerts", cmd_dispatch_alerts, "enqueue/flush transactional alert outbox (ntfy/webhook/log)")
+    s.add_argument("--limit", type=int, default=50)
+    s.add_argument("--flush-only", action="store_true")
     args = p.parse_args(argv)
     return args.func(args) or 0
 

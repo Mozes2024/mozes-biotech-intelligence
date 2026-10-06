@@ -297,10 +297,15 @@ def run_pipeline(conn, *, deep=False):
 def run_priority_pipeline(conn):
     """Short source check for the explicitly requested issuers only."""
     from .live_monitor import run_monitor
+    from .sec_http import enable_hot_mode
     rid = operation_start(conn, 'priority_monitor')
     details = {'catalog': reconcile_catalog(conn)}
-    details['monitor'] = run_monitor(conn, audit=False, ctgov_diff=False, sec=True,
-                                     news=True, priority_only=True)
+    enable_hot_mode(True)
+    try:
+        details['monitor'] = run_monitor(conn, audit=False, ctgov_diff=False, sec=True,
+                                         news=True, priority_only=True)
+    finally:
+        enable_hot_mode(False)
     status = details['monitor']['status']
     operation_finish(conn, rid, status, details)
     return {'status': status, 'details': details}

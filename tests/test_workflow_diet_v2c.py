@@ -24,19 +24,25 @@ def test_one_python_ci_and_code_path_filters():
     assert 'pytest -q' in source
 
 
-def test_single_producer_and_explicit_deep_slot():
-    source=(ROOT/'.github/workflows/lightweight-monitor.yml').read_text()
-    assert 'group: mozes-live-data-producer' in source
-    assert "github.event.schedule == '20 6 * * 1,3,5'" in source
-    assert "steps.data.outputs.should_publish == 'true'" in source
-    assert 'timeout-minutes:' in source
+def test_hot_and_deep_concurrency_are_separated():
+    hot = (ROOT / '.github/workflows/lightweight-monitor.yml').read_text()
+    deep = (ROOT / '.github/workflows/deep-monitor.yml').read_text()
+    assert 'group: mozes-hot-monitor' in hot
+    assert 'group: mozes-deep-monitor' in deep
+    assert 'group: mozes-live-data-producer' not in hot
+    assert 'group: mozes-live-data-producer' not in deep
+    assert "steps.data.outputs.should_publish == 'true'" in hot
+    assert 'timeout-minutes:' in hot
+    assert 'monitor --deep' in deep
 
 
 def test_priority_schedule_uses_short_monitor_path():
-    source=(ROOT/'.github/workflows/lightweight-monitor.yml').read_text()
-    assert "cron: '*/15 * * * *'" in source
+    source = (ROOT / '.github/workflows/lightweight-monitor.yml').read_text()
+    assert "cron: '7,22,37,52 * * * *'" in source
     assert 'monitor --priority-only' in source
-    assert 'group: mozes-live-data-producer' in source
+    assert 'group: mozes-hot-monitor' in source
+    assert 'MOZES_SEC_HOT' in source
+    assert 'MOZES_ALERT_DISPATCH' in source
 
 
 def test_priority_pipeline_does_not_run_broad_enrichment(tmp_path, monkeypatch):
@@ -78,9 +84,13 @@ def test_export_mode_is_offline():
 
 
 def test_dispatch_checks_current_head_and_restore_is_not_executable():
-    source=(ROOT/'.github/workflows/lightweight-monitor.yml').read_text()
-    assert '[ "$current" = "$GITHUB_SHA" ]' in source
-    restore=(ROOT/'scripts/restore_monitor_state.py').read_text()
+    source = (ROOT / '.github/workflows/lightweight-monitor.yml').read_text()
+    assert 'source_run_id="$GITHUB_RUN_ID"' in source
+    assert 'gh workflow run pages.yml' in source
+    # Pages workflow owns the HEAD-currency guard; hot producer only hands off the artifact.
+    pages = (ROOT / '.github/workflows/pages.yml').read_text()
+    assert "git rev-parse HEAD" in pages
+    restore = (ROOT / 'scripts/restore_monitor_state.py').read_text()
     assert "meta.get('head_branch') != 'main'" in restore
     assert 'PRAGMA quick_check' in restore
 

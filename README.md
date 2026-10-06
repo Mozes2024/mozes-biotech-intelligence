@@ -42,7 +42,7 @@ v0.3 adds the daily-use product surface on top of the v0.2 research engine:
 - The SPA works in both modes: live API when `mozes app` is running, or a read-only static snapshot on GitHub Pages.
 - GitHub Pages deployment is included in `.github/workflows/pages.yml`.
 
-### Recommended start
+## Recommended start
 
 ```bash
 python -m venv .venv
@@ -61,7 +61,14 @@ For a static snapshot:
 mozes export-v3
 ```
 
-See `docs/PRODUCT_V03.md` for the product/API surface.
+For the breaking-catalyst hot lane (push alerts, independent of Pages):
+
+```bash
+# optional: MOZES_NTFY_URL or MOZES_WEBHOOK_URL
+MOZES_SEC_HOT=1 MOZES_PRIMARY_FEEDS=1 MOZES_ALERT_DISPATCH=1 mozes hot-monitor --interval 60
+```
+
+See `docs/HOT_LANE_V2F.md` and `docs/PRODUCT_V03.md`.
 
 ## What changed in v0.2
 

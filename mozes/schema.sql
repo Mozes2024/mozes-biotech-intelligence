@@ -260,3 +260,66 @@ CREATE TRIGGER IF NOT EXISTS trg_source_archive_no_update BEFORE UPDATE ON sourc
 BEGIN SELECT RAISE(ABORT, 'source archive is immutable'); END;
 CREATE TRIGGER IF NOT EXISTS trg_source_archive_no_delete BEFORE DELETE ON source_archive
 BEGIN SELECT RAISE(ABORT, 'source archive is immutable'); END;
+
+-- Breaking-catalyst delivery: transactional outbox independent of Pages publish.
+CREATE TABLE IF NOT EXISTS alert_outbox (
+  alert_id TEXT PRIMARY KEY,
+  change_id TEXT NOT NULL,
+  stage TEXT NOT NULL CHECK(stage IN ('stage1','stage2')),
+  channel TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK(status IN ('pending','sending','sent','failed','dead')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  send_after TEXT NOT NULL,
+  sent_at TEXT,
+  last_error TEXT,
+  UNIQUE(change_id, stage, channel)
+);
+CREATE INDEX IF NOT EXISTS idx_alert_outbox_pending
+  ON alert_outbox(status, send_after, created_at);
+CREATE TABLE IF NOT EXISTS alert_deliveries (
+  delivery_id TEXT PRIMARY KEY,
+  alert_id TEXT NOT NULL REFERENCES alert_outbox(alert_id),
+  provider_message_id TEXT,
+  sent_at TEXT NOT NULL,
+  ack_at TEXT,
+  error_code TEXT,
+  retry_count INTEGER NOT NULL DEFAULT 0,
+  metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE IF NOT EXISTS latency_events (
+  latency_id TEXT PRIMARY KEY,
+  change_id TEXT,
+  alert_id TEXT,
+  source_type TEXT,
+  source_published_at TEXT,
+  source_first_seen_at TEXT NOT NULL,
+  change_created_at TEXT,
+  alert_queued_at TEXT,
+  alert_sent_at TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_latency_events_seen ON latency_events(source_first_seen_at DESC);
+CREATE TABLE IF NOT EXISTS source_registry (
+  source_id TEXT PRIMARY KEY,
+  ticker TEXT,
+  cik TEXT,
+  source_type TEXT NOT NULL,
+  canonical_url TEXT NOT NULL,
+  feed_url TEXT,
+  confidence REAL NOT NULL DEFAULT 0.5,
+  active INTEGER NOT NULL DEFAULT 1,
+  discovered_at TEXT NOT NULL,
+  last_success_at TEXT,
+  last_item_at TEXT,
+  last_error TEXT,
+  consecutive_failures INTEGER NOT NULL DEFAULT 0,
+  etag TEXT,
+  last_modified TEXT,
+  content_hash TEXT,
+  provenance TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_source_registry_active ON source_registry(active, source_type);

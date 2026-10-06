@@ -15,10 +15,12 @@ from .ingest import ctgov, edgar
 CT_FIELDS = {
     "status": "ctgov_status_changed",
     "primary_completion": "ctgov_primary_completion_changed",
+    "primary_completion_type": "ctgov_primary_completion_type_changed",
     "enrollment": "ctgov_enrollment_changed",
     "why_stopped": "ctgov_why_stopped_changed",
     "study_completion": "ctgov_study_completion_changed",
     "last_update_posted": "ctgov_last_update_changed",
+    "results_first_posted": "ctgov_results_first_posted_changed",
 }
 FINANCING_FORMS = {"424B5", "424B4", "S-3", "S-1"}
 
@@ -44,13 +46,20 @@ def record_change(conn, *, ticker, change_type, previous_value, new_value, sourc
                        previous_value, new_value, source_url, source_hash]
     change_id = "CHG-" + _hash([key, severity])[:24]
     with conn:
-        conn.execute(
+        inserted = conn.execute(
             "INSERT OR IGNORE INTO change_events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (change_id, _now(), ticker, event_id, candidate_id, nct_id, asset,
              change_type, _json(previous_value), _json(new_value), severity,
              source_url, source_type, verification_state, source_hash,
              _json(metadata or {})),
         )
+    if inserted.rowcount:
+        try:
+            from .alert_dispatch import enqueue_from_change_row
+            enqueue_from_change_row(conn, change_id=change_id, change_type=change_type, severity=severity)
+        except Exception:
+            # Delivery must never roll back detection; outbox failures are retried later.
+            pass
     return change_id
 
 
@@ -70,12 +79,16 @@ def _study_fields(study):
     ps = study.get("protocolSection") or {}
     status = ps.get("statusModule") or {}
     design = ps.get("designModule") or {}
+    pc = status.get("primaryCompletionDateStruct") or {}
     return {
         "status": status.get("overallStatus"),
         "enrollment": (design.get("enrollmentInfo") or {}).get("count"),
-        "primary_completion": (status.get("primaryCompletionDateStruct") or {}).get("date"),
+        "primary_completion": pc.get("date"),
+        # ESTIMATED → ACTUAL is an early imminence signal; still never a readout date.
+        "primary_completion_type": pc.get("type"),
         "study_completion": (status.get("completionDateStruct") or {}).get("date"),
         "last_update_posted": (status.get("lastUpdatePostDateStruct") or {}).get("date"),
+        "results_first_posted": (status.get("resultsFirstPostDateStruct") or {}).get("date"),
         "why_stopped": status.get("whyStopped"),
     }
 
@@ -102,8 +115,12 @@ def monitor_study(conn, study, *, ticker=None, candidate_id=None):
                 conn, ticker=ticker, candidate_id=candidate_id, nct_id=nct,
                 change_type=change_type, previous_value=prior[field], new_value=fields[field],
                 source_url=source_url, source_type="clinicaltrials", source_hash=digest,
-                verification_state="investigation_only", severity="medium" if field in {"status", "primary_completion", "why_stopped"} else "low",
+                verification_state="investigation_only",
+                severity="medium" if field in {
+                    "status", "primary_completion", "primary_completion_type",
+                    "why_stopped", "results_first_posted"} else "low",
                 metadata={"field": field, "last_update_posted": fields["last_update_posted"],
+                          "primary_completion_type": fields.get("primary_completion_type"),
                           "not_a_readout_date": True},
             ))
     return changes
@@ -282,8 +299,28 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
         if news:
             from .news_signals import poll_news
             details["news"] = poll_news(conn, limit=2 if priority_only else 8)
+        if os.environ.get("MOZES_PRIMARY_FEEDS", "0") == "1":
+            from .primary_feeds import poll_fda_feeds, poll_nasdaq_halts, poll_wire_feeds
+            from .priority import priority_tickers as _priority_tickers
+            import urllib.request
+
+            def _feed_fetch(url):
+                with urllib.request.urlopen(urllib.request.Request(
+                        url, headers={"User-Agent": "MozesBiotechMonitor/1.0"}), timeout=8) as response:
+                    return response.read(4_000_000)
+
+            details["primary_feeds"] = {
+                "fda": poll_fda_feeds(conn, fetch=_feed_fetch),
+                "wires": poll_wire_feeds(conn, fetch=_feed_fetch) if not priority_only else {"skipped": True},
+                "nasdaq_halts": poll_nasdaq_halts(
+                    conn, fetch=_feed_fetch,
+                    watch_tickers=[row["ticker"] for row in db.watch_rows(conn)] or list(_priority_tickers())),
+            }
         reconcile_states(conn)
         details["changes"] = conn.execute("SELECT COUNT(*) FROM change_events WHERE detected_at>=?", (started,)).fetchone()[0]
+        if os.environ.get("MOZES_ALERT_DISPATCH", "0") == "1":
+            from .alert_dispatch import sync_new_changes
+            details["alerts"] = sync_new_changes(conn, since_iso=started)
         if sec and not os.environ.get("SEC_USER_AGENT"):
             details["sec_skipped"] = "SEC_USER_AGENT not configured"
         status = "OK" if not details["errors"] else "PARTIAL"

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1 — breaking-catalyst hot lane (v2F)
+
+- Split GitHub Actions hot vs deep concurrency; hot cron every ~15m on offset minutes.
+- Added transactional alert outbox + ntfy/webhook/log push (independent of Pages).
+- SEC submissions hot TTL (60s), material discovery retry escalation, IR HTML fallback.
+- FDA / wire / Nasdaq-halt primary feed adapters and latency metrics ledger.
+- Track CT.gov `primary_completion_type` and `results_first_posted` as imminence signals.
+- Deterministic Stage-1 outcome polarity classifier (uncalibrated).
+- CLI: `mozes hot-monitor`, `mozes dispatch-alerts`.
+- Expanded hot watchlist (~40 names) with official IR sites and verified RSS feed URLs.
+
 ## 0.3.0 — product layer
 
 - Added a local stdlib JSON API and `mozes app` command.

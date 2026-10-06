@@ -1,14 +1,11 @@
-name: lightweight-live-monitor
+name: deep-live-monitor
 on:
   schedule:
-    # Offset minutes reduce GitHub scheduler contention at :00.
-    - cron: '7,22,37,52 * * * *'
-    - cron: '20 0,12,18 * * *'
-    - cron: '20 6 * * 0,2,4,6'
+    - cron: '20 6 * * 1,3,5'
   workflow_dispatch:
     inputs:
-      priority_only:
-        description: 'Check the priority issuers and their source feeds only'
+      deep_refresh:
+        description: 'Run bounded full discovery in addition to the lightweight pass'
         required: false
         default: true
         type: boolean
@@ -16,25 +13,22 @@ permissions:
   contents: read
   actions: write
 concurrency:
-  # Hot lane must never share a lock with deep research refresh.
-  group: mozes-hot-monitor
+  group: mozes-deep-monitor
   cancel-in-progress: false
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 25
     env:
       SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
       MOZES_DB_PATH: .monitor/mozes-live.db
       MOZES_NEWS_ENABLED: '1'
       MOZES_HTTP_CACHE: .monitor/http-cache
-      MOZES_SEC_HOT: '1'
       MOZES_PRIMARY_FEEDS: '1'
       MOZES_ALERT_DISPATCH: '1'
       MOZES_NTFY_URL: ${{ secrets.MOZES_NTFY_URL }}
       MOZES_WEBHOOK_URL: ${{ secrets.MOZES_WEBHOOK_URL }}
       GH_TOKEN: ${{ github.token }}
-      RUN_PRIORITY: ${{ inputs.priority_only == true || github.event_name == 'schedule' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -45,14 +39,9 @@ jobs:
       - run: pip install -e .
       - name: Restore the single monitor-state lineage
         run: python scripts/restore_monitor_state.py
-      - name: Hot priority observe + alert outbox
+      - name: Deep research observe (never blocks hot concurrency)
         id: data
-        run: |
-          if [ "$RUN_PRIORITY" = 'true' ]; then
-            python -m mozes.pipeline_v2c monitor --priority-only
-          else
-            python -m mozes.pipeline_v2c monitor
-          fi
+        run: python -m mozes.pipeline_v2c monitor --deep
       - uses: actions/upload-artifact@v4
         with:
           name: mozes-live-monitor
