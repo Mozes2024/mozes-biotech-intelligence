@@ -13,6 +13,7 @@ from .paper import PaperBook
 from .radar import bootstrap_database, current_resolved_records, live_event_records, validation_status
 from .historical import readiness_summary
 from .security import tradability
+from .alert_dispatch import recent_alerts
 from .live_monitor import recent_changes
 from .priority import priority_tickers
 from .live_intelligence import enrich_live_rows
@@ -238,8 +239,10 @@ def build(conn, today: date):
         "paper": paper,
         "watch_universe": _watch_universe(conn),
         "refresh": refresh,
+        "alerts": recent_alerts(conn),
         "changes": recent_changes(conn),
         "news": recent_changes(conn, limit=50, change_types=("news_signal", "company_release_signal",
+                                                       "wire_release_signal", "fda_release_signal",
                                                        "sec_filing_signal", "sec_financing_filing", "sec_material_filing")),
         "official_feeds": official_feeds,
         "health": _health(conn, live, refresh, monitor),

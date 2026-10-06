@@ -203,6 +203,40 @@ def corroborations(conn, primary_change_id):
         "SELECT * FROM alert_links WHERE primary_change_id=? ORDER BY linked_at", (primary_change_id,))]
 
 
+def recent_alerts(conn, *, days=7, limit=100, now=None):
+    """One row per Stage-1 alert for the site, newest first, regardless of push channel or delivery."""
+    now = now or datetime.now(timezone.utc)
+    since = (now - timedelta(days=days)).isoformat()
+    rows = conn.execute(
+        "SELECT change_id, MIN(created_at) AS created_at, payload_json, "
+        "MAX(CASE WHEN status='sent' THEN 1 ELSE 0 END) AS delivered "
+        "FROM alert_outbox WHERE stage=? AND created_at>=? GROUP BY change_id "
+        "ORDER BY created_at DESC LIMIT ?",
+        (STAGE1, since, limit),
+    ).fetchall()
+    alerts = []
+    for row in rows:
+        payload = json.loads(row["payload_json"])
+        links = corroborations(conn, row["change_id"])
+        alerts.append({
+            "change_id": row["change_id"],
+            "created_at": row["created_at"],
+            "priority": payload.get("priority"),
+            "ticker": payload.get("ticker"),
+            "watched": payload.get("watched"),
+            "change_type": payload.get("change_type"),
+            "source_type": payload.get("source_type"),
+            "source_url": payload.get("source_url"),
+            "published_at": payload.get("published_at"),
+            "detected_at": payload.get("detected_at"),
+            "headline": _headline_of(payload) or None,
+            "polarity": (payload.get("outcome") or {}).get("polarity", "unknown"),
+            "corroborated_by": [link["source_type"] for link in links],
+            "delivered": bool(row["delivered"]),
+        })
+    return alerts
+
+
 def _min_priority():
     value = os.environ.get("MOZES_ALERT_MIN_PRIORITY", "P2").upper()
     return PRIORITY_RANK.get(value, 2)

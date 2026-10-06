@@ -252,6 +252,20 @@ def test_only_the_hot_workflow_pushes():
                 assert key not in text, (path.name, key)
 
 
+def test_site_lists_alerts_even_when_push_is_off_or_warmup_silenced(tmp_path):
+    conn = db.connect(tmp_path / "site.db")
+    change_id, _ = _queued_alert(conn)
+    hot_monitor.silence_warmup(conn)
+    alerts = alert_dispatch.recent_alerts(conn)
+    assert [a["change_id"] for a in alerts] == [change_id]
+    alert = alerts[0]
+    assert alert["ticker"] == "GMAB" and alert["priority"] == "P1" and alert["polarity"] == "positive"
+    assert alert["headline"] == "Genmab announces positive topline results" and alert["delivered"] is False
+    from datetime import date
+    from mozes.payload_v3 import build
+    assert build(conn, date.today())["alerts"][0]["change_id"] == change_id
+
+
 def test_email_channel_needs_credentials_and_the_actions_opt_in(monkeypatch):
     monkeypatch.setenv("MOZES_SMTP_USER", "me@gmail.com")
     assert "email" not in alert_dispatch.configured_channels()
