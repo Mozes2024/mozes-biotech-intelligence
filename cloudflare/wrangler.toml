@@ -8,7 +8,9 @@ WORKFLOW_FILE = "lightweight-monitor.yml"
 GITHUB_REF = "main"
 
 [triggers]
-crons = ["* * * * *"]
+# */2 instead of * * * * *: Cloudflare sometimes silently drops a brand-new
+# every-minute trigger; every-2-min is still well inside free-tier budget.
+crons = ["*/2 * * * *"]
 
 # Secrets (never in this file):
 #   npx wrangler secret put GITHUB_TOKEN   # fine-grained token: this repo only, Actions = Read and write
