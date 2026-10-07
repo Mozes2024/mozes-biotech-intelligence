@@ -6,6 +6,13 @@ compatibility_date = "2026-08-01"
 GITHUB_REPO = "Mozes2024/mozes-biotech-intelligence"
 WORKFLOW_FILE = "lightweight-monitor.yml"
 GITHUB_REF = "main"
+SITE_ORIGIN = "https://mozes2024.github.io"
+
+[[d1_databases]]
+binding = "ALERTS_DB"
+database_name = "mozes-alerts"
+database_id = "9baf99f2-1ccc-4415-affd-2708a7210e7b"
+migrations_dir = "migrations"
 
 [triggers]
 # */2 instead of * * * * *: Cloudflare sometimes silently drops a brand-new
@@ -15,3 +22,4 @@ crons = ["*/2 * * * *"]
 # Secrets (never in this file):
 #   npx wrangler secret put GITHUB_TOKEN   # fine-grained token: this repo only, Actions = Read and write
 #   npx wrangler secret put NTFY_URL       # optional, for the stale-monitor warning
+#   npx wrangler secret put ALERT_FEED_TOKEN # shared only with the hot workflow

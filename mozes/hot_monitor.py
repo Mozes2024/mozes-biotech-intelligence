@@ -158,7 +158,8 @@ def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True, f
     finally:
         enable_hot_mode(False)
     feed_errors = sum(_error_count((value or {}).get("errors")) for value in details["feeds"].values()
-                      if isinstance(value, dict))
+                       if isinstance(value, dict))
+    feed_errors += _error_count((details.get("alerts") or {}).get("errors"))
     if details["errors"] and len(details["errors"]) == len(details["steps"]):
         details["status"] = "FAILED"
     elif details["errors"] or feed_errors:

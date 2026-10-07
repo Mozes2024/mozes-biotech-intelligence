@@ -279,6 +279,39 @@ CREATE TABLE IF NOT EXISTS alert_outbox (
 );
 CREATE INDEX IF NOT EXISTS idx_alert_outbox_pending
   ON alert_outbox(status, send_after, created_at);
+-- Terminal enqueue decisions keep non-alertable changes from starving recovery.
+-- Failed enqueue attempts have no decision and remain eligible for the next pass.
+CREATE TABLE IF NOT EXISTS alert_enqueue_decisions (
+  change_id TEXT NOT NULL REFERENCES change_events(change_id),
+  policy_key TEXT NOT NULL,
+  decision TEXT NOT NULL CHECK(decision IN ('filtered','linked','queued')),
+  evaluated_at TEXT NOT NULL,
+  PRIMARY KEY(change_id, policy_key)
+);
+CREATE TABLE IF NOT EXISTS alert_source_documents (
+  document_id TEXT PRIMARY KEY, url TEXT NOT NULL, content_hash TEXT NOT NULL,
+  fetched_at TEXT NOT NULL, normalized_text TEXT NOT NULL,
+  UNIQUE(url, content_hash)
+);
+CREATE TRIGGER IF NOT EXISTS trg_alert_source_no_update BEFORE UPDATE ON alert_source_documents
+BEGIN SELECT RAISE(ABORT, 'alert source documents are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_alert_source_no_delete BEFORE DELETE ON alert_source_documents
+BEGIN SELECT RAISE(ABORT, 'alert source documents are immutable'); END;
+CREATE TABLE IF NOT EXISTS alert_analyses (
+  analysis_id TEXT PRIMARY KEY, change_id TEXT NOT NULL REFERENCES change_events(change_id),
+  document_id TEXT REFERENCES alert_source_documents(document_id),
+  method TEXT NOT NULL, created_at TEXT NOT NULL, result_json TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS trg_alert_analysis_no_update BEFORE UPDATE ON alert_analyses
+BEGIN SELECT RAISE(ABORT, 'alert analyses are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS trg_alert_analysis_no_delete BEFORE DELETE ON alert_analyses
+BEGIN SELECT RAISE(ABORT, 'alert analyses are immutable'); END;
+CREATE TABLE IF NOT EXISTS alert_analysis_jobs (
+  change_id TEXT PRIMARY KEY REFERENCES change_events(change_id),
+  status TEXT NOT NULL CHECK(status IN ('complete','retry','unavailable')),
+  attempts INTEGER NOT NULL, retry_after TEXT NOT NULL,
+  analysis_id TEXT REFERENCES alert_analyses(analysis_id)
+);
 -- Cross-source corroboration: later reports of an already-alerted story are linked, not re-pushed.
 CREATE TABLE IF NOT EXISTS alert_links (
   change_id TEXT PRIMARY KEY,

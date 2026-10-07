@@ -326,6 +326,8 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
         if os.environ.get("MOZES_ALERT_DISPATCH", "0") == "1":
             from .alert_dispatch import sync_new_changes
             details["alerts"] = sync_new_changes(conn, since_iso=started)
+            if details["alerts"].get("errors"):
+                details["errors"].append({"alert_enqueue": details["alerts"]["errors"]})
         if sec and not os.environ.get("SEC_USER_AGENT"):
             details["sec_skipped"] = "SEC_USER_AGENT not configured"
         status = "OK" if not details["errors"] else "PARTIAL"

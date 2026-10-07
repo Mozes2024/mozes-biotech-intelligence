@@ -61,6 +61,7 @@ const SOURCE_HE={company_ir:'אתר החברה',wire:'שירות הפצה',fda:'
 function fmtLocal(x){if(!x)return '—';let t=new Date(x);if(isNaN(t))return esc(String(x).replace('T',' ').slice(0,16));return esc(t.toLocaleString('he-IL',{timeZone:'Asia/Jerusalem',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}))}
 function fmtTime(x){return fmtLocal(x)}
 function alertWhyHe(a){
+  if(a.explanation)return [a.explanation.summary_he,a.explanation.why_he].filter(Boolean).join(' ');
   let bits=[];
   const t=a.change_type;
   if(t==='nasdaq_halt_signal') bits.push('נאסד״ק עצרה את המסחר במניה — לרוב לפני פרסום חדשות מהותיות.');
@@ -74,26 +75,18 @@ function alertWhyHe(a){
   else if(a.polarity==='negative') bits.push('לפי ניסוח הכותרת זה נשמע שלילי — זה לא תחזית מחיר.');
   else if(a.polarity==='mixed') bits.push('הכותרת מעורבת או חלקית; נדרשת קריאה של המקור.');
   if(a.priority==='P1') bits.push('סומן כדחוף כי המניה במעקב או שהאירוע קריטי.');
-  if((a.corroborated_by||[]).length) bits.push('אותו סיפור אושר גם במקור נוסף.');
+  if((a.corroborated_by||[]).length) bits.push('דיווח דומה נקלט גם במקור נוסף; זה אינו אימות עצמאי של תוכן ההודעה.');
   return bits.join(' ');
 }
 function alertRows(rows){return rows.map(a=>{let p=PRIO[a.priority]||[a.priority||'?','slate'],pol=POLARITY[a.polarity],more=(a.corroborated_by||[]).length;
-  return `<div class="source"><b class="ltr">${esc(a.ticker||'—')}</b> ${badge(p[0]+' · '+(a.priority||''),p[1])} ${pol?badge(pol[0],pol[1]):''} · ${esc(changeDescription(a))}<div class="company">${esc(a.headline||'')}</div><div class="company"><b>מה זה אומר?</b> ${esc(alertWhyHe(a))}</div><div class="company">זוהה ${fmtTime(a.detected_at)}${a.published_at?' · פורסם '+fmtTime(a.published_at):''} · מקור: ${esc(SOURCE_HE[a.source_type]||a.source_type||'—')}${more?` · אושר גם ב־${more} מקורות נוספים`:''}${a.watched?' · במעקב':''}</div>${a.source_url?`<a href="${esc(a.source_url)}" target="_blank" rel="noreferrer">מקור ↗</a>`:''}</div>`}).join('')}
+  return `<div class="source"><b class="ltr">${esc(a.ticker||'—')}</b> ${badge(p[0]+' · '+(a.priority||''),p[1])} ${pol?badge(pol[0],pol[1]):''} · ${esc(changeDescription(a))}<div class="company">${esc(a.headline||'')}</div><div class="company"><b>מה זה אומר?</b> ${esc(alertWhyHe(a))}</div>${alertAnalysisHtml(a)}<div class="company">${esc(alertDeliveryHe(a))}</div><div class="company">זוהה ${fmtTime(a.detected_at)}${a.published_at?' · פורסם '+fmtTime(a.published_at):''} · מקור: ${esc(SOURCE_HE[a.source_type]||a.source_type||'—')}${more?` · דיווחים דומים ב־${more} מקורות נוספים`:''}${a.watched?' · במעקב':''}</div>${safeSourceUrl(a.source_url)?`<a href="${esc(safeSourceUrl(a.source_url))}" target="_blank" rel="noreferrer">מקור ↗</a>`:''}</div>`}).join('')}
 function alertsPage(){let rows=D.alerts||[],n=k=>rows.filter(a=>a.priority===k).length;
   return pageTitle('התראות','אירועים שהמערכת הייתה שולחת כהתראה: עצירות מסחר, הודעות FDA, תוצאות ניסויים והודעות מהותיות',`${rows.length} בשבעת הימים האחרונים`)+
-    `<div class="notice">התראות למייל או לאפליקציה כבויות כרגע. כאן רואים בדיוק מה הן היו שולחות. הכיוון (חיובי/שלילי) מזוהה אוטומטית מהכותרת ועדיין לא מכויל, ואינו המלצת קנייה.${'Notification' in window?` <button class="btn" type="button" onclick="enableAlertPopups()">הפעל חלונות קופצים בדפדפן</button>`:''}</div>`+
+    `<div class="notice">${esc(alertDeliveryNotice())}${'Notification' in window?` <button class="btn" type="button" onclick="enableAlertPopups()">הפעל גם התראות מערכת</button>`:''}</div>`+
     `<div class="simple-summary"><div class="summary-box red"><strong>${n('P1')}</strong><span>דחופות (P1)</span></div><div class="summary-box blue"><strong>${n('P2')}</strong><span>חשובות (P2)</span></div></div>`+
     `<section class="panel"><div class="panel-body">${alertRows(rows)||'<div class="empty">לא היו התראות בשבעת הימים האחרונים.</div>'}</div></section>`}
 function alertsCompact(){let rows=(D.alerts||[]).slice(0,3);return `<section class="panel simple-panel"><div class="panel-head"><h3>התראות אחרונות</h3><span class="spacer"></span><button class="btn" onclick="page='alerts';render()">לכל ההתראות</button></div><div class="panel-body">${alertRows(rows)||'<div class="empty">אין התראות בשבעת הימים האחרונים.</div>'}</div></section>`}
-function enableAlertPopups(){if(!('Notification' in window)){toast('הדפדפן לא תומך בחלונות קופצים');return}Notification.requestPermission().then(p=>toast(p==='granted'?'חלונות קופצים הופעלו להתראות חיוביות חדשות':'לא אושרה הרשאה לחלונות קופצים'))}
-function notifyNewPositiveAlerts(prev, next){
-  if(!('Notification' in window)||Notification.permission!=='granted'||document.hidden)return;
-  const seen=new Set((prev?.alerts||[]).map(a=>a.change_id));
-  for(const a of (next?.alerts||[])){
-    if(seen.has(a.change_id)||a.polarity!=='positive')continue;
-    try{new Notification(`MOZES ${a.priority||''} ${a.ticker||''}`.trim(),{body:a.headline||alertWhyHe(a),lang:'he',dir:'rtl',tag:a.change_id})}catch(_){}
-  }
-}
+function enableAlertPopups(){if(!('Notification' in window)){toast('התראות בתוך האתר פעילות; הדפדפן אינו תומך בהתראות מערכת');return}Notification.requestPermission().then(p=>toast(p==='granted'?'התראות מערכת הופעלו להתראות חדשות':'ההתראות ימשיכו להופיע בתוך האתר'))}
 function changeRows(rows){return rows.map(c=>{
   let value=c.new_value||{},isNews=NEWS_TYPES.includes(c.change_type);
   let body=isNews?(value.headline||`${value.form||'הגשה'} · הוגש ${value.filed||'מועד לא ידוע'}`):`${JSON.stringify(c.previous_value)} ← ${JSON.stringify(c.new_value)}`;
@@ -125,17 +118,23 @@ async function savePaper(id){if(!apiMode)return;setLoading(true);try{let r=await
 async function refreshNow(){if(!apiMode){try{await checkForUpdates(true)}catch(e){toast('בדיקת העדכונים נכשלה: '+e.message)}return}setLoading(true);toast('הרענון נשלח לרקע…');try{let r=await fetch('/api/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({months:6,sec_map:true,sec_verify:true})});let x=await r.json();if(!r.ok)throw Error(x.error||r.status);toast('הרענון התחיל; מזהה: '+x.run_id.slice(0,8));}catch(e){toast('שליחת הרענון נכשלה: '+e.message)}finally{setLoading(false)}}
 async function load(){setLoading(true);let err=null;try{let r=await fetch('/api/radar',{cache:'no-store'});if(!r.ok)throw Error(r.status);D=await r.json();apiMode=true;}catch(e){err=e;try{let r=await fetch('data.json',{cache:'no-store'});if(r.ok){D=await r.json();apiMode=false;}}catch{}}finally{setLoading(false)}if(!D)throw err||Error('No data');$('apiDot').classList.toggle('live',apiMode);updateDataLabel();$('refreshBtn').disabled=false;$('refreshBtn').textContent=apiMode?'רענון נתונים':'בדוק עדכונים';}
 function updateDataLabel(){let stamp=D?.health?.latest_monitor?.finished_at||D?.generated_at;let t=stamp?new Date(stamp):null;$('apiLabel').textContent=apiMode?'נתונים חיים':t&&!isNaN(t)?`ניטור ${t.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}`:'שעת ניטור לא זמינה'}
+let snapshotRevision=null;
 async function checkForUpdates(notify=false){
   if(!D)return;
-  let r=await fetch(apiMode?'/api/radar':'data.json',{cache:'no-store'});
+  let r=await fetch(apiMode?'/api/updates':'updates.json',{cache:'no-store'});
   if(!r.ok)throw Error(String(r.status));
-  let next=await r.json(),changed=next.generated_at!==D.generated_at||next.build?.change_cursor?.change_id!==D.build?.change_cursor?.change_id;
-  if(changed){const prev=D;notifyNewPositiveAlerts(prev,next);D=next;updateDataLabel();render();if(notify)toast('האתר עודכן בנתונים החדשים')}
-  else if(notify)toast('אין נתונים חדשים מאז הבדיקה הקודמת');
+  const update=await r.json(),previous=snapshotRevision||D.build?.snapshot_revision;
+  if(!previous&&apiMode){snapshotRevision=update.revision;return}
+  if(update.revision===previous){if(notify)toast('אין נתונים חדשים מאז הבדיקה הקודמת');return}
+  r=await fetch(apiMode?'/api/radar':'data.json',{cache:'no-store'});
+  if(!r.ok)throw Error(String(r.status));
+  const next=await r.json();preserveAlertFeed(next);D=next;snapshotRevision=update.revision;
+  updateDataLabel();render();if(notify)toast('האתר עודכן בנתונים החדשים');
 }
-function updateSourceFreshness(){let el=$('sourceFreshness');if(!el)return;let t=new Date(el.dataset.checked),age=el.dataset.checked&&!isNaN(t)?Math.max(0,Math.floor((Date.now()-t.getTime())/60000)):null;el.classList.toggle('red-note',age===null||age>90);el.classList.toggle('blue-note',age!==null&&age<=90);el.innerHTML=`<b>בדיקת מקורות אחרונה:</b> ${age===null?'שעה לא זמינה':`לפני ${age} דקות`} · האתר בודק תמונת נתונים חדשה בכל דקה כשהוא פתוח.`}
+function updateSourceFreshness(){let el=$('sourceFreshness');if(!el)return;let t=new Date(el.dataset.checked),age=el.dataset.checked&&!isNaN(t)?Math.max(0,Math.floor((Date.now()-t.getTime())/60000)):null;el.classList.toggle('red-note',age===null||age>90);el.classList.toggle('blue-note',age!==null&&age<=90);el.innerHTML=`<b>בדיקת מקורות אחרונה:</b> ${age===null?'שעה לא זמינה':`לפני ${age} דקות`} · התראות חדשות נבדקות בכל 30 שניות כשהאתר פתוח.`}
 function dashboard(){let ranked=[...(D.live||[])].sort((a,b)=>decisionStatus(a).rank-decisionStatus(b).rank),count=s=>ranked.filter(a=>a.recommendation?.status===s).length,primary=ranked.filter(a=>!['NOT_NOW','INSUFFICIENT_INFORMATION'].includes(a.recommendation?.status)).slice(0,6);return pageTitle('מה מעניין עכשיו?','החלטה מהירה, ואז מחקר עומק לפי הצורך',`עודכן ${fmtLocal(D.generated_at)}`)+alertsCompact()+`<div class="decision-banner locked"><div><b>המלצות מחקר ניסיוניות לשימוש פרטי</b><span>“מועמדת להשקעה” הוא סימון ניסיוני ושקוף. שערי האימות האמפיריים נשארים נפרדים ונעולים.</span></div><span class="decision-lock">⚗</span></div><div class="simple-summary"><div class="summary-box green"><strong>${count('INVESTMENT_CANDIDATE')}</strong><span>מועמדות להשקעה</span></div><div class="summary-box green"><strong>${count('APPROACHING_CANDIDATE')}</strong><span>מתקרבות למועמדות</span></div><div class="summary-box blue"><strong>${count('RESEARCH_WORTHY')+count('WATCH')}</strong><span>שווה מחקר / מעקב</span></div><div class="summary-box slate"><strong>${count('NOT_NOW')+count('INSUFFICIENT_INFORMATION')}</strong><span>לא כרגע / חסר מידע</span></div></div><section class="panel simple-panel"><div class="panel-head"><div><h3>על מה להתמקד עכשיו?</h3><p class="panel-sub">לכל מניה: למה היא כאן, ומה חסר כדי להתקדם.</p></div><span class="spacer"></span><button class="btn" onclick="page='radar';render()">לכל המניות</button></div><div class="focus-grid">${primary.map(focusCard).join('')||'<div class="empty">כרגע אין מניות ראויות למחקר.</div>'}</div></section>`}
 $('globalSearch').addEventListener('input',e=>{search=e.target.value;if(page==='dash'&&search)page='radar';render();});$('refreshBtn').onclick=refreshNow;$('mobileMenu').onclick=()=>$('sidebar').classList.toggle('open');$('backdrop').onclick=closeDrawer;document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
-load().then(render).catch(e=>{$('main').innerHTML=`<div class="notice red-note"><b>לא ניתן לטעון נתונים.</b><br>${esc(e.message)}<br>הרץ <span class="code">mozes app</span> או <span class="code">mozes export-v3</span>.</div>`});
+load().then(()=>{if(location.hash==='#alerts')page='alerts';render();checkForAlerts().catch(()=>{})}).catch(e=>{$('main').innerHTML=`<div class="notice red-note"><b>לא ניתן לטעון נתונים.</b><br>${esc(e.message)}<br>הרץ <span class="code">mozes app</span> או <span class="code">mozes export-v3</span>.</div>`});
 setInterval(()=>{if(!document.hidden)checkForUpdates().catch(()=>{}).finally(updateSourceFreshness)},60000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkForUpdates().catch(()=>{}).finally(updateSourceFreshness)});
+setInterval(()=>{if(!document.hidden)checkForAlerts().catch(()=>{})},30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkForAlerts().catch(()=>{});checkForUpdates().catch(()=>{}).finally(updateSourceFreshness)}});

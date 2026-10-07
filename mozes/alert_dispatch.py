@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 
 from . import db
 from .latency_metrics import mark_queued, mark_sent, record_detection
-from .materiality import PRIORITY_RANK, alert_priority, classify_outcome, should_enqueue
+from .materiality import ALERTABLE_CHANGE_TYPES, PRIORITY_RANK, alert_priority, classify_outcome, should_enqueue
 from .priority import priority_tickers
 
 STAGE1 = "stage1"
@@ -209,7 +209,7 @@ def recent_alerts(conn, *, days=7, limit=100, now=None):
     since = (now - timedelta(days=days)).isoformat()
     rows = conn.execute(
         "SELECT change_id, MIN(created_at) AS created_at, payload_json, "
-        "MAX(CASE WHEN status='sent' THEN 1 ELSE 0 END) AS delivered "
+        "MAX(CASE WHEN status='sent' AND channel<>'log' THEN 1 ELSE 0 END) AS delivered "
         "FROM alert_outbox WHERE stage=? AND created_at>=? GROUP BY change_id "
         "ORDER BY created_at DESC LIMIT ?",
         (STAGE1, since, limit),
@@ -218,6 +218,14 @@ def recent_alerts(conn, *, days=7, limit=100, now=None):
     for row in rows:
         payload = json.loads(row["payload_json"])
         links = corroborations(conn, row["change_id"])
+        delivery = {item["channel"]: {"status": item["status"], "attempts": item["attempts"],
+                                     "sent_at": item["sent_at"]}
+                    for item in conn.execute(
+                        "SELECT channel,status,attempts,sent_at FROM alert_outbox WHERE change_id=? AND stage=?",
+                        (row["change_id"], STAGE1))}
+        analysis = conn.execute(
+            "SELECT a.result_json FROM alert_analysis_jobs j JOIN alert_analyses a USING(analysis_id) WHERE j.change_id=?",
+            (row["change_id"],)).fetchone()
         alerts.append({
             "change_id": row["change_id"],
             "created_at": row["created_at"],
@@ -229,10 +237,15 @@ def recent_alerts(conn, *, days=7, limit=100, now=None):
             "source_url": payload.get("source_url"),
             "published_at": payload.get("published_at"),
             "detected_at": payload.get("detected_at"),
-            "headline": _headline_of(payload) or None,
+            "headline": _headline_of(payload)[:1200] or None,
             "polarity": (payload.get("outcome") or {}).get("polarity", "unknown"),
+            "verification_state": payload.get("verification_state"),
+            "summary": str((payload.get("new_value") or {}).get("summary") or "")[:1200]
+                       if isinstance(payload.get("new_value"), dict) else "",
             "corroborated_by": [link["source_type"] for link in links],
             "delivered": bool(row["delivered"]),
+            "delivery": delivery,
+            "explanation": json.loads(analysis[0]) if analysis else None,
         })
     return alerts
 
@@ -245,21 +258,37 @@ def _min_priority():
 def enqueue_from_change_row(conn, *, change_id, change_type, severity):
     """Gate: alertable type, priority at or above MOZES_ALERT_MIN_PRIORITY, not a duplicate story."""
     if not should_enqueue(change_type, severity):
+        _enqueue_decision(conn, change_id, "filtered")
         return []
     payload = build_stage1_payload(conn, change_id)
     if PRIORITY_RANK.get(payload["priority"], 3) > _min_priority():
+        _enqueue_decision(conn, change_id, "filtered")
         return []
     primary = find_primary_alert(conn, payload)
     if primary:
         link_corroboration(conn, change_id=change_id, primary_change_id=primary["change_id"],
                            ticker=payload["ticker"], similarity=primary["similarity"],
-                           source_type=payload.get("source_type"))
+                            source_type=payload.get("source_type"))
+        _enqueue_decision(conn, change_id, "linked")
         return []
-    return enqueue_change(conn, change_id, stage=STAGE1)
+    created = enqueue_change(conn, change_id, stage=STAGE1)
+    _enqueue_decision(conn, change_id, "queued")
+    return created
+
+
+def _enqueue_policy():
+    return f"enqueue-v1:P{_min_priority()}"
+
+
+def _enqueue_decision(conn, change_id, decision):
+    with conn:
+        conn.execute("INSERT OR REPLACE INTO alert_enqueue_decisions VALUES(?,?,?,?)",
+                     (change_id, _enqueue_policy(), decision, db.utcnow()))
 
 
 def _format_message(payload):
-    outcome = payload.get("outcome") or {}
+    from .alert_explanation import explain
+    explanation = explain(payload)
     headline = ""
     value = payload.get("new_value")
     if isinstance(value, dict):
@@ -269,10 +298,13 @@ def _format_message(payload):
     return (
         f"[{payload.get('priority')}] {payload.get('ticker') or '?'} · {payload.get('stage')} · "
         f"{payload.get('change_type')}\n"
-        f"outcome={outcome.get('polarity', 'unknown')} (uncalibrated)\n"
         f"{headline}\n"
-        f"source={payload.get('source_type')} · detected={payload.get('detected_at')}\n"
+        f"למה התקבלה ההתראה? {explanation['why_he']}\n"
+        f"{explanation['summary_he']}\n"
+        f"רמת המידע: כותרת/אות ראשוני; ניתוח המקור יתווסף באתר.\n"
+        f"מקור: {payload.get('source_type')} · זוהה: {payload.get('detected_at')}\n"
         f"{payload.get('source_url') or ''}\n"
+        f"התראות וניתוח: https://mozes2024.github.io/mozes-biotech-intelligence/#alerts\n"
         f"{payload.get('note')}"
     )
 
@@ -319,6 +351,8 @@ def send_email(payload, *, smtp_factory=None):
     message["Subject"] = _email_subject(payload)
     message["From"] = os.environ.get("MOZES_ALERT_EMAIL_FROM") or user
     message["To"] = os.environ.get("MOZES_ALERT_EMAIL_TO") or user
+    if payload.get("change_id"):
+        message["Message-ID"] = f"<{_alert_id(payload['change_id'], payload.get('stage', STAGE1), 'email')}@mozes-alerts>"
     if payload.get("priority") == "P1":
         message["X-Priority"] = "1"
     message.set_content(_format_message(payload))
@@ -443,24 +477,31 @@ def dispatch_pending(conn, *, limit=50, now=None, sender=None):
 
 
 def sync_new_changes(conn, *, since_iso=None, limit=100):
-    """Enqueue Stage-1 alerts for recent alertable change_events, then dispatch."""
-    if since_iso:
-        rows = conn.execute(
-            "SELECT change_id,change_type,severity FROM change_events "
-            "WHERE detected_at>=? ORDER BY detected_at ASC LIMIT ?",
-            (since_iso, limit),
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT c.change_id,c.change_type,c.severity FROM change_events c "
-            "LEFT JOIN alert_outbox o ON o.change_id=c.change_id AND o.stage=? "
-            "WHERE o.alert_id IS NULL AND c.change_id NOT IN (SELECT change_id FROM alert_links) "
-            "ORDER BY c.detected_at DESC LIMIT ?",
-            (STAGE1, limit),
-        ).fetchall()
-    queued = []
+    """Recover missing Stage-1 entries from the last seven days, then dispatch.
+
+    Current-pass detections go first. Recorded filters are not rescanned every pass;
+    a transient enqueue failure remains eligible even after its original pass ended.
+    """
+    from .alert_feed import remember_channels
+    remember_channels(conn)
+    since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    types = sorted(ALERTABLE_CHANGE_TYPES)
+    rows = conn.execute(
+        "SELECT c.change_id,c.change_type,c.severity FROM change_events c "
+        "WHERE c.detected_at>=? AND c.change_type IN (" + ",".join("?" for _ in types) + ") "
+        "AND c.severity IN ('medium','high','critical') "
+        "AND NOT EXISTS (SELECT 1 FROM alert_outbox o WHERE o.change_id=c.change_id AND o.stage=?) "
+        "AND NOT EXISTS (SELECT 1 FROM alert_links l WHERE l.change_id=c.change_id) "
+        "AND NOT EXISTS (SELECT 1 FROM alert_enqueue_decisions d WHERE d.change_id=c.change_id AND d.policy_key=?) "
+        "ORDER BY CASE WHEN c.detected_at>=? THEN 0 ELSE 1 END,c.detected_at ASC LIMIT ?",
+        (since, *types, STAGE1, _enqueue_policy(), since_iso or since, max(1, limit)),
+    ).fetchall()
+    queued, errors = [], []
     for row in rows:
-        queued.extend(enqueue_from_change_row(
-            conn, change_id=row["change_id"], change_type=row["change_type"], severity=row["severity"]))
+        try:
+            queued.extend(enqueue_from_change_row(
+                conn, change_id=row["change_id"], change_type=row["change_type"], severity=row["severity"]))
+        except Exception as exc:
+            errors.append({"change_id": row["change_id"], "error": type(exc).__name__})
     dispatched = dispatch_pending(conn)
-    return {"queued": len(queued), "alert_ids": queued, "dispatch": dispatched}
+    return {"queued": len(queued), "alert_ids": queued, "dispatch": dispatched, "errors": errors}

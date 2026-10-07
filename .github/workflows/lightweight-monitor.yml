@@ -44,6 +44,12 @@ jobs:
       MOZES_SMTP_USER: ${{ secrets.MOZES_SMTP_USER }}
       MOZES_SMTP_PASSWORD: ${{ secrets.MOZES_SMTP_PASSWORD }}
       MOZES_ALERT_EMAIL_TO: ${{ secrets.MOZES_ALERT_EMAIL_TO }}
+      MOZES_ALERT_FEED_URL: ${{ vars.MOZES_ALERT_FEED_URL }}
+      MOZES_ALERT_FEED_TOKEN: ${{ secrets.MOZES_ALERT_FEED_TOKEN }}
+      # AI wording is opt-in; source-backed rule explanations work without it.
+      MOZES_ALERT_AI: ${{ vars.MOZES_ALERT_AI }}
+      MOZES_AI_MODEL: ${{ vars.MOZES_AI_MODEL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       GH_TOKEN: ${{ github.token }}
       SOURCE_RUN_ID: ${{ inputs.source_run_id }}
       RUN_PRIORITY: ${{ inputs.priority_only == true || github.event_name == 'schedule' }}
@@ -67,6 +73,15 @@ jobs:
           else
             python -m mozes.pipeline_v2c monitor
           fi
+      - name: Explain already-queued alerts from their sources
+        id: explanation
+        # All current source checks and first pushes precede this bounded enrichment.
+        continue-on-error: true
+        timeout-minutes: 1
+        run: python -m mozes.alert_explanation --limit 3
+      - name: Export completed explanations without another source scan
+        if: steps.explanation.outputs.changed == 'true'
+        run: python -m mozes.pipeline_v2c export
       - uses: actions/upload-artifact@v4
         with:
           name: mozes-live-monitor
@@ -78,8 +93,12 @@ jobs:
           include-hidden-files: true
           # Runs are minute-frequent; restore only needs the newest successful lineage.
           retention-days: 3
+      - name: Publish the small alert feed independently of Pages
+        # The durable monitor artifact is already saved. A feed outage retries next run.
+        continue-on-error: true
+        run: python -m mozes.alert_feed
       - name: Publish only changed data or the daily heartbeat
-        if: steps.data.outputs.should_publish == 'true'
+        if: steps.data.outputs.should_publish == 'true' || steps.explanation.outputs.changed == 'true'
         run: |
           # Pages is a consumer: rebuild at most every 2 minutes so the site keeps pace with the clock.
           last=$(gh run list --workflow pages.yml --limit 1 --json createdAt --jq '.[0].createdAt // ""')

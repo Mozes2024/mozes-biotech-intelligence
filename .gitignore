@@ -6,10 +6,13 @@ venv/
 .env
 *.db
 web/data.json
+web/alerts.json
+web/updates.json
 .pytest_cache/
 dist/
 build/
 .monitor/
+cloudflare/.wrangler/
 _reviews/
 # Local-only delivery setup (deferred from this release)
 mozes/telegram_setup.py

@@ -175,6 +175,8 @@ def semantic_fingerprint(payload):
                      'financing': [(x.get('accession'), x.get('kind')) for x in row.get('financing_events', [])]})
     health = payload.get('health') or {}
     return digest({'live': live, 'summary': payload.get('summary'),
+                   'alerts': payload.get('alerts'), 'alert_config': {
+                       k: (payload.get('alert_config') or {}).get(k) for k in ('enabled_channels', 'feed_url')},
                    'health': {'status': health.get('status'), 'warnings': health.get('warnings')},
                    'change_cursor': (payload.get('build') or {}).get('change_cursor'),
                    'change_ledger': (payload.get('build') or {}).get('change_ledger'),
@@ -183,9 +185,9 @@ def semantic_fingerprint(payload):
                    'v2c_statuses': {k: v.get('status') for k, v in (payload.get('intelligence_v2c') or {}).get('modules', {}).items() if k != 'pipeline'}})
 
 
-def export_payload(conn, destination):
+def export_payload(conn, destination, *, today=None):
     from .payload_v3 import build
-    payload = build(conn, date.today())
+    payload = build(conn, today or date.today())
     payload['build'] = {'extension': 'v2E', 'source_sha': os.environ.get('GITHUB_SHA'),
                         'source_of_truth': 'runtime_export_not_checked_in_web_data_json',
                         'change_cursor': None}
@@ -194,9 +196,16 @@ def export_payload(conn, destination):
         'SELECT change_id FROM change_events ORDER BY change_id')])
     if latest_change:
         payload['build']['change_cursor'] = dict(latest_change)
+    payload['build']['snapshot_revision'] = semantic_fingerprint(payload)
     path = Path(destination)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
+    from .alert_feed import build_feed
+    (path.parent / 'alerts.json').write_text(encode(build_feed(conn, generated_at=payload['generated_at'])),
+                                           encoding='utf-8')
+    (path.parent / 'updates.json').write_text(encode({
+        'schema': 1, 'revision': payload['build']['snapshot_revision'], 'generated_at': payload['generated_at']}),
+        encoding='utf-8')
     receipt = path.parent / 'publish-receipt.json'
     receipt.write_text(encode({'change_ledger': payload['build']['change_ledger']}), encoding='utf-8')
     return payload

@@ -30,7 +30,9 @@ jobs:
           python -m compileall -q mozes scripts
           for file in web/*.js; do node --check "$file"; done
       - name: Cloudflare clock Worker
-        run: node cloudflare/test.mjs
+        run: |
+          node cloudflare/test.mjs
+          node cloudflare/test_alert_feed.mjs
       - name: Offline product smoke test
         env:
           MOZES_DB_PATH: /tmp/mozes-ci.db

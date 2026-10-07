@@ -219,13 +219,14 @@ def cmd_serve_v2(args):
 
 
 def cmd_export_v3(args):
-    from .payload_v3 import build
+    from .pipeline_v2c import export_payload
     from .radar import bootstrap_database
     conn = db.connect(DB_PATH)
     bootstrap_database(conn)
     WEB_DIR.mkdir(parents=True, exist_ok=True)
     out = WEB_DIR / "data.json"
-    out.write_text(json.dumps(build(conn, _today(args)), ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    export_payload(conn, out, today=_today(args))
+    conn.close()
     print(f"wrote {out}")
     return 0
 

@@ -161,7 +161,18 @@ class Handler(BaseHTTPRequestHandler):
                 today = date.fromisoformat(q.get("as_of", [date.today().isoformat()])[0])
             except ValueError:
                 self._send_json({"error": "invalid as_of date"}, 400); return
-            self._send_json(build(self.conn, today))
+            from .pipeline_v2c import semantic_fingerprint
+            payload = build(self.conn, today)
+            payload['build'] = {'snapshot_revision': semantic_fingerprint(payload)}
+            self._send_json(payload)
+            return
+        if path == "/api/alerts":
+            from .alert_feed import build_feed
+            self._send_json(build_feed(self.conn))
+            return
+        if path == "/api/updates":
+            from .pipeline_v2c import semantic_fingerprint
+            self._send_json({'schema': 1, 'revision': semantic_fingerprint(build(self.conn, date.today()))})
             return
         if path.startswith("/api/events/"):
             event_id = path.split("/api/events/", 1)[1]

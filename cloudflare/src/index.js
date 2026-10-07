@@ -2,6 +2,8 @@
 // Worker dispatches the monitor workflow every minute unless a run is already queued/running.
 // Free plan budget: 10 ms CPU and 50 subrequests per invocation — this uses 2–3 fetches.
 
+import { handleAlertFeed } from "./alert-feed.js";
+
 const ACTIVE = new Set(["queued", "in_progress", "waiting", "requested", "pending"]);
 const STALE_MINUTES = 45;
 
@@ -54,7 +56,8 @@ export default {
   async scheduled(controller, env, ctx) {
     ctx.waitUntil(tick(env, new Date(controller.scheduledTime)).then((r) => console.log(JSON.stringify(r))));
   },
-  async fetch() {
+  async fetch(request, env) {
+    if (new URL(request.url).pathname === "/alerts") return handleAlertFeed(request, env);
     return new Response(JSON.stringify({ ok: true, service: "mozes-hot-clock" }), {
       headers: { "content-type": "application/json" },
     });
