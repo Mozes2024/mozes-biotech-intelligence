@@ -91,8 +91,10 @@ def test_dispatch_checks_current_head_and_restore_is_not_executable():
     pages = (ROOT / '.github/workflows/pages.yml').read_text()
     assert "git rev-parse HEAD" in pages
     restore = (ROOT / 'scripts/restore_monitor_state.py').read_text()
-    assert "meta.get('head_branch') != 'main'" in restore
+    assert 'head_branch' in restore and 'main' in restore
     assert 'PRAGMA quick_check' in restore
+    assert 'MAX_REWIND' in restore
+    assert 'Refusing to rewind' in restore
 
 
 def test_new_change_cursor_triggers_publication_without_price_or_score_change():

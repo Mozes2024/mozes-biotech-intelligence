@@ -13,6 +13,10 @@ on:
         required: false
         default: true
         type: boolean
+      source_run_id:
+        description: 'Optional successful monitor run ID to restore (recovery only)'
+        required: false
+        type: string
 permissions:
   contents: read
   actions: write
@@ -41,6 +45,7 @@ jobs:
       MOZES_SMTP_PASSWORD: ${{ secrets.MOZES_SMTP_PASSWORD }}
       MOZES_ALERT_EMAIL_TO: ${{ secrets.MOZES_ALERT_EMAIL_TO }}
       GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
       RUN_PRIORITY: ${{ inputs.priority_only == true || github.event_name == 'schedule' }}
     steps:
       - uses: actions/checkout@v4
@@ -65,10 +70,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mozes-live-monitor
+          # Keep the artifact small/reliable: the 240MB+ http-cache caused restore to
+          # fall back to an old DB and drop live alerts (LPCN). Cache warms itself.
           path: |
             .monitor/mozes-live.db
             .monitor/manifest.json
-            .monitor/http-cache
           include-hidden-files: true
           # Runs are minute-frequent; restore only needs the newest successful lineage.
           retention-days: 3
