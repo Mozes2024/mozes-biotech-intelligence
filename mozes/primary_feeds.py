@@ -36,7 +36,10 @@ USER_AGENT = "MozesBiotechMonitor/1.1 (+https://github.com/Mozes2024/mozes-biote
 
 BIOTECHISH = re.compile(
     r"\b(biotech|therapeutics?|pharma(?:ceutical)?s?|oncology|clinical\s+trial|"
-    r"phase\s*[123]|fda|pdufa|topline|endpoint|antibody|gene\s+therapy)\b",
+    r"phase\s*[123]|fda|pdufa|topline|endpoint|antibody|gene\s+therapy|"
+    r"health\s+canada|ema|mhra|pmda|nda|bla|maa|crl|"
+    r"approv(?:ed|al|es|ing)|clinical\s+hold|pdufa|"
+    r"nasdaq|nyse|ticker)\b",
     re.I,
 )
 NDAQ = "{http://www.nasdaqtrader.com/}"

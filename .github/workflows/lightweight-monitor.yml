@@ -75,10 +75,10 @@ jobs:
       - name: Publish only changed data or the daily heartbeat
         if: steps.data.outputs.should_publish == 'true'
         run: |
-          # Pages is a consumer, not the alert path: rebuild at most every 15 minutes.
+          # Pages is a consumer: rebuild at most every 2 minutes so the site keeps pace with the clock.
           last=$(gh run list --workflow pages.yml --limit 1 --json createdAt --jq '.[0].createdAt // ""')
-          if [ -n "$last" ] && [ $(( $(date +%s) - $(date -d "$last" +%s) )) -lt 900 ]; then
-            echo "Pages rebuilt <15 min ago; this change ships with the next publish."
+          if [ -n "$last" ] && [ $(( $(date +%s) - $(date -d "$last" +%s) )) -lt 120 ]; then
+            echo "Pages rebuilt <2 min ago; this change ships with the next publish."
           else
             gh workflow run pages.yml --ref main -f source_run_id="$GITHUB_RUN_ID"
           fi
