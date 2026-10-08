@@ -27,6 +27,7 @@ from .primary_feeds import (
 )
 from .priority import priority_tickers
 from .sec_http import enable_hot_mode
+from .ingest.edgar_latest import poll_latest
 
 
 def _fetch(url):
@@ -136,6 +137,7 @@ def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True, f
             conn, details, "nasdaq_halts",
             lambda: poll_nasdaq_halts(conn, fetch=fetch, watch_tickers=_watch_tickers(conn)))
         if include_sec and os.environ.get("SEC_USER_AGENT"):
+            details["feeds"]["sec_latest"] = _step(conn, details, "sec_latest", lambda: poll_latest(conn))
             def sec_monitor():
                 # The hot pass owns dispatch (and may be a silent warm-up); run_monitor must not send.
                 previous = os.environ.get("MOZES_ALERT_DISPATCH")

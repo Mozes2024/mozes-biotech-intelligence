@@ -29,8 +29,11 @@ requirements, safety and integrity. Categories are Weak (<45), Moderate (45–64
 (65–79), and Very Strong (80+).
 
 Impact is additive and capped at 100: event type, program dependency, market-cap band,
-commercial stage, pivotal designation, filing enablement, and short cash runway. Risk
-flags remain independent from evidence and can force conservative classifications.
+commercial stage, pivotal designation, and filing enablement. Short cash runway is
+risk/dilution context only and never adds positive catalyst impact. A separate
+`market_reaction_v1` feature contract may later describe market response; it is
+not a clinical probability model. Risk flags remain independent from evidence and
+can force conservative classifications.
 
 ## Validation gates
 

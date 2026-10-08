@@ -1,8 +1,13 @@
 # Alert delivery and source explanations
 
+> This document records the v2H alert-feed deployment. For the v3 detection
+> clock, issuer synchronization, Stage-0 delivery, and current activation steps,
+> see [HOT_EDGE_V3.md](HOT_EDGE_V3.md). The v2H clock description below is
+> historical after v3 activation.
+
 ## Review status
 
-The alert path passed 413 offline Python tests, Worker clock/feed checks and a
+The v2H alert path passed its then-current offline Python suite, Worker clock/feed checks and a
 local browser popup check before publication. The existing Cloudflare Worker
 now has the `ALERTS_DB` binding and `/alerts` endpoint; its scheduled clock remains
 active. The public endpoint is `https://mozes-hot-clock.sp500.workers.dev/alerts`.

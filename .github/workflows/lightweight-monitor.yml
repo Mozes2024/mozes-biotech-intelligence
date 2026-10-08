@@ -1,7 +1,6 @@
 name: lightweight-live-monitor
 on:
-  # Primary clock: the free Cloudflare Worker in cloudflare/ dispatches this every minute
-  # (GitHub's schedule drifts by hours); the crons below are only a fallback.
+  # Reconciliation fallback; the Cloudflare Durable Object owns Stage-0 detection.
   schedule:
     - cron: '7,22,37,52 * * * *'
     - cron: '20 0,12,18 * * *'
@@ -15,6 +14,22 @@ on:
         type: boolean
       source_run_id:
         description: 'Optional successful monitor run ID to restore (recovery only)'
+        required: false
+        type: string
+      hot_ticker:
+        description: 'Edge detected issuer ticker'
+        required: false
+        type: string
+      hot_cik:
+        description: 'Edge detected issuer CIK'
+        required: false
+        type: string
+      hot_accession:
+        description: 'Edge detected SEC accession'
+        required: false
+        type: string
+      hot_source_url:
+        description: 'Edge primary source URL'
         required: false
         type: string
 permissions:
@@ -52,6 +67,12 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       GH_TOKEN: ${{ github.token }}
       SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      MOZES_HOT_TICKER: ${{ inputs.hot_ticker }}
+      MOZES_HOT_CIK: ${{ inputs.hot_cik }}
+      MOZES_HOT_ACCESSION: ${{ inputs.hot_accession }}
+      MOZES_HOT_SOURCE_URL: ${{ inputs.hot_source_url }}
+      MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
+      EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
       RUN_PRIORITY: ${{ inputs.priority_only == true || github.event_name == 'schedule' }}
     steps:
       - uses: actions/checkout@v4
@@ -63,6 +84,8 @@ jobs:
       - run: pip install -e .
       - name: Restore the single monitor-state lineage
         run: python scripts/restore_monitor_state.py
+      - name: Synchronize verified issuer universe to hot edge
+        run: python -m mozes.edge_sync
       - name: Hot feeds (FDA, wires, Nasdaq halts, company IR) + push
         run: python -m mozes.hot_monitor --once --no-sec --allow-partial
       - name: Hot priority observe + alert outbox

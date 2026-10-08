@@ -54,6 +54,7 @@ MATERIAL_HEADLINE = re.compile(
     r"advisory\s+committee|fda\s+(?:decision|approv\w*|briefing)|"
     r"primary\s+endpoint|interim\s+(?:\w+\s+)?analysis|futility|clinical\s+hold|complete\s+response|"
     r"(?:results|data)\s+(?:from|of)\s+(?:the\s+|its\s+)?(?:pivotal\s+|registrational\s+)?phase\s*[23]|"
+    r"phase\s*[23]\b.{0,30}\bresults\b|"
     r"halt|news\s+pending)\b",
     re.I,
 )

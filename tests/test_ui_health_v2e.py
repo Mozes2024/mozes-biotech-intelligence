@@ -12,6 +12,8 @@ const source = fs.readFileSync('web/live_intelligence_ui.js', 'utf8');
 function render(red, amber) {
   const context = {D: {live: [], changes: [], alerts: [], generated_at: '2026-10-02T00:00:00Z',
     validation: {}, coverage: {}, health: {sec_monitoring_enabled: true,
+      source_freshness: [{source:'wire_feed:test',status:'FAILED',consecutive_failures:2,
+        last_checked_at:'2026-10-08T00:00:00Z'}],
       latest_monitor: {finished_at: new Date().toISOString()},
       primary_catalyst_monitoring: {healthy: !red.length, label_he: 'ניטור אירועי הליבה תקין'},
       severity: {red, amber, info: []}}}, HE: {type: {}},
@@ -25,6 +27,8 @@ const amber = render([], [{module: 'prices', status: 'INCOMPLETE'}]);
 assert(amber.startsWith('מה מעניין עכשיו?') || amber.includes('מה מעניין עכשיו?'));
 assert(amber.indexOf('ALERTS') < amber.indexOf('סטטוס מערכת'));
 assert(amber.includes('<details') && amber.includes('סטטוס מערכת'));
+assert(amber.includes('p50 N/A') && amber.includes('n=0'));
+assert(amber.includes('wire_feed:test: FAILED') && amber.includes('כשלים רצופים 2'));
 assert(amber.includes('prices: INCOMPLETE'));
 assert(!amber.includes('אזהרת מקור'));
 const red = render([{module: 'refresh', status: 'FAILED'}], []);

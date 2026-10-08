@@ -311,8 +311,12 @@ def run_priority_pipeline(conn):
     details = {'catalog': reconcile_catalog(conn)}
     enable_hot_mode(True)
     try:
+        hot = ({'hot_ticker': os.environ.get('MOZES_HOT_TICKER'),
+                'hot_cik': os.environ.get('MOZES_HOT_CIK'),
+                'hot_accession': os.environ.get('MOZES_HOT_ACCESSION')}
+               if os.environ.get('MOZES_HOT_TICKER') else {})
         details['monitor'] = run_monitor(conn, audit=False, ctgov_diff=False, sec=True,
-                                         news=True, priority_only=True)
+                                         news=True, priority_only=True, **hot)
     finally:
         enable_hot_mode(False)
     status = details['monitor']['status']

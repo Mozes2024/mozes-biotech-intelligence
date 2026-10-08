@@ -17,6 +17,9 @@ def test_v3_payload_has_product_sections(tmp_path):
     assert all("recommendation" in row for row in p["live"])
     assert {"status", "why_he", "missing_he"} <= set(p["live"][0]["recommendation"])
     assert "pipeline" in p["historical_audit"]
+    assert {"samples", "metrics", "by_source_type"} <= set(p["hot_latency"])
+    assert "publication_to_sent" in p["hot_latency"]["metrics"]
+    assert "source_freshness" in p["health"]
 
 
 def test_v2_analysis_can_be_recorded_in_paper_book(tmp_path):

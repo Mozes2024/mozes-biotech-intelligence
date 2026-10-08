@@ -80,8 +80,10 @@ def _percentile(values, q):
     ordered = sorted(values)
     if len(ordered) == 1:
         return round(ordered[0], 3)
-    idx = min(len(ordered) - 1, max(0, int(round((len(ordered) - 1) * q))))
-    return round(ordered[idx], 3)
+    position = (len(ordered) - 1) * q
+    lower = int(position)
+    fraction = position - lower
+    return round(ordered[lower] + fraction * (ordered[min(lower + 1, len(ordered) - 1)] - ordered[lower]), 3)
 
 
 def summary(conn, *, limit=500):
@@ -89,31 +91,34 @@ def summary(conn, *, limit=500):
         "SELECT * FROM latency_events ORDER BY source_first_seen_at DESC LIMIT ?",
         (limit,),
     ).fetchall()
-    detection, dispatch = [], []
+    pairs = {
+        "publication_to_first_seen": ("source_published_at", "source_first_seen_at"),
+        "publication_to_queued": ("source_published_at", "alert_queued_at"),
+        "publication_to_sent": ("source_published_at", "alert_sent_at"),
+        "first_seen_to_sent": ("source_first_seen_at", "alert_sent_at"),
+        "queued_to_sent": ("alert_queued_at", "alert_sent_at"),
+    }
+    values = {key: [] for key in pairs}
     by_source = {}
     for row in rows:
-        det = _seconds(row["source_published_at"], row["source_first_seen_at"])
-        if det is not None:
-            detection.append(det)
-            by_source.setdefault(row["source_type"] or "unknown", []).append(det)
-        disp = _seconds(row["alert_queued_at"], row["alert_sent_at"])
-        if disp is not None:
-            dispatch.append(disp)
+        source = by_source.setdefault(row["source_type"] or "unknown", {key: [] for key in pairs})
+        for key, (start, end) in pairs.items():
+            seconds = _seconds(row[start], row[end])
+            if seconds is not None:
+                values[key].append(seconds)
+                source[key].append(seconds)
+    def stats(samples):
+        return {"n": len(samples), "p50": _percentile(samples, 0.50),
+                "p95": _percentile(samples, 0.95), "p99": _percentile(samples, 0.99),
+                "mean": round(statistics.fmean(samples), 3) if samples else None}
     return {
         "samples": len(rows),
-        "detection_latency_seconds": {
-            "p50": _percentile(detection, 0.50),
-            "p95": _percentile(detection, 0.95),
-            "p99": _percentile(detection, 0.99),
-            "mean": round(statistics.fmean(detection), 3) if detection else None,
-            "n": len(detection),
-        },
-        "dispatch_latency_seconds": {
-            "p95": _percentile(dispatch, 0.95),
-            "n": len(dispatch),
-        },
+        "metrics": {key: stats(samples) for key, samples in values.items()},
+        "detection_latency_seconds": stats(values["publication_to_first_seen"]),
+        "dispatch_latency_seconds": stats(values["queued_to_sent"]),
         "by_source_type": {
-            source: {"p95": _percentile(vals, 0.95), "n": len(vals)}
-            for source, vals in sorted(by_source.items())
+            source: {"metrics": {key: stats(samples) for key, samples in grouped.items()},
+                     **stats(grouped["publication_to_first_seen"])}
+            for source, grouped in sorted(by_source.items())
         },
     }

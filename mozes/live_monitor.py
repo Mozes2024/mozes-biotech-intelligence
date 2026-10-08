@@ -64,8 +64,19 @@ def record_change(conn, *, ticker, change_type, previous_value, new_value, sourc
 
 
 def observe(conn, key, value, *, source_url=None, source_type=None):
-    digest = _hash(value)
     old = conn.execute("SELECT value_json,content_hash FROM monitor_observations WHERE observation_key=?", (key,)).fetchone()
+    if key.startswith(("fda_feed:", "wire_feed:", "sec_latest:", "official_feed:")) or key == "nasdaq_halts":
+        previous = json.loads(old["value_json"]) if old else {}
+        value = dict(value)
+        checked = value.get("checked_at") or db.utcnow()
+        failed = value.get("status") in {"fetch_error", "FAILED", "PARTIAL"}
+        value.update({
+            "last_checked_at": checked,
+            "last_success_at": previous.get("last_success_at") if failed else checked,
+            "last_error_at": checked if failed else previous.get("last_error_at"),
+            "consecutive_failures": previous.get("consecutive_failures", 0) + 1 if failed else 0,
+        })
+    digest = _hash(value)
     if old and old["content_hash"] == digest:
         return None
     with conn:
@@ -223,7 +234,7 @@ from .source_observability import observed, snapshot
 
 @observed
 def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_company=12, news=False,
-                priority_only=False):
+                priority_only=False, hot_ticker=None, hot_cik=None, hot_accession=None):
     from .security import audit_current_universe, audit_watch_universe, NON_TRADABLE
     started = _now()
     with conn:
@@ -272,13 +283,21 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
             from .priority import priority_tickers
             priority = {ticker: index for index, ticker in enumerate(priority_tickers())}
             watches = sorted(db.watch_rows(conn), key=lambda row: (priority.get(row["ticker"], len(priority)), row["ticker"]))
+            if hot_ticker and hot_cik and str(hot_cik).isdigit():
+                mapping = conn.execute("SELECT ticker,cik FROM sponsor_ticker_map WHERE ticker=? AND CAST(cik AS INTEGER)=? "
+                                       "AND source='SEC-v2C-equity' AND confidence>=0.85",
+                                       (hot_ticker, int(hot_cik))).fetchone()
+                if mapping:
+                    watches = [dict(mapping)] + [row for row in watches if row["ticker"] != hot_ticker]
             if priority_only:
-                watches = [row for row in watches if row["ticker"] in priority]
+                watches = [row for row in watches if row["ticker"] in priority or row["ticker"] == hot_ticker]
             for watch in watches:
                 if not watch.get("cik"):
                     continue
                 try:
                     filings = edgar.recent_filings_v2(watch["cik"], forms=("424B5", "424B4", "S-3", "S-1", "8-K", "6-K"), limit=filings_per_company)
+                    if watch["ticker"] == hot_ticker and hot_accession:
+                        filings.sort(key=lambda filing: filing.get("accession") != hot_accession.replace("-", ""))
                     for filing in filings:
                         if filing.get("filed", "") < (date.today() - timedelta(days=30)).isoformat():
                             continue

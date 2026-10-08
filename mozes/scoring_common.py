@@ -22,7 +22,6 @@ def catalyst_impact(event: dict) -> dict:
     add("market_cap_band", MCAP_POINTS.get(event.get("mcap") or "unknown", 8))
     add("commercial_stage", 3 if event.get("commercial") else 10)
     if event.get("enables_filing"): add("filing_enabler", 10)
-    if event.get("runway_months") is not None and event["runway_months"] < 12: add("short_cash_runway", 5)
     return {"score": min(100, sum(item["points"] for item in contributions)), "contributions": contributions, "version": VERSIONS["catalyst_impact"]}
 
 
