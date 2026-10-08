@@ -2,7 +2,7 @@
 const SEC = "https://www.sec.gov/cgi-bin/browse-edgar";
 const WIRES = [
   ["businesswire", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGFNXXw=="],
-  ["globenewswire", "https://www.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"],
+  ["globenewswire", "https://rss.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"],
 ];
 const INTERVAL = env => Math.max(10, Math.min(300, Number(env.EDGE_INTERVAL_SECONDS) || 15)) * 1000;
 const text = value => String(value || "").replace(/<!\[CDATA\[|\]\]>/g, "")
