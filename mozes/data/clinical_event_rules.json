@@ -1,14 +1,14 @@
 {
-  "version": "clinical-v1",
+  "version": "clinical-v2",
   "clinical": "\\b(?:phase\\s*[123](?:\\s*/\\s*[23])?|clinical\\s+(?:trial|data|study|hold)|top[ -]?line|read[ -]?out|primary\\s+end[ -]?point|interim\\s+analysis|PDUFA|AdCom|advisory\\s+committee|NDA|BLA|FDA|EMA)\\b",
   "data": "\\b(?:data|results|read[ -]?out|top[ -]?line|analysis|end[ -]?point)\\b",
-  "future": "\\b(?:(?:to|will|plans?\\s+to|expects?\\s+to)\\s+(?:present|share|report|announce|release|submit|file|complete)|upcoming|scheduled|rescheduled|postponed|delays?|delayed|expected|anticipated|expects?|target(?:ed|ing)?|planned)\\b",
+  "future": "\\b(?:(?:to|will|plans?\\s+to|expects?\\s+to)\\s+(?:present|share|report|announce|release|submit|file|complete)|upcoming|scheduled|rescheduled|postponed|delays?|delayed|expected|anticipated|expects?|target(?:ed|ing)?\\s+(?:for\\s+|in\\s+|by\\s+)?(?:Q[1-4]|H[12]|20\\d{2})|planned)\\b",
   "conference": "\\b(?:conference|congress|AASLD|ASCO|EASL|meeting|present(?:ation|ations|s|ed)?)\\b",
   "routine": "\\b(?:participat(?:e|es|ion)|attend(?:s|ance)?|fireside|investor\\s+conference)\\b",
   "management": "\\b(?:appoints?|appointment|chief\\s+(?:financial|medical|executive)\\s+officer|CFO|CMO|CEO)\\b",
   "regulatory": "\\b(?:FDA|EMA|NDA|BLA|PDUFA|AdCom|advisory\\s+committee|clinical\\s+hold|complete\\s+response\\s+letter|CRL)\\b",
   "regulatory_event": "\\b(?:FDA|EMA)\\b.{0,60}\\b(?:approv\\w*|decision|reject\\w*|accept\\w*|clinical\\s+hold)\\b|\\b(?:NDA|BLA)\\b.{0,45}\\b(?:submitted|submission|accepted|acceptance|filed)\\b|\\b(?:submitted|submits|filed|files|accepted|accepts)\\b.{0,45}\\b(?:NDA|BLA)\\b|\\b(?:clinical\\s+hold|CRL|complete\\s+response\\s+letter)\\b",
-  "confirmed": "\\b(?:met|meets|failed\\s+to\\s+meet|did\\s+not\\s+meet|missed)\\b.{0,45}\\bprimary\\s+end[ -]?point|\\bpositive\\s+(?:phase|top[ -]?line|results)|\\b(?:FDA|EMA)\\s+approv(?:es|ed)\\b",
+  "confirmed": "\\b(?:met|meets|failed\\s+to\\s+meet|did\\s+not\\s+meet|missed)\\b.{0,45}\\bprimary\\s+end[ -]?point|\\bpositive\\s+(?:phase|top[ -]?line|results)|\\b(?:FDA|EMA)\\s+approv(?:es|ed)\\b|\\bfirst\\s+patient\\s+(?:dosed|enrolled)\\b|\\bcompleted\\s+(?:enrollment|enrolment|trial)\\b|\\breceived\\b.{0,80}\\b(?:designation|approval|acceptance)\\b",
   "milestone": "\\b(?:enrollment|enrolment|trial\\s+completion|completed\\s+(?:enrollment|enrolment|trial)|first\\s+patient|last\\s+patient|trial\\s+(?:termination|suspension)|suspend(?:s|ed)?\\s+(?:the\\s+)?trial|terminat(?:es|ed|ion)|discontinu(?:es|ed|ation))\\b",
   "important": "\\b(?:phase\\s*[23]|pivotal|registrational|expanded|new\\s+(?:clinical\\s+)?data|updated\\s+(?:clinical\\s+)?data|top[ -]?line|read[ -]?out|interim\\s+analysis|primary\\s+end[ -]?point)\\b"
 }

@@ -153,12 +153,19 @@ def ingest_clinical(conn, *, headline, summary="", source_url, published_at, sou
             conn.execute("INSERT INTO clinical_event_history(event_id,lifecycle,recorded_at) VALUES(?,'DISCOVERED',?)", (event_id, now))
     scope = classify_clinical(text)
     issuer = issuer or resolve_issuer(conn, headline, summary, ticker)
-    if previous and issuer is None and previous['content_hash']==content_hash and previous['lifecycle']=='SUPPRESSED':
+    same_policy = previous and json.loads(previous['classification_json'] or '{}').get('method') == RULES['version']
+    if previous and previous['catalyst_id'] and not scope['catalyst']:
+        with conn:
+            conn.execute('INSERT INTO clinical_catalyst_suppressions VALUES(?,?,?) ON CONFLICT(catalyst_id) DO UPDATE SET reason=excluded.reason,updated_at=excluded.updated_at',
+                         (previous['catalyst_id'],'reclassified_not_upcoming',now))
+    if same_policy and issuer is None and previous['content_hash']==content_hash and previous['lifecycle']=='SUPPRESSED':
         return {'event_id':event_id,'scope':scope,'change_id':None,'new_issuer':False}
-    if previous and issuer and previous["content_hash"] == content_hash and previous["ticker"] == issuer["ticker"] and previous["suppression_reason"] != "issuer_unresolved":
+    if same_policy and issuer and previous["content_hash"] == content_hash and previous["ticker"] == issuer["ticker"] and previous["suppression_reason"] != "issuer_unresolved":
         return {"event_id": event_id, "scope": scope, "change_id": previous["change_id"], "catalyst_id": previous["catalyst_id"], "new_issuer": False}
     if issuer is None:
         if not scope['relevant']:
+            with conn:
+                conn.execute('UPDATE clinical_events SET classification_json=? WHERE event_id=?',(json.dumps(scope),event_id))
             _transition(conn,event_id,'SUPPRESSED',scope['suppression_reason'] or 'outside_scope')
             return {'event_id':event_id,'scope':scope,'change_id':None,'new_issuer':False}
         with conn:
@@ -199,6 +206,7 @@ def ingest_clinical(conn, *, headline, summary="", source_url, published_at, sou
             conn.execute("INSERT INTO clinical_catalysts(catalyst_id,ticker,cik,program,event_type,headline,window_json,first_seen_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(catalyst_id) DO UPDATE SET headline=excluded.headline,window_json=CASE WHEN json_extract(excluded.window_json,'$.precision')='unknown' THEN clinical_catalysts.window_json ELSE excluded.window_json END,updated_at=excluded.updated_at",
                          (catalyst_id, ticker, issuer["cik"], program, kind, headline[:500], json.dumps(window), now, now))
             conn.execute("INSERT INTO clinical_catalyst_sources VALUES(?,?,?,?,?) ON CONFLICT(catalyst_id,event_id) DO UPDATE SET source_hash=excluded.source_hash", (catalyst_id, event_id, source_url, published_at, content_hash))
+            conn.execute('DELETE FROM clinical_catalyst_suppressions WHERE catalyst_id=?',(catalyst_id,))
         identity = ["clinical_catalyst", catalyst_id, window["start"], window["end"]]
     else:
         identity = ["clinical_result", ticker, content_hash]
@@ -237,7 +245,7 @@ def retry_unresolved(conn, limit=8):
 
 
 def clinical_payload(conn, limit=100):
-    rows = [dict(r) for r in conn.execute("SELECT * FROM clinical_catalysts ORDER BY updated_at DESC LIMIT ?", (limit,))]
+    rows = [dict(r) for r in conn.execute("SELECT c.* FROM clinical_catalysts c WHERE NOT EXISTS (SELECT 1 FROM clinical_catalyst_suppressions s WHERE s.catalyst_id=c.catalyst_id) ORDER BY updated_at DESC LIMIT ?", (limit,))]
     for row in rows:
         row["window"] = json.loads(row.pop("window_json"))
         row["sources"] = [dict(r) for r in conn.execute("SELECT source_url,published_at,source_hash FROM clinical_catalyst_sources WHERE catalyst_id=?", (row["catalyst_id"],))]
@@ -269,6 +277,17 @@ def retain_candidates(conn, now=None, max_rows=3000, days=14):
     with conn:
         conn.execute("DELETE FROM clinical_events WHERE lifecycle IN ('SUPPRESSED','PUBLISHED') AND (first_seen_at<? OR event_id IN (SELECT event_id FROM clinical_events WHERE lifecycle IN ('SUPPRESSED','PUBLISHED') ORDER BY first_seen_at DESC LIMIT -1 OFFSET ?))", (cutoff,max_rows))
         conn.execute('DELETE FROM edge_candidate_receipts WHERE processed_at<?', (cutoff,))
+
+
+def reclassify_policy(conn, limit=20):
+    rows=conn.execute("SELECT * FROM clinical_events WHERE json_extract(classification_json,'$.method')<>? ORDER BY first_seen_at LIMIT ?",(RULES['version'],limit)).fetchall()
+    for row in rows:
+        scope=classify_clinical(row['headline']+'\n'+row['summary'])
+        result=ingest_clinical(conn,headline=row['headline'],summary=row['summary'],source_url=row['source_url'],
+            published_at=row['published_at'],source_type=row['source_type'],ticker=row['ticker'],publish=scope['catalyst'])
+        if row['change_id'] and not row['catalyst_id']:
+            bind_change(conn,result['event_id'],row['change_id'])
+    return {'reclassified':len(rows)}
 
 
 if __name__ == "__main__":

@@ -196,3 +196,20 @@ def test_partner_search_never_assigns_vir_announcement_to_alny(tmp_path,monkeypa
     assert conn.execute('SELECT COUNT(*) FROM alert_outbox').fetchone()[0]==0
     retry_unresolved(conn)
     assert not clinical_payload(conn)['catalysts']
+
+
+def test_policy_upgrade_hides_old_false_catalyst_without_deleting_evidence(tmp_path,monkeypatch):
+    import mozes.clinical_events as clinical
+    conn=db.connect(tmp_path/'c.db');mapped(conn,'VIR','Vir Biotechnology, Inc.','1706431')
+    case=CASES[10]
+    old_future=clinical.RULES['future'];old_version=clinical.RULES['version']
+    monkeypatch.setitem(clinical.RULES,'future',r'\btargeted\b')
+    monkeypatch.setitem(clinical.RULES,'version','clinical-v1')
+    first=ingest(conn,case)
+    assert first['catalyst_id'] and clinical_payload(conn)['catalysts']
+    monkeypatch.setitem(clinical.RULES,'future',old_future)
+    monkeypatch.setitem(clinical.RULES,'version',old_version)
+    clinical.reclassify_policy(conn)
+    assert not clinical_payload(conn)['catalysts']
+    assert conn.execute('SELECT COUNT(*) FROM clinical_catalysts').fetchone()[0]==1
+    assert conn.execute('SELECT COUNT(*) FROM clinical_catalyst_sources').fetchone()[0]==1
