@@ -36,7 +36,8 @@ def sync(conn, *, url=None, token=None, opener=None):
         raise RuntimeError("verified edge issuer universe empty")
     request = urllib.request.Request(url, data=json.dumps(payload).encode(), method="POST",
                                      headers={"Authorization": "Bearer " + token,
-                                              "Content-Type": "application/json"})
+                                              "Content-Type": "application/json",
+                                              "User-Agent": "MOZES-EdgeSync/1.0"})
     with (opener or urllib.request.urlopen)(request, timeout=15) as response:
         if response.status != 200:
             raise OSError("edge sync failed")

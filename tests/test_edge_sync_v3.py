@@ -23,6 +23,7 @@ def test_edge_sync_uses_stored_cik_and_never_posts_without_token(tmp_path, monke
     def opener(request, timeout):
         calls.append((json.loads(request.data), timeout))
         assert request.get_header("Authorization") == "Bearer secret"
+        assert request.get_header("User-agent") == "MOZES-EdgeSync/1.0"
         return Reply()
     assert sync(conn, url="https://edge.example/edge/sync", token="secret", opener=opener) == {"status": "OK", "count": 1}
     assert calls[0][0]["issuers"][0]["ticker"] == "ZZZZ"
