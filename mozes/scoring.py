@@ -226,5 +226,6 @@ def classify(impact, evidence, flags, scenario, date_conf, market_data_available
     return {"cls": "WATCH", "reasons": reasons, "version": v}
 
 
-# Keep the historical import surface while sharing these components with v2.
-from .scoring_common import catalyst_impact, risk_flags  # noqa: E402
+# Frozen regression surface; the active v2 engine imports scoring_common directly.
+catalyst_impact = _legacy_catalyst_impact
+from .scoring_common import risk_flags  # noqa: E402

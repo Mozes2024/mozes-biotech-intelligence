@@ -3,7 +3,7 @@
 ## Executed checks
 
 - `python -m compileall -q mozes tests` — passed.
-- `pytest -q` — passed: 209 tests.
+- `python -m pytest -q` — run at validation time; use the pytest summary for the current test count.
 - `git diff --check` — passed after the final whitespace fix.
 - Legacy-reference scan — active product paths no longer import `mozes.scoring`.
 
