@@ -29,6 +29,7 @@ export async function acknowledge(request, env, now = new Date().toISOString()) 
   try { body = await readJson(request, 16384); } catch (response) { return response; }
   if (!validEdgeId(body?.edge_event_id) || body.status !== "completed" ||
       !/^CHG-[a-f0-9]{24}$/.test(body.change_id || "") || !/^\d{1,20}$/.test(body.github_run_id || "") ||
+      (body.catalyst_id && !/^CAT-[a-f0-9]{24}$/.test(body.catalyst_id)) ||
       !Number.isFinite(Date.parse(body.completed_at)) || Date.parse(body.completed_at) > Date.parse(now) + 300000 ||
       !Array.isArray(body.alert_ids) || body.alert_ids.length > 20 || body.alert_ids.some(id => !/^ALT-[a-f0-9]{24}$/.test(id)) ||
       !Array.isArray(body.delivery) || body.delivery.length > 20 || body.delivery.some(row =>
@@ -47,6 +48,14 @@ export async function acknowledge(request, env, now = new Date().toISOString()) 
   }
   const stored = await db.prepare("SELECT * FROM edge_events WHERE event_id=?").bind(body.edge_event_id).first();
   if (stored.enrichment_change_id !== body.change_id) return new Response("Conflicting ACK", { status: 409 });
+  await db.prepare("UPDATE edge_events SET lifecycle='PUBLISHED' WHERE event_id=?").bind(body.edge_event_id).run();
+  const candidate = await db.prepare('SELECT * FROM edge_candidates WHERE candidate_id=?').bind(body.edge_event_id).first();
+  if(candidate && !candidate.completed_at){
+    const history=JSON.parse(candidate.history_json);
+    history.push(...['ENRICHED','PUBLISHED'].map(state=>({state,at:stored.enrichment_ack_at})));
+    await db.prepare("UPDATE edge_candidates SET lifecycle='PUBLISHED',suppression_reason=NULL,completed_at=?,github_run_id=?,change_id=?,catalyst_id=?,history_json=? WHERE candidate_id=? AND completed_at IS NULL")
+      .bind(stored.enrichment_ack_at,body.github_run_id,body.change_id,body.catalyst_id||null,JSON.stringify(history.slice(-10)),body.edge_event_id).run();
+  }
   return Response.json({ ok: true, edge_event_id: body.edge_event_id, status: "completed", enrichment_ack_at: stored.enrichment_ack_at });
 }
 

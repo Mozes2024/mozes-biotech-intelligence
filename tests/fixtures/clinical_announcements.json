@@ -1,0 +1,20 @@
+[
+  {
+    "id": "vir_solstice_20261005", "ticker": "VIR", "company": "Vir Biotechnology, Inc.", "cik": "1706431",
+    "published_at": "2026-10-05T20:05:00Z",
+    "source_url": "https://investors.vir.bio/news/news-details/2026/Vir-Biotechnology-to-Present-Expanded-Phase-2-SOLSTICE-Results-for-Elebsiran-and-Tobevibart-in-Hepatitis-Delta-at-AASLDs-The-Liver-Meeting-2026/default.aspx",
+    "publication_time_note": "Issuer page confirms October 5; 20:05 UTC is corroborated by the archived BusinessWire/Google RSS event CHG-e564108c0a39242732243d70, not an inferred issuer-page time.",
+    "headline": "Vir Biotechnology to Present Expanded Phase 2 SOLSTICE Results for Elebsiran and Tobevibart in Hepatitis Delta at AASLD’s The Liver Meeting 2026",
+    "summary": "Vir Biotechnology, Inc. (Nasdaq: VIR) today announced the Company will present data from the Phase 2 SOLSTICE trial evaluating the combination of elebsiran and tobevibart for chronic hepatitis delta at the upcoming American Association for the Study of Liver Diseases (AASLD) The Liver Meeting 2026 in Denver, CO, November 5-9, 2026.\nDate: November 8, 2026",
+    "expected": {"relevant": true, "material": true, "actionable": false, "catalyst": true, "polarity": "unknown"}
+  },
+  {"id":"positive","headline":"Novel Bio reports positive Phase 2 SUNRISE topline results","summary":"Novel Bio (Nasdaq: ZZZZ) met its primary endpoint with statistically significant benefit.","expected":{"relevant":true,"material":true,"actionable":true,"catalyst":false,"polarity":"positive"}},
+  {"id":"negative","headline":"Novel Bio Phase 3 SUNRISE trial did not meet its primary endpoint","summary":"Novel Bio (Nasdaq: ZZZZ) reports failed Phase 3 primary endpoint results.","expected":{"relevant":true,"material":true,"actionable":true,"catalyst":false,"polarity":"negative"}},
+  {"id":"quarter","headline":"Novel Bio expects Phase 3 SUNRISE topline readout in Q4 2026","summary":"Novel Bio (Nasdaq: ZZZZ) expects Phase 3 SUNRISE topline results in Q4 2026.","expected":{"relevant":true,"material":true,"actionable":false,"catalyst":true,"polarity":"unknown"}},
+  {"id":"routine","headline":"Novel Bio to participate in investor conference","summary":"Novel Bio (Nasdaq: ZZZZ) will participate in a fireside chat. No clinical data will be presented.","expected":{"material":false,"actionable":false,"catalyst":false,"polarity":"unknown"}},
+  {"id":"cfo","headline":"Novel Bio appoints a new Chief Financial Officer","summary":"Novel Bio (Nasdaq: ZZZZ) announces CFO appointment.","expected":{"material":false,"actionable":false,"catalyst":false,"polarity":"unknown"}},
+  {"id":"unknown","headline":"Novel Bio will present expanded Phase 2 SUNRISE clinical data","summary":"Novel Bio (Nasdaq: ZZZZ) will present new Phase 2 SUNRISE data in November 2026.","expected":{"relevant":true,"material":true,"actionable":false,"catalyst":true,"polarity":"unknown"}},
+  {"id":"collision","headline":"Novel Bio and Collision Bio announce Phase 2 SUNRISE results","summary":"Novel Bio (Nasdaq: ZZZZ) and Collision Bio (Nasdaq: CCCC) will present data.","expected":{"relevant":true,"material":true,"actionable":false,"catalyst":true,"polarity":"unknown"}},
+  {"id":"duplicate","headline":"Novel Bio to present expanded Phase 2 SUNRISE data","summary":"Novel Bio (Nasdaq: ZZZZ) will present expanded Phase 2 SUNRISE data. Date: November 8, 2026","expected":{"relevant":true,"material":true,"actionable":false,"catalyst":true,"polarity":"unknown"}},
+  {"id":"reclassified","headline":"Novel Bio to present data","summary":"Novel Bio (Nasdaq: ZZZZ) will present expanded Phase 2 SUNRISE results. Date: November 8, 2026","expected":{"relevant":true,"material":true,"actionable":false,"catalyst":true,"polarity":"unknown"}}
+]

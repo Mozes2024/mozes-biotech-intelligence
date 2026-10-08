@@ -291,15 +291,18 @@ def resolve_headline(conn, headline, mappings=None):
     from .universe import normalize_org
     text = " " + normalize_org(headline) + " "
     matches = {}
+    named_identities = set()
     symbols = {symbol.upper() for symbol in re.findall(r'(?:NASDAQ|NYSE)\s*[:：]\s*([A-Z][A-Z0-9.]{0,9})\b', headline, re.I)}
     if mappings is None:
         mappings = conn.execute("SELECT * FROM sponsor_ticker_map WHERE source='SEC-v2C-equity' AND confidence>=0.85 AND cik IS NOT NULL")
     for raw in mappings:
         row = raw if isinstance(raw, dict) else dict(raw)
         name = row.get('_headline_name') or normalize_org(row['sponsor'])
-        if row['ticker'] in symbols or (len(name) >= 6 and " " + name + " " in text):
+        if len(name)>=6 and ' '+name+' ' in text:
+            named_identities.add((row['ticker'],row['cik']))
+        if len(name)>=6 and (not symbols and text.startswith(' '+name+' ') or len(symbols)==1 and row['ticker'] in symbols and ' '+name+' ' in text):
             matches[(row['ticker'], row['cik'])] = dict(row)
-    if len(matches) != 1:
+    if len(matches) != 1 or len(named_identities)>1:
         return None
     result = dict(next(iter(matches.values())))
     result.pop('_headline_name', None)
@@ -391,6 +394,9 @@ def discover_news_issuers(conn, *, fetch, now, max_issuers=8):
     for url, origin in feeds:
         try:
             for item in parse_feed(fetch(url), now=now, max_age_hours=168, publisher_url=origin)[:40]:
+                from .clinical_events import ingest_clinical
+                ingest_clinical(conn,headline=item['title'],summary=item.get('summary',''),source_url=item['url'],
+                    published_at=item['published_at'],source_type='secondary_news',trusted_source=False,publish=False)
                 if not MATERIAL.search(item['title'] + ' ' + item.get('summary', '')):
                     continue
                 issuer = resolve_headline(conn, item['title'], mappings)
@@ -475,10 +481,25 @@ def poll_news(conn, *, limit=8, fetch=None, now=None):
             for item in items[:6]:
                 if not TOPICS.search(item['title']):
                     continue
-                identity = ['news', ticker, re.sub(r'\W+', ' ', item['title'].lower()).strip()]
+                # A search query is not issuer evidence: partners/competitors can appear.
+                from .clinical_events import resolve_issuer, ingest_clinical
+                from .universe import normalize_org
+                resolved = resolve_issuer(conn, item['title'], item.get('summary',''))
+                name = normalize_org(company)
+                title = normalize_org(item['title'])
+                # The queried issuer's distinctive leading company name remains a review hint.
+                lead = name.split()[0] if name else ''
+                query_named = len(lead)>=5 and (title.startswith(name+' ') or title.startswith(lead+' '))
+                subject = resolved['ticker'] if resolved else ticker if query_named else None
+                ingest_clinical(conn,headline=item['title'],summary=item.get('summary',''),source_url=item['url'],
+                    published_at=item['published_at'],source_type='secondary_news',issuer=resolved,
+                    trusted_source=False,publish=False)
+                if not subject:
+                    continue
+                identity = ['news', subject, re.sub(r'\W+', ' ', item['title'].lower()).strip()]
                 before = conn.total_changes
                 record_change(
-                    conn, ticker=ticker, change_type='news_signal', previous_value=None,
+                    conn, ticker=subject, change_type='news_signal', previous_value=None,
                     new_value={"headline": item['title'], "publisher": urlsplit(item['publisher_url']).hostname,
                                "published_at": item['published_at']},
                     source_url=item['url'], source_type='secondary_news', severity='low',

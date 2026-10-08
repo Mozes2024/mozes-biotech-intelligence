@@ -6,10 +6,11 @@ import { acknowledge, eventTrace } from "./src/edge-contract.js";
 import { calculateMetrics } from "./src/edge-metrics.js";
 
 const sql = name => readFileSync(new URL(`./migrations/${name}`, import.meta.url), "utf8");
-function database() {
+export function database() {
   const sqlite = new DatabaseSync(":memory:");
   sqlite.exec(sql("0002_hot_edge.sql"));
   sqlite.exec(sql("0003_hot_edge_reliability.sql"));
+  sqlite.exec(sql("0004_clinical_candidates.sql"));
   const db = { sqlite, prepare(query) {
     let values = [];
     const statement = { bind(...args) { values = args; return statement; },

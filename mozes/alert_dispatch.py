@@ -216,6 +216,8 @@ def material_story_state(payload):
     outcome = payload.get("outcome") or classify_outcome(text)
     change_type = payload.get("change_type") or ""
     family = "release" if change_type in {"wire_release_signal", "company_release_signal", "news_signal"} else change_type
+    if outcome.get('relevant') and change_type in {'sec_material_filing','fda_release_signal','wire_release_signal','company_release_signal','news_signal'}:
+        family = 'release'
     flags = {key: bool(re.search(pattern, text, re.I)) for key, pattern in _STATE_PATTERNS.items()}
     if flags["hold_lifted"]:
         flags["clinical_hold"] = False

@@ -1,5 +1,6 @@
 // Bounded Stage-0 detector. Python remains authoritative for enrichment and scoring.
 const SEC = "https://www.sec.gov/cgi-bin/browse-edgar";
+import {classifyClinical} from './clinical-events.js';
 const WIRES = [
   ["businesswire", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGFNXXw=="],
   ["globenewswire", "https://rss.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"],
@@ -114,6 +115,12 @@ export class HotEdge {
       } catch (error) { this.failure(health, "sec_analysis", new Date().toISOString(), error); }
       try { await this.flushPending(); this.success(health, "downstream", now); }
       catch (error) { this.failure(health, "downstream", now, error); }
+      try{
+        if(await this.state.storage.get('candidate_pruned_day')!==now.slice(0,10)){
+          await this.env.ALERTS_DB.prepare("DELETE FROM edge_candidates WHERE first_seen_at<? OR candidate_id IN (SELECT candidate_id FROM edge_candidates ORDER BY first_seen_at DESC LIMIT -1 OFFSET 3000)").bind(new Date(Date.parse(now)-14*86400000).toISOString()).run();
+          await this.state.storage.put('candidate_pruned_day',now.slice(0,10));
+        }
+      }catch(error){this.failure(health,'candidate_retention',now,error);}
     } finally {
       await this.state.storage.setAlarm(Math.max(started + INTERVAL(this.env), Date.now() + 1000));
       health.next_alarm_at = await this.state.storage.getAlarm();
@@ -184,12 +191,14 @@ export class HotEdge {
           throw Error("invalid primary SEC URL");
         if (!href && /-index\.html?$/i.test(candidate.pathname)) throw Error("primary filing document missing");
         const content = href ? await get(candidate.href, this.env, true) : index;
-        const outcome = fastOutcome(content);
+        const outcome = classifyClinical(content,fastOutcome(content));
         await db.prepare("UPDATE edge_events SET analysis_status='complete',analysis_attempts=?,last_analysis_error=NULL,analysis_completed_at=?,analysis_retry_at=NULL,analysis_source_hash=?,source_url=?,polarity=?,material=? WHERE event_id=?")
           .bind(attempts, new Date().toISOString(), await hash(content), candidate.href, outcome.polarity, outcome.material ? 1 : 0, event.event_id).run();
+        await this.classifyEvent(event.event_id,outcome);
+        await this.persistCandidate({...event,source_url:candidate.href,summary:content.slice(0,8000)},outcome,{ticker:event.ticker,cik:event.cik},now);
         return true;
       } catch (error) {
-        await db.prepare("UPDATE edge_events SET analysis_status='failed',analysis_attempts=?,last_analysis_error=?,analysis_retry_at=? WHERE event_id=?")
+        await db.prepare("UPDATE edge_events SET analysis_status='failed',lifecycle='SUPPRESSED',suppression_reason='source_unavailable',analysis_attempts=?,last_analysis_error=?,analysis_retry_at=? WHERE event_id=?")
           .bind(attempts, /^HTTP \d{3}$/.test(error.message) ? error.message : "primary document analysis failed", retryAt, event.event_id).run();
         return false;
       }
@@ -202,18 +211,50 @@ export class HotEdge {
     now = now || new Date().toISOString();
     const issuers = (await this.env.ALERTS_DB.prepare("SELECT * FROM edge_issuers WHERE active=1 AND confidence>=0.85").all()).results || [];
     for (const item of items) {
+      if(item.url.length>2048)continue;
       const headline = ` ${companyKey(item.headline)} `;
+      const symbols=[...new Set((item.summary.match(/\b(?:NASDAQ|NYSE)\s*:\s*([A-Z][A-Z0-9]{0,9})\b/gi)||[]).map(s=>s.split(':')[1].trim().toUpperCase()))];
+      const lead=` ${companyKey(item.headline+' '+item.summary.slice(0,800))} `;
       const matches = issuers.filter(row => companyKey(row.company).length >= 6 &&
-        headline.includes(` ${companyKey(row.company)} `));
-      if (matches.length !== 1) continue;
-      const issuer = matches[0];
-      const outcome = fastOutcome(item.headline + " " + item.summary);
-      if (!outcome.material) continue;
+        (symbols.length===1&&symbols[0]===row.ticker&&lead.includes(` ${companyKey(row.company)} `)||symbols.length===0&&headline.startsWith(` ${companyKey(row.company)} `)));
+      const issuer = matches.length===1?matches[0]:null;
+      const outcome = classifyClinical(item.headline + " " + item.summary,fastOutcome(item.headline+" "+item.summary));
       const id = "EDGE-" + (await hash(`wire:${item.url}`)).slice(0, 24);
+      const sourceUrl=new URL(item.url);
+      const allowed=name==='businesswire'?['businesswire.com','www.businesswire.com']:['www.globenewswire.com','globenewswire.com','rss.globenewswire.com'];
+      if(!allowed.includes(sourceUrl.hostname)||sourceUrl.username||sourceUrl.port)continue;
+      sourceUrl.protocol='https:';
+      await this.persistCandidate({event_id:id,source:name,source_url:sourceUrl.href,headline:item.headline,summary:item.summary,published_at:item.published_at,first_seen_at:now},outcome,issuer,now,symbols.length===1?symbols[0]:null);
+      if(!issuer||!outcome.material)continue;
       await this.persist({ event_id: id, source: name, source_url: item.url, ticker: issuer.ticker,
         cik: issuer.cik, form: "rss", headline: item.headline, accepted_at: null,
         published_at: item.published_at, first_seen_at: now, ...outcome });
+      await this.classifyEvent(id,outcome);
     }
+  }
+
+  async classifyEvent(id,outcome){
+    await this.env.ALERTS_DB.prepare("UPDATE edge_events SET relevant=?,actionable=?,catalyst=?,classification_json=?,lifecycle='CLASSIFIED',suppression_reason=? WHERE event_id=? AND enrichment_ack_at IS NULL")
+      .bind(outcome.relevant?1:0,outcome.actionable?1:0,outcome.catalyst?1:0,JSON.stringify(outcome),outcome.suppression_reason,id).run();
+  }
+
+  async persistCandidate(event,scope,issuer,now,tickerHint=null){
+    const reason=!scope.relevant?scope.suppression_reason||'outside_scope':!issuer?'issuer_unresolved':!scope.material?scope.suppression_reason||'low_materiality':null;
+    const history=[{state:'DISCOVERED',at:now}];
+    if(issuer)history.push({state:'RESOLVED',at:now});
+    history.push({state:'CLASSIFIED',at:now});
+    if(reason)history.push({state:'SUPPRESSED',at:now,reason});
+    const digest=await hash(event.headline+' '+(event.summary||''));
+    const prior=await this.env.ALERTS_DB.prepare('SELECT * FROM edge_candidates WHERE candidate_id=?').bind(event.event_id).first();
+    if(prior){
+      if(prior.content_hash===digest&&prior.ticker===(issuer?.ticker||null))return;
+      const reassess=prior.completed_at&&prior.content_hash!==digest;
+      await this.env.ALERTS_DB.prepare('UPDATE edge_candidates SET headline=?,summary=?,ticker=?,cik=?,classification_json=?,lifecycle=?,suppression_reason=?,history_json=?,content_hash=?,completed_at=NULL,github_run_id=NULL,verification_retry_at=NULL WHERE candidate_id=?')
+        .bind(event.headline.slice(0,500),String(event.summary||'').slice(0,8000),issuer?.ticker||null,issuer?.cik||null,JSON.stringify(scope),reason?'SUPPRESSED':'CLASSIFIED',reassess?'classification_uncertain':reason,JSON.stringify([...JSON.parse(prior.history_json),...history].slice(-10)),digest,event.event_id).run();
+      return;
+    }
+    await this.env.ALERTS_DB.prepare('INSERT OR IGNORE INTO edge_candidates(candidate_id,source,source_url,headline,summary,published_at,first_seen_at,ticker,cik,ticker_hint,classification_json,lifecycle,suppression_reason,history_json,content_hash) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      .bind(event.event_id,event.source,event.source_url,event.headline.slice(0,500),String(event.summary||'').slice(0,8000),event.published_at||event.accepted_at||null,event.first_seen_at||now,issuer?.ticker||null,issuer?.cik||null,tickerHint,JSON.stringify(scope),reason?'SUPPRESSED':'CLASSIFIED',reason,JSON.stringify(history),digest).run();
   }
 
   async persist(event) {
@@ -233,7 +274,7 @@ export class HotEdge {
     const active = await this.env.ALERTS_DB.prepare("SELECT COUNT(*) AS n FROM edge_events WHERE material=1 AND enrichment_ack_at IS NULL AND enrichment_retry_at>?").bind(now).first();
     const capacity = Math.max(0, 3 - (active?.n || 0));
     const pending = this.env.NTFY_URL
-      ? "(stage0_sent_at IS NULL OR (enrichment_ack_at IS NULL AND (enrichment_retry_at IS NULL OR enrichment_retry_at<=?)))"
+      ? "((actionable=1 AND stage0_sent_at IS NULL) OR (enrichment_ack_at IS NULL AND (enrichment_retry_at IS NULL OR enrichment_retry_at<=?)))"
       : "(enrichment_ack_at IS NULL AND (enrichment_retry_at IS NULL OR enrichment_retry_at<=?))";
     const rows = (await this.env.ALERTS_DB.prepare(`SELECT * FROM edge_events WHERE material=1 AND analysis_status='complete' AND ${pending} ORDER BY first_seen_at,event_id LIMIT 3`).bind(now).all()).results || [];
     const outcomes = await Promise.allSettled(rows.map((row, index) => this.deliver(row, now, index < capacity)));
@@ -245,7 +286,7 @@ export class HotEdge {
     allowDispatch = allowDispatch && this.env.EDGE_ENRICHMENT_ENABLED !== "0";
     const db = this.env.ALERTS_DB;
     let failed = false;
-    if (event.material && !event.stage0_sent_at && this.env.NTFY_URL) {
+    if (event.material && event.actionable!==0 && !event.stage0_sent_at && this.env.NTFY_URL) {
       try {
         const response = await fetch(this.env.NTFY_URL, { method: "POST",
           signal: AbortSignal.timeout(8000),
