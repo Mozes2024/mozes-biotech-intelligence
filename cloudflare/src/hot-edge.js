@@ -59,7 +59,7 @@ async function dispatchEnrichment(env, event) {
   const response = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/${env.WORKFLOW_FILE || "lightweight-monitor.yml"}/dispatches`, {
     method: "POST", headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: "application/vnd.github+json",
       "User-Agent": "mozes-hot-edge", "Content-Type": "application/json" },
-    body: JSON.stringify({ ref: env.GITHUB_REF || "main", inputs: { priority_only: true,
+    body: JSON.stringify({ ref: env.GITHUB_REF || "main", inputs: { priority_only: "true",
       hot_ticker: event.ticker, hot_cik: event.cik || "", hot_accession: event.accession || "",
       hot_source_url: event.source_url } }),
   });
