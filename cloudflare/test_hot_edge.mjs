@@ -31,6 +31,14 @@ try {
   assert.ok(health.next_alarm_at);
 } finally { globalThis.fetch = oldFetch; }
 
+const queries = [];
+const quietEdge = new HotEdge({ storage }, { ALERTS_DB: {
+  prepare: sql => { queries.push(sql); return { all: async () => ({ results: [] }) }; },
+} });
+await quietEdge.deliver({ material: 0 });
+await quietEdge.flushPending();
+assert.match(queries[0], /material=1 AND enrichment_queued_at IS NULL/);
+
 const env = { EDGE_SYNC_TOKEN: "secret" };
 assert.equal((await syncIssuers(new Request("https://edge.example/edge/sync", { method: "POST", body: "{}" }), env)).status, 401);
 const batches = [];
