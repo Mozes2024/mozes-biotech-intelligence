@@ -7,7 +7,7 @@
 
 ## Review status
 
-The alert path passed 413 offline Python tests, Worker clock/feed checks and a
+The v2H alert path passed its then-current offline Python suite, Worker clock/feed checks and a
 local browser popup check before publication. The existing Cloudflare Worker
 now has the `ALERTS_DB` binding and `/alerts` endpoint; its scheduled clock remains
 active. The public endpoint is `https://mozes-hot-clock.sp500.workers.dev/alerts`.

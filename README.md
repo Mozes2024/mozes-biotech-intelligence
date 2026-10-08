@@ -70,6 +70,11 @@ MOZES_SEC_HOT=1 MOZES_PRIMARY_FEEDS=1 MOZES_ALERT_DISPATCH=1 mozes hot-monitor -
 
 See `docs/HOT_EDGE_V3.md` for the Cloudflare rapid detector and operator setup;
 the Python command above remains a reconciliation/standalone path.
+Activation needs the `HOT_EDGE` Durable Object binding, D1 migration
+`0002_hot_edge.sql`, Worker secrets `EDGE_SYNC_TOKEN`, `GITHUB_TOKEN`,
+`SEC_USER_AGENT` and optional `NTFY_URL`, plus matching GitHub secret
+`EDGE_SYNC_TOKEN` and variable `MOZES_EDGE_SYNC_URL`. Do not store secrets in
+`wrangler.toml` or the published site.
 
 ## What changed in v0.2
 

@@ -50,11 +50,17 @@ def parse_atom(payload):
 
 
 def biotech_universe(conn):
-    """Deduplicate authoritative CIKs from verified mappings and active watches."""
+    """Deduplicate CIKs for watched or active Phase 2/3 issuers."""
+    tickers = {row[0] for row in conn.execute("SELECT ticker FROM watch_universe WHERE active=1")}
+    tickers.update(row[0] for row in conn.execute(
+        "SELECT ticker FROM discovery_candidates WHERE ticker IS NOT NULL "
+        "AND (phase LIKE '%PHASE2%' OR phase LIKE '%PHASE3%') "
+        "AND status IN ('RECRUITING','ACTIVE_NOT_RECRUITING','ENROLLING_BY_INVITATION','NOT_YET_RECRUITING')"))
     rows = conn.execute(
         "SELECT ticker,cik,sponsor AS company,confidence,source FROM sponsor_ticker_map "
         "WHERE cik IS NOT NULL AND confidence>=0.85 AND source='SEC-v2C-equity'").fetchall()
-    universe = {str(int(row["cik"])): dict(row) for row in rows if str(row["cik"]).isdigit()}
+    universe = {str(int(row["cik"])): dict(row) for row in rows
+                if row["ticker"] in tickers and str(row["cik"]).isdigit()}
     for row in conn.execute("SELECT ticker,cik,company,source FROM watch_universe WHERE active=1 AND cik IS NOT NULL"):
         if str(row["cik"]).isdigit():
             universe.setdefault(str(int(row["cik"])), dict(row))

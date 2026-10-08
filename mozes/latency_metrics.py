@@ -80,8 +80,10 @@ def _percentile(values, q):
     ordered = sorted(values)
     if len(ordered) == 1:
         return round(ordered[0], 3)
-    idx = min(len(ordered) - 1, max(0, int(round((len(ordered) - 1) * q))))
-    return round(ordered[idx], 3)
+    position = (len(ordered) - 1) * q
+    lower = int(position)
+    fraction = position - lower
+    return round(ordered[lower] + fraction * (ordered[min(lower + 1, len(ordered) - 1)] - ordered[lower]), 3)
 
 
 def summary(conn, *, limit=500):

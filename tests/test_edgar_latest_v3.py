@@ -13,6 +13,7 @@ def _conn(tmp_path, cik):
     conn = db.connect(tmp_path / "sec.db")
     conn.execute("INSERT INTO sponsor_ticker_map VALUES(?,?,?,?,?,?,?)",
                  ("captured", "Captured Bio", "ZZZZ", cik, .99, "SEC-v2C-equity", "2026-10-08"))
+    db.upsert_watch(conn, "ZZZZ", company="Captured Bio", cik=cik, source="dynamic_news_discovery")
     return conn
 
 
@@ -23,6 +24,13 @@ def test_captured_atom_parses_cik_accession_and_index():
     assert rows[0]["accession"] == "0001477932-26-006099"
     assert rows[0]["accepted"].startswith("2026-10-07T")
     assert rows[0]["filing_index_url"].endswith("-index.htm")
+
+
+def test_unrelated_sec_equity_mapping_is_not_biotech_universe(tmp_path):
+    conn = db.connect(tmp_path / "universe.db")
+    conn.execute("INSERT INTO sponsor_ticker_map VALUES(?,?,?,?,?,?,?)",
+                 ("unrelated", "Unrelated Corp", "NOPE", "999", .99, "SEC-v2C-equity", "2026-10-08"))
+    assert edgar_latest.biotech_universe(conn) == {}
 
 
 def test_latest_poll_matches_universe_once_and_prefers_exhibit(tmp_path, monkeypatch):

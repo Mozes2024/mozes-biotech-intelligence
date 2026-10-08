@@ -18,7 +18,7 @@ def test_latency_percentiles_and_missing_timestamps(tmp_path):
         "VALUES('missing','missing','wire','2026-10-08T00:01:00Z')")
     result = summary(conn)
     detection = result["metrics"]["publication_to_first_seen"]
-    assert detection == {"n": 5, "p50": 30.0, "p95": 50.0, "p99": 50.0, "mean": 30.0}
+    assert detection == {"n": 5, "p50": 30.0, "p95": 48.0, "p99": 49.6, "mean": 30.0}
     assert result["metrics"]["publication_to_sent"]["p50"] is None
     assert result["by_source_type"]["wire"]["metrics"]["publication_to_first_seen"]["n"] == 0
 

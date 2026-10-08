@@ -94,7 +94,8 @@ def build_stage1_payload(conn, change_id):
         text_bits.extend(str(new_value.get(k) or "") for k in ("headline", "title", "form", "summary"))
     elif new_value is not None:
         text_bits.append(str(new_value))
-    outcome = classify_outcome(" ".join(text_bits))
+    stored_outcome = new_value.get("outcome") if isinstance(new_value, dict) else None
+    outcome = stored_outcome if isinstance(stored_outcome, dict) else classify_outcome(" ".join(text_bits))
     watched = is_watched(conn, row["ticker"])
     verified = verified_issuer_identity(conn, row["ticker"])
     priority = alert_priority(row["change_type"], row["severity"], outcome,

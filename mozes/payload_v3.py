@@ -156,11 +156,14 @@ def _health(conn, live, refresh, monitor):
     red, amber, info = [], [], []
     operations = operation_health(conn).get("modules", {})
     source_freshness = []
-    for source in conn.execute("SELECT observation_key,value_json FROM monitor_observations "
+    source_rows = conn.execute("SELECT observation_key,value_json FROM monitor_observations "
                                "WHERE observation_key LIKE 'fda_feed:%' OR observation_key LIKE 'wire_feed:%' "
-                               "OR observation_key LIKE 'sec_latest:%' ORDER BY observation_key"):
+                               "OR observation_key LIKE 'sec_latest:%' OR observation_key LIKE 'official_feed:%' "
+                               "OR observation_key='nasdaq_halts' ORDER BY observation_key") if hasattr(conn, "execute") else ()
+    for source in source_rows:
         value = json.loads(source["value_json"] or "{}")
-        status = "FAILED" if value.get("consecutive_failures") else "OK"
+        status = "FAILED" if value.get("consecutive_failures") else (
+            "PARTIAL" if value.get("status") in {"no_official_site", "no_rss_found"} else "OK")
         item = {"source": source["observation_key"], "status": status,
                 "last_checked_at": value.get("last_checked_at") or value.get("checked_at"),
                 "last_success_at": value.get("last_success_at"),
@@ -169,6 +172,8 @@ def _health(conn, live, refresh, monitor):
         source_freshness.append(item)
         if status == "FAILED":
             red.append({"module": item["source"], "status": status, "details": item})
+        elif status == "PARTIAL":
+            amber.append({"module": item["source"], "status": status, "details": item})
     for name, op in operations.items():
         status = op.get("status")
         if status in {"PARTIAL", "FAILED"}:

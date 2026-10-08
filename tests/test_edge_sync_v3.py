@@ -8,6 +8,7 @@ def test_edge_sync_uses_stored_cik_and_never_posts_without_token(tmp_path):
     conn = db.connect(tmp_path / "edge.db")
     conn.execute("INSERT INTO sponsor_ticker_map VALUES(?,?,?,?,?,?,?)",
                  ("novel", "Novel Bio", "ZZZZ", "123", .99, "SEC-v2C-equity", "2026-10-08"))
+    db.upsert_watch(conn, "ZZZZ", company="Novel Bio", cik="123", source="dynamic_news_discovery")
     assert build_universe(conn)["issuers"][0]["cik"] == "123"
     assert sync(conn, url="https://edge.example/edge/sync", token="")["status"] == "SKIPPED"
 

@@ -8,6 +8,9 @@ const INTERVAL = env => Math.max(10, Math.min(300, Number(env.EDGE_INTERVAL_SECO
 const text = value => String(value || "").replace(/<!\[CDATA\[|\]\]>/g, "")
   .replace(/<[^>]*>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
   .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ").trim();
+const companyKey = value => String(value || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ")
+  .replace(/\b(?:inc|incorporated|corp|corporation|ltd|limited|plc|holdings)\b/g, " ")
+  .replace(/\s+/g, " ").trim();
 const tag = (xml, name) => text(xml.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${name}>`, "i"))?.[1]);
 const hash = async value => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))))
   .map(x => x.toString(16).padStart(2, "0")).join("");
@@ -154,8 +157,9 @@ export class HotEdge {
     const items = parseWire(await get(url, this.env));
     const issuers = (await this.env.ALERTS_DB.prepare("SELECT * FROM edge_issuers WHERE active=1 AND confidence>=0.85").all()).results || [];
     for (const item of items) {
-      const matches = issuers.filter(row => row.company?.length >= 6 &&
-        item.headline.toLowerCase().includes(row.company.toLowerCase()));
+      const headline = ` ${companyKey(item.headline)} `;
+      const matches = issuers.filter(row => companyKey(row.company).length >= 6 &&
+        headline.includes(` ${companyKey(row.company)} `));
       if (matches.length !== 1) continue;
       const issuer = matches[0];
       const outcome = fastOutcome(item.headline + " " + item.summary);
