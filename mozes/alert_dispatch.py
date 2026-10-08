@@ -101,7 +101,7 @@ def build_stage1_payload(conn, change_id):
                               ticker=row["ticker"], watched=watched or bool(verified))
     published = None
     if isinstance(new_value, dict):
-        published = new_value.get("published_at") or new_value.get("accepted")
+        published = new_value.get("published_at")
     published = published or meta.get("published_at") or meta.get("source_published_at")
     return {
         "stage": STAGE1,
@@ -117,6 +117,7 @@ def build_stage1_payload(conn, change_id):
         "source_url": row["source_url"],
         "detected_at": row["detected_at"],
         "published_at": published,
+        "accepted_at": new_value.get("accepted") if isinstance(new_value, dict) else None,
         "new_value": new_value,
         "outcome": outcome,
         "note": "Analytical scores are uncalibrated; not a buy recommendation.",
