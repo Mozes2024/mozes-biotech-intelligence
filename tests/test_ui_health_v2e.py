@@ -11,6 +11,8 @@ const fs = require('fs'), vm = require('vm'), assert = require('assert');
 const source = fs.readFileSync('web/live_intelligence_ui.js', 'utf8');
 function render(red, amber) {
   const context = {D: {live: [], changes: [], alerts: [], generated_at: '2026-10-02T00:00:00Z',
+    edge_health: {status:'PARTIAL',sources:{globenewswire:{status:'FAILED',last_error:'HTTP 520',consecutive_errors:2}},
+      metrics:{windows:{'1h':{by_source:{sec:{detection:{n:2,p50:20,p95:29}}},metrics:{}}}}},
     validation: {}, coverage: {}, health: {sec_monitoring_enabled: true,
       source_freshness: [{source:'wire_feed:test',status:'FAILED',consecutive_failures:2,
         last_checked_at:'2026-10-08T00:00:00Z'}],
@@ -28,6 +30,10 @@ assert(amber.startsWith('מה מעניין עכשיו?') || amber.includes('מה
 assert(amber.indexOf('ALERTS') < amber.indexOf('סטטוס מערכת'));
 assert(amber.includes('<details') && amber.includes('סטטוס מערכת'));
 assert(amber.includes('p50 N/A') && amber.includes('n=0'));
+assert(amber.includes('זיהוי Edge — SEC: p50 20.0'));
+assert(amber.includes('משלוח Stage‑0'));
+assert(amber.includes('השלמת העשרה Stage‑1 / ACK'));
+assert(amber.includes('globenewswire: FAILED') && amber.includes('HTTP 520'));
 assert(amber.includes('wire_feed:test: FAILED') && amber.includes('כשלים רצופים 2'));
 assert(amber.includes('prices: INCOMPLETE'));
 assert(!amber.includes('אזהרת מקור'));

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import sqlite3
 import subprocess
@@ -62,3 +63,35 @@ def test_restore_refuses_old_candidate_when_newer_successes_exist(tmp_path, monk
     out = capsys.readouterr().out
     assert "Refusing to rewind" in out or "State restore unavailable for run 200" in out
     assert not (tmp_path / "mozes-live.db").exists()
+
+
+@pytest.mark.parametrize("conclusion,checkpoint_valid", [("cancelled", True), ("failure", True), ("cancelled", False)])
+def test_cancelled_or_failed_uploaded_checkpoint_survives_ack_boundary(tmp_path, monkeypatch, conclusion, checkpoint_valid):
+    script = module()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("GITHUB_REPOSITORY", "Owner/Repo")
+    destination = tmp_path / "restored.db"
+    monkeypatch.setenv("MOZES_DB_PATH", str(destination))
+    def gh(*args, timeout=300):
+        if args[:2] == ("run", "list") and "pages.yml" in args:
+            return "[]"
+        if args[:2] == ("run", "list"):
+            return json.dumps([{"databaseId": 200, "createdAt": "2026-10-08T08:00:00Z", "conclusion": conclusion}])
+        if args[0] == "api":
+            return json.dumps({"head_branch": "main", "name": "lightweight-live-monitor",
+                "head_repository": {"full_name": "Owner/Repo"}, "conclusion": conclusion})
+        if args[:3] == ("run", "download", "200"):
+            root = Path(args[-1]); source = root / "mozes-live.db"; _db(source)
+            (root / "edge-checkpoint.json").write_text(json.dumps({"schema": 1, "producer_run_id": "200",
+                "db_sha256": hashlib.sha256(source.read_bytes()).hexdigest() if checkpoint_valid else "invalid"}))
+            return ""
+        raise AssertionError(args)
+    monkeypatch.setattr(script, "gh", gh)
+    if checkpoint_valid:
+        assert script.restore()
+        with sqlite3.connect(destination) as conn:
+            assert conn.execute("SELECT x FROM t").fetchone()[0] == 1
+    else:
+        with pytest.raises(RuntimeError, match="refusing empty/old bootstrap"):
+            script.restore()
+        assert not destination.exists()

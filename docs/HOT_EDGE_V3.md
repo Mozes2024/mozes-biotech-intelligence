@@ -1,5 +1,9 @@
 # Hot Edge v3 operator and architecture notes
 
+For current ACK, analysis retry, metrics, and compatible rollback contracts, see
+[Hot Edge v3.1](HOT_EDGE_V31.md). Legacy `enrichment_queued_at` records dispatch,
+never durable enrichment completion.
+
 The Cloudflare Durable Object is the rapid detection clock. Its alarm defaults to
 15 seconds (`EDGE_INTERVAL_SECONDS`, minimum 10). The two-minute cron only re-arms
 the alarm. The edge checks SEC Latest Filings 8-K and 6-K Atom feeds plus two wire
@@ -48,7 +52,6 @@ The code branch alone does not activate the edge.
 
 ## Rollback
 
-Redeploy the previous Worker release so its cron again dispatches the existing
-GitHub workflow. Keep D1 tables for audit; do not delete Stage-0 events. Disable
-the new sync step or remove `MOZES_EDGE_SYNC_URL` after rollback. The Python
-reconciliation workflow and research engine remain available throughout.
+Use the compatible pause/rollback procedure in `HOT_EDGE_V31.md`. Cloudflare
+cannot directly redeploy the pre-v3 Worker across its Durable Object migration.
+Keep D1 audit rows and the Python reconciliation artifact.

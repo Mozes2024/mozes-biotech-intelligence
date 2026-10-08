@@ -32,6 +32,10 @@ on:
         description: 'Edge primary source URL'
         required: false
         type: string
+      edge_event_id:
+        description: 'Persisted Edge correlation ID to process and acknowledge'
+        required: false
+        type: string
 permissions:
   contents: read
   actions: write
@@ -39,6 +43,7 @@ concurrency:
   # Hot lane must never share a lock with deep research refresh.
   group: mozes-hot-monitor
   cancel-in-progress: false
+  queue: max
 jobs:
   monitor:
     runs-on: ubuntu-latest
@@ -71,6 +76,7 @@ jobs:
       MOZES_HOT_CIK: ${{ inputs.hot_cik }}
       MOZES_HOT_ACCESSION: ${{ inputs.hot_accession }}
       MOZES_HOT_SOURCE_URL: ${{ inputs.hot_source_url }}
+      MOZES_EDGE_EVENT_ID: ${{ inputs.edge_event_id }}
       MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
       EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
       RUN_PRIORITY: ${{ inputs.priority_only == true || github.event_name == 'schedule' }}
@@ -86,6 +92,9 @@ jobs:
         run: python scripts/restore_monitor_state.py
       - name: Synchronize verified issuer universe to hot edge
         run: python -m mozes.edge_sync
+      - name: Enrich the correlated Edge event
+        # Process the exact Edge source before general reconciliation.
+        run: python -m mozes.edge_enrichment process
       - name: Hot feeds (FDA, wires, Nasdaq halts, company IR) + push
         run: python -m mozes.hot_monitor --once --no-sec --allow-partial
       - name: Hot priority observe + alert outbox
@@ -105,6 +114,8 @@ jobs:
       - name: Export completed explanations without another source scan
         if: steps.explanation.outputs.changed == 'true'
         run: python -m mozes.pipeline_v2c export
+      - name: Bind durable checkpoint to monitor database
+        run: python -m mozes.edge_enrichment checkpoint
       - uses: actions/upload-artifact@v4
         with:
           name: mozes-live-monitor
@@ -113,9 +124,12 @@ jobs:
           path: |
             .monitor/mozes-live.db
             .monitor/manifest.json
+            .monitor/edge-checkpoint.json
           include-hidden-files: true
           # Runs are minute-frequent; restore only needs the newest successful lineage.
           retention-days: 3
+      - name: Acknowledge Edge enrichment after durable artifact upload
+        run: python -m mozes.edge_enrichment ack
       - name: Publish the small alert feed independently of Pages
         # The durable monitor artifact is already saved. A feed outage retries next run.
         continue-on-error: true

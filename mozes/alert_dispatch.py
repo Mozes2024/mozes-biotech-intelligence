@@ -70,8 +70,6 @@ def verified_issuer_identity(conn, ticker):
     """Require a unique SEC equity identity and an active audited US security."""
     if not ticker or not re.fullmatch(r"[A-Z][A-Z0-9]{0,9}", str(ticker)):
         return None
-    if str(ticker).endswith(("W", "U", "R")):
-        return None
     rows = [dict(row) for row in conn.execute(
         "SELECT ticker,cik,confidence,source,sponsor FROM sponsor_ticker_map WHERE ticker=?", (ticker,))]
     verified = [row for row in rows if row["source"] == "SEC-v2C-equity"
@@ -84,6 +82,12 @@ def verified_issuer_identity(conn, ticker):
         return None
     if not tradability(conn, ticker).get("tradable"):
         return None
+    # The SEC-v2C-equity projection is built by entity_resolution.security_kind.
+    # If candidate evidence exists, reject an ineligible/ambiguous instrument.
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE name='v2c_security_candidates'").fetchone():
+        candidates = conn.execute("SELECT eligibility FROM v2c_security_candidates WHERE ticker=?", (ticker,)).fetchall()
+        if candidates and (len(candidates) != 1 or candidates[0][0] != "eligible"):
+            return None
     return verified[0]
 
 
@@ -115,6 +119,9 @@ def build_stage1_payload(conn, change_id):
         "watched": watched,
         "verified_issuer_cik": verified["cik"] if verified else None,
         "change_id": change_id,
+        "edge_event_ids": [r[0] for r in conn.execute(
+            "SELECT edge_event_id FROM edge_event_links WHERE change_id=? OR change_id IN "
+            "(SELECT change_id FROM alert_links WHERE primary_change_id=?) ORDER BY edge_event_id", (change_id, change_id))],
         "change_type": row["change_type"],
         "severity": row["severity"],
         "verification_state": row["verification_state"],
@@ -282,6 +289,7 @@ def recent_alerts(conn, *, days=7, limit=100, now=None):
             (row["change_id"],)).fetchone()
         alerts.append({
             "change_id": row["change_id"],
+            "edge_event_ids": payload.get("edge_event_ids", []),
             "created_at": row["created_at"],
             "priority": payload.get("priority"),
             "ticker": payload.get("ticker"),

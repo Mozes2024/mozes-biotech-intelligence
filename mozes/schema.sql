@@ -366,3 +366,11 @@ CREATE TABLE IF NOT EXISTS source_registry (
   metadata_json TEXT NOT NULL DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_source_registry_active ON source_registry(active, source_type);
+-- Separate correlation IDs preserve existing CHG/ALT identities and alert gates.
+CREATE TABLE IF NOT EXISTS edge_event_links (
+  edge_event_id TEXT PRIMARY KEY,
+  change_id TEXT NOT NULL REFERENCES change_events(change_id),
+  github_run_id TEXT NOT NULL,
+  processed_at TEXT NOT NULL,
+  source_hash TEXT NOT NULL
+);

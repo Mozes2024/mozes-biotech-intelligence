@@ -17,6 +17,32 @@
   function pctx(x){ return x==null ? '—' : `${(x*100).toFixed(1)}%`; }
   function numx(x){ return x==null ? '—' : Number(x).toFixed(1); }
   function eventTypeHe(t){ return (HE.type||{})[t] || t || 'אירוע'; }
+  let currentEdgeHealth=null;
+  function edgeHealthHtml(){
+    const edge=currentEdgeHealth||D?.edge_health;
+    const fmt=x=>x==null?'N/A':`${Number(x).toFixed(1)} שנ׳`;
+    const rows=(window,label)=>{
+      const group=edge?.metrics?.windows?.[window];
+      const row=(name,m)=>`<div>${name}: p50 ${fmt(m?.p50)} · p95 ${fmt(m?.p95)} · n=${m?.n??0}</div>`;
+      return `<b>${label}</b>${row('זיהוי Edge — SEC',group?.by_source?.sec?.detection)}${row('זיהוי Edge — BusinessWire',group?.by_source?.businesswire?.detection)}${row('זיהוי Edge — GlobeNewswire',group?.by_source?.globenewswire?.detection)}${row('משלוח Stage‑0',group?.metrics?.stage0_delivery)}${row('השלמת העשרה Stage‑1 / ACK',group?.metrics?.enrichment_ack)}`;
+    };
+    const feeds=Object.entries(edge?.sources||{}).map(([name,r])=>`<div>${esc(name)}: ${esc(r.status)} · ${esc(r.last_error||'')} · כשלים ${esc(r.consecutive_errors??0)}</div>`).join('');
+    return `<b>Hot Edge: ${esc(edge?.status||'N/A')}</b> · מדידה ${esc(edge?.metrics?.generated_at||edge?.snapshot_at||'N/A')}<div>${edge?.stage0_delivery_enabled?'Stage‑0 משלוח פעיל':'Stage‑0 משלוח אינו מוגדר'}</div>${rows('1h','שעה אחרונה')}${rows('24h','24 שעות אחרונות')}${feeds}<div>יעד תצפיתי לזיהוי: p50 &lt;30 שנ׳, p95 &lt;60 שנ׳. N/A כשאין לפחות שתי דגימות.</div>`;
+  }
+  async function refreshEdgeHealth(){
+    const feed=D?.alert_config?.feed_url;
+    if(!feed)return;
+    try{
+      const url=new URL('/edge/health',feed);
+      if(url.protocol!=='https:')return;
+      const response=await fetch(url.href,{cache:'no-store',signal:AbortSignal.timeout(10000)});
+      if(!response.ok)throw Error('health unavailable');
+      currentEdgeHealth=await response.json();
+    }catch(_){currentEdgeHealth={status:'FAILED',snapshot_at:new Date().toISOString()};}
+    const target=document.getElementById('edgeHealthMetrics');
+    if(target)target.innerHTML=edgeHealthHtml();
+  }
+  if(typeof window!=='undefined'){setTimeout(refreshEdgeHealth,1000);setInterval(refreshEdgeHealth,60000);}
 
   function healthBanner(){
     // Technical health stays at the bottom of the home page, collapsed by default.
@@ -36,7 +62,7 @@
       const row=samples.length===1?samples[0]:null;
       return `<div>${label}: p50 ${fmt(row?.p50)} · p95 ${fmt(row?.p95)} · n=${row?.n??0}</div>`;};
     const total=latency.metrics?.publication_to_sent||{};
-    const timing=`${sourceRow('SEC',['sec'])}${sourceRow('FDA',['fda'])}${sourceRow('Wire',['wire'])}${sourceRow('IR',['company_ir'])}<div>מקור עד שליחה: p50 ${fmt(total.p50)} · p95 ${fmt(total.p95)} · n=${total.n??0}</div>`;
+    const timing=`<div id="edgeHealthMetrics">${edgeHealthHtml()}</div><b>Stage‑1 / Python — מקור עד זיהוי</b>${sourceRow('SEC',['sec'])}${sourceRow('FDA',['fda'])}${sourceRow('Wire',['wire'])}${sourceRow('IR',['company_ir'])}<div>Python — מקור עד שליחה: p50 ${fmt(total.p50)} · p95 ${fmt(total.p95)} · n=${total.n??0}</div>`;
     const freshness=(h.source_freshness||[]).map(x=>`<div>${esc(x.source)}: ${esc(x.status)} · בדיקה ${esc(x.last_checked_at||'N/A')} · הצלחה ${esc(x.last_success_at||'N/A')} · שגיאה ${esc(x.last_error_at||'N/A')} · כשלים רצופים ${esc(x.consecutive_failures)}</div>`).join('');
     return `<details class="notice ${red.length?'red-note':'blue-note'}" style="margin-top:18px"><summary id="sourceFreshness" data-checked="${esc(checked||'')}"><b>סטטוס מערכת</b> · בדיקת מקורות ${age===null?'לא זמינה':`לפני ${age} דקות`} · ${esc(primary.label_he||'ניטור ליבה')} · SEC ${h.sec_monitoring_enabled?'פעיל':'כבוי'}</summary><div class="company" style="margin-top:8px">${timing}${freshness}${details?`פרטים: ${details}`:''}</div></details>`;
   }
