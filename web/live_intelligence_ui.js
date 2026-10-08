@@ -28,7 +28,17 @@
     const primary=h.primary_catalyst_monitoring||{};
     const red=s.red||[], amber=s.amber||[], info=s.info||[];
     const details=[...red,...amber,...info].map(x=>`${esc(x.module||'module')}: ${esc(x.status||'INFO')}`).join(' · ');
-    return `<details class="notice ${red.length?'red-note':'blue-note'}" style="margin-top:18px"><summary id="sourceFreshness" data-checked="${esc(checked||'')}"><b>סטטוס מערכת</b> · בדיקת מקורות ${age===null?'לא זמינה':`לפני ${age} דקות`} · ${esc(primary.label_he||'ניטור ליבה')} · SEC ${h.sec_monitoring_enabled?'פעיל':'כבוי'}</summary><div class="company" style="margin-top:8px">שכבות העשרה (מחירים, מימון, צינור וכו׳) יכולות להישאר INCOMPLETE בלי לפגוע בהתראות החמות. ${details?`פרטים: ${details}`:''}</div></details>`;
+    const latency=D?.hot_latency||{};
+    const fmt=x=>x==null?'N/A':`${Number(x).toFixed(1)} שנ׳`;
+    const groups=latency.by_source_type||{};
+    const metric=group=>group?.metrics?.publication_to_first_seen||{};
+    const sourceRow=(label,types)=>{const samples=types.map(t=>metric(groups[t])).filter(x=>x.n);
+      const row=samples.length===1?samples[0]:null;
+      return `<div>${label}: p50 ${fmt(row?.p50)} · p95 ${fmt(row?.p95)} · n=${row?.n??0}</div>`;};
+    const total=latency.metrics?.publication_to_sent||{};
+    const timing=`${sourceRow('SEC',['sec'])}${sourceRow('FDA',['fda'])}${sourceRow('Wire',['wire'])}${sourceRow('IR',['company_ir'])}<div>מקור עד שליחה: p50 ${fmt(total.p50)} · p95 ${fmt(total.p95)} · n=${total.n??0}</div>`;
+    const freshness=(h.source_freshness||[]).map(x=>`<div>${esc(x.source)}: ${esc(x.status)} · בדיקה ${esc(x.last_checked_at||'N/A')} · הצלחה ${esc(x.last_success_at||'N/A')} · שגיאה ${esc(x.last_error_at||'N/A')} · כשלים רצופים ${esc(x.consecutive_failures)}</div>`).join('');
+    return `<details class="notice ${red.length?'red-note':'blue-note'}" style="margin-top:18px"><summary id="sourceFreshness" data-checked="${esc(checked||'')}"><b>סטטוס מערכת</b> · בדיקת מקורות ${age===null?'לא זמינה':`לפני ${age} דקות`} · ${esc(primary.label_he||'ניטור ליבה')} · SEC ${h.sec_monitoring_enabled?'פעיל':'כבוי'}</summary><div class="company" style="margin-top:8px">${timing}${freshness}${details?`פרטים: ${details}`:''}</div></details>`;
   }
 
   function recentCatalystHtml(a){

@@ -19,6 +19,7 @@ from .live_monitor import recent_changes
 from .priority import priority_tickers
 from .live_intelligence import enrich_live_rows
 from .financial_context import enrich_financial_context, operation_health
+from .latency_metrics import summary as latency_summary
 
 VERSION = "0.3.2"
 
@@ -154,6 +155,20 @@ def _health(conn, live, refresh, monitor):
     warnings = []
     red, amber, info = [], [], []
     operations = operation_health(conn).get("modules", {})
+    source_freshness = []
+    for source in conn.execute("SELECT observation_key,value_json FROM monitor_observations "
+                               "WHERE observation_key LIKE 'fda_feed:%' OR observation_key LIKE 'wire_feed:%' "
+                               "OR observation_key LIKE 'sec_latest:%' ORDER BY observation_key"):
+        value = json.loads(source["value_json"] or "{}")
+        status = "FAILED" if value.get("consecutive_failures") else "OK"
+        item = {"source": source["observation_key"], "status": status,
+                "last_checked_at": value.get("last_checked_at") or value.get("checked_at"),
+                "last_success_at": value.get("last_success_at"),
+                "last_error_at": value.get("last_error_at"),
+                "consecutive_failures": value.get("consecutive_failures", 0)}
+        source_freshness.append(item)
+        if status == "FAILED":
+            red.append({"module": item["source"], "status": status, "details": item})
     for name, op in operations.items():
         status = op.get("status")
         if status in {"PARTIAL", "FAILED"}:
@@ -184,6 +199,7 @@ def _health(conn, live, refresh, monitor):
                                          "label_he": "ניטור אירועי הליבה תקין" if catalyst_healthy else "ניטור אירועי הליבה דורש בדיקה"},
         "coverage": (operations.get("coverage_audit") or {}).get("details"),
         "sec_monitoring_enabled": bool(os.environ.get("SEC_USER_AGENT")),
+        "source_freshness": source_freshness,
         "latest_monitor": monitor,
         "latest_refresh": refresh,
         "fresh_price_tickers": fresh_prices,
@@ -242,6 +258,7 @@ def build(conn, today: date):
         "refresh": refresh,
         "alerts": recent_alerts(conn),
         "alert_config": channel_configuration(conn),
+        "hot_latency": latency_summary(conn),
         "changes": recent_changes(conn),
         "news": recent_changes(conn, limit=50, change_types=("news_signal", "company_release_signal",
                                                        "wire_release_signal", "fda_release_signal",
