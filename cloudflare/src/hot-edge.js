@@ -183,12 +183,16 @@ export class HotEdge {
   }
 
   async flushPending() {
-    const rows = (await this.env.ALERTS_DB.prepare("SELECT * FROM edge_events WHERE (material=1 AND stage0_sent_at IS NULL) OR enrichment_queued_at IS NULL ORDER BY first_seen_at LIMIT 10").all()).results || [];
+    const pending = this.env.NTFY_URL
+      ? "material=1 AND (stage0_sent_at IS NULL OR enrichment_queued_at IS NULL)"
+      : "material=1 AND enrichment_queued_at IS NULL";
+    const rows = (await this.env.ALERTS_DB.prepare(`SELECT * FROM edge_events WHERE ${pending} ORDER BY first_seen_at LIMIT 10`).all()).results || [];
     const outcomes = await Promise.allSettled(rows.map(row => this.deliver(row)));
     if (outcomes.some(item => item.status === "rejected")) throw Error("pending downstream delivery");
   }
 
   async deliver(event) {
+    if (!event.material) return;
     const db = this.env.ALERTS_DB;
     let failed = false;
     if (event.material && !event.stage0_sent_at && this.env.NTFY_URL) {
