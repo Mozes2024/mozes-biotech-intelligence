@@ -93,14 +93,14 @@ export class HotEdge {
       for (const form of ["8-K", "6-K"]) {
         const source = `sec_${form}`;
         try { await this.pollSec(form, now); this.success(health, source, now); }
-        catch (error) { this.failure(health, source, now); }
+        catch (error) { this.failure(health, source, now, error); }
       }
       for (const [name, url] of WIRES) {
         try { await this.pollWire(name, url, now); this.success(health, name, now); }
-        catch (error) { this.failure(health, name, now); }
+        catch (error) { this.failure(health, name, now, error); }
       }
       try { await this.flushPending(); this.success(health, "downstream", now); }
-      catch { this.failure(health, "downstream", now); }
+      catch (error) { this.failure(health, "downstream", now, error); }
     } finally {
       await this.state.storage.setAlarm(Date.now() + INTERVAL(this.env));
       health.next_alarm_at = await this.state.storage.getAlarm();
@@ -110,11 +110,12 @@ export class HotEdge {
 
   success(health, source, now) {
     health.sources[source] = { ...health.sources[source], last_checked_at: now,
-      last_success_at: now, consecutive_errors: 0, status: "OK" };
+      last_success_at: now, last_error: null, consecutive_errors: 0, status: "OK" };
   }
-  failure(health, source, now) {
+  failure(health, source, now, error) {
     const old = health.sources[source] || {};
     health.sources[source] = { ...old, last_checked_at: now, last_error_at: now,
+      last_error: String(error?.message || error).slice(0, 120),
       consecutive_errors: (old.consecutive_errors || 0) + 1, status: "FAILED" };
   }
 
