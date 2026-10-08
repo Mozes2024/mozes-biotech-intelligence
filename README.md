@@ -68,7 +68,8 @@ For the breaking-catalyst hot lane (push alerts, independent of Pages):
 MOZES_SEC_HOT=1 MOZES_PRIMARY_FEEDS=1 MOZES_ALERT_DISPATCH=1 mozes hot-monitor --interval 60
 ```
 
-See `docs/HOT_LANE_V2F.md` and `docs/PRODUCT_V03.md`.
+See `docs/HOT_EDGE_V3.md` for the Cloudflare rapid detector and operator setup;
+the Python command above remains a reconciliation/standalone path.
 
 ## What changed in v0.2
 

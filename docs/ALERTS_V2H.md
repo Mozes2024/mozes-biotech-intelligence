@@ -1,5 +1,10 @@
 # Alert delivery and source explanations
 
+> This document records the v2H alert-feed deployment. For the v3 detection
+> clock, issuer synchronization, Stage-0 delivery, and current activation steps,
+> see [HOT_EDGE_V3.md](HOT_EDGE_V3.md). The v2H clock description below is
+> historical after v3 activation.
+
 ## Review status
 
 The alert path passed 413 offline Python tests, Worker clock/feed checks and a
