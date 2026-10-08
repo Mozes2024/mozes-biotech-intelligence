@@ -408,3 +408,7 @@ CREATE TABLE IF NOT EXISTS edge_candidate_receipts (
   candidate_id TEXT PRIMARY KEY, producer_run_id TEXT NOT NULL,
   receipt_json TEXT NOT NULL, processed_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS clinical_catalyst_suppressions (
+  catalyst_id TEXT PRIMARY KEY REFERENCES clinical_catalysts(catalyst_id),
+  reason TEXT NOT NULL, updated_at TEXT NOT NULL
+);

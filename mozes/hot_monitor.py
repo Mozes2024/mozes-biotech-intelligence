@@ -122,7 +122,8 @@ def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True, f
     details = {"started_at": started, "feeds": {}, "monitor": None, "alerts": None, "errors": {}, "steps": []}
     try:
         details["watch_seed"] = _step(conn, details, "watch_seed", lambda: seed_priority_watches(conn))
-        from .clinical_events import retry_unresolved, retain_candidates
+        from .clinical_events import retry_unresolved, retain_candidates, reclassify_policy
+        reclassify_policy(conn)
         details['clinical_retries'] = _step(conn,details,'clinical_retries',lambda: retry_unresolved(conn))
         retain_candidates(conn)
         details["feeds"]["fda"] = _step(conn, details, "fda", lambda: poll_fda_feeds(conn, fetch=fetch))

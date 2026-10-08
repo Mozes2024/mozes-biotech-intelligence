@@ -247,8 +247,9 @@ export class HotEdge {
     const digest=await hash(event.headline+' '+(event.summary||''));
     const prior=await this.env.ALERTS_DB.prepare('SELECT * FROM edge_candidates WHERE candidate_id=?').bind(event.event_id).first();
     if(prior){
-      if(prior.content_hash===digest&&prior.ticker===(issuer?.ticker||null))return;
-      const reassess=prior.completed_at&&prior.content_hash!==digest;
+      const samePolicy=JSON.parse(prior.classification_json).method===scope.method;
+      if(samePolicy&&prior.content_hash===digest&&prior.ticker===(issuer?.ticker||null))return;
+      const reassess=prior.completed_at&&(prior.content_hash!==digest||!samePolicy);
       await this.env.ALERTS_DB.prepare('UPDATE edge_candidates SET headline=?,summary=?,ticker=?,cik=?,classification_json=?,lifecycle=?,suppression_reason=?,history_json=?,content_hash=?,completed_at=NULL,github_run_id=NULL,verification_retry_at=NULL WHERE candidate_id=?')
         .bind(event.headline.slice(0,500),String(event.summary||'').slice(0,8000),issuer?.ticker||null,issuer?.cik||null,JSON.stringify(scope),reason?'SUPPRESSED':'CLASSIFIED',reassess?'classification_uncertain':reason,JSON.stringify([...JSON.parse(prior.history_json),...history].slice(-10)),digest,event.event_id).run();
       return;
