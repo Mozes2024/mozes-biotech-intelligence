@@ -175,7 +175,10 @@ export class HotEdge {
           documentRows.find(row => />\s*(?:8-K|6-K)\s*</i.test(row));
         const href = documentRow?.match(/href="([^"]+)"/i)?.[1] ||
           index.match(/href="([^"]*(?:ex[-_]?99|exhibit[-_]?99)[^"]*\.htm[l]?)"/i)?.[1];
-        const candidate = new URL((href || indexUrl).replace(/&amp;/g, "&"), indexUrl);
+        let candidate = new URL((href || indexUrl).replace(/&amp;/g, "&"), indexUrl);
+        // SEC primary documents may be linked through its inline XBRL viewer.
+        if (candidate.hostname === "www.sec.gov" && candidate.pathname === "/ix" && candidate.searchParams.has("doc"))
+          candidate = new URL(candidate.searchParams.get("doc"), indexUrl);
         if (candidate.protocol !== "https:" || candidate.hostname !== "www.sec.gov" ||
             !candidate.pathname.startsWith(`/Archives/edgar/data/${Number(event.cik)}/${event.accession.replaceAll("-", "")}/`))
           throw Error("invalid primary SEC URL");
