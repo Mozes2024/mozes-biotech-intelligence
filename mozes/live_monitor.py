@@ -284,9 +284,9 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
             priority = {ticker: index for index, ticker in enumerate(priority_tickers())}
             watches = sorted(db.watch_rows(conn), key=lambda row: (priority.get(row["ticker"], len(priority)), row["ticker"]))
             if hot_ticker and hot_cik and str(hot_cik).isdigit():
-                mapping = conn.execute("SELECT ticker,cik FROM sponsor_ticker_map WHERE ticker=? AND cik=? "
+                mapping = conn.execute("SELECT ticker,cik FROM sponsor_ticker_map WHERE ticker=? AND CAST(cik AS INTEGER)=? "
                                        "AND source='SEC-v2C-equity' AND confidence>=0.85",
-                                       (hot_ticker, str(int(hot_cik)))).fetchone()
+                                       (hot_ticker, int(hot_cik))).fetchone()
                 if mapping:
                     watches = [dict(mapping)] + [row for row in watches if row["ticker"] != hot_ticker]
             if priority_only:

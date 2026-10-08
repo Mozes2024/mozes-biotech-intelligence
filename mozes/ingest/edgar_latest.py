@@ -59,11 +59,17 @@ def biotech_universe(conn):
     rows = conn.execute(
         "SELECT ticker,cik,sponsor AS company,confidence,source FROM sponsor_ticker_map "
         "WHERE cik IS NOT NULL AND confidence>=0.85 AND source='SEC-v2C-equity'").fetchall()
-    universe = {str(int(row["cik"])): dict(row) for row in rows
-                if row["ticker"] in tickers and str(row["cik"]).isdigit()}
+    identities = {}
+    for row in rows:
+        if row["ticker"] in tickers and str(row["cik"]).isdigit():
+            identities.setdefault(str(int(row["cik"])), []).append(dict(row))
+    universe = {cik: matches[0] for cik, matches in identities.items()
+                if len({item["ticker"] for item in matches}) == 1}
     for row in conn.execute("SELECT ticker,cik,company,source FROM watch_universe WHERE active=1 AND cik IS NOT NULL"):
         if str(row["cik"]).isdigit():
-            universe.setdefault(str(int(row["cik"])), dict(row))
+            cik = str(int(row["cik"]))
+            if cik not in identities:
+                universe.setdefault(cik, dict(row))
     return universe
 
 

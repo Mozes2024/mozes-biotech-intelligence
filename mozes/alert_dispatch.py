@@ -78,6 +78,10 @@ def verified_issuer_identity(conn, ticker):
                 and row["cik"] and row["confidence"] >= 0.85]
     if len(verified) != 1 or len({row["cik"] for row in rows if row["cik"]}) != 1:
         return None
+    if conn.execute("SELECT 1 FROM sponsor_ticker_map WHERE cik=? AND ticker<>? "
+                    "AND source='SEC-v2C-equity' AND confidence>=0.85 LIMIT 1",
+                    (verified[0]["cik"], ticker)).fetchone():
+        return None
     if not tradability(conn, ticker).get("tradable"):
         return None
     return verified[0]

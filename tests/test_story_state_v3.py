@@ -41,6 +41,9 @@ def test_verified_dynamic_issuer_requires_unique_active_equity(tmp_path):
     db.upsert_security_lifecycle(conn, "ZZZZ", status="ACTIVE", source_url="https://www.sec.gov/files/company_tickers_exchange.json")
     assert verified_issuer_identity(conn, "ZZZZ")["cik"] == "123"
     conn.execute("INSERT INTO sponsor_ticker_map VALUES(?,?,?,?,?,?,?)",
+                 ("shareclass", "Novel Bio Class B", "ZZZY", "123", .99, "SEC-v2C-equity", "2026-10-08"))
+    assert verified_issuer_identity(conn, "ZZZZ") is None
+    conn.execute("INSERT INTO sponsor_ticker_map VALUES(?,?,?,?,?,?,?)",
                  ("collision", "Other Bio", "ZZZZ", "456", .99, "SEC-v2C-equity", "2026-10-08"))
     assert verified_issuer_identity(conn, "ZZZZ") is None
     assert verified_issuer_identity(conn, "ZZZZ.W") is None
@@ -59,3 +62,21 @@ def test_dynamic_issuer_p1_only_with_verified_identity(tmp_path):
     conn.execute("INSERT INTO sponsor_ticker_map VALUES(?,?,?,?,?,?,?)",
                  ("collision", "Other Bio", "ZZZZ", "456", .99, "SEC-v2C-equity", "2026-10-08"))
     assert build_stage1_payload(conn, change)["priority"] == "P2"
+
+
+def test_edge_target_is_checked_before_priority_cohort(tmp_path, monkeypatch):
+    from mozes import live_monitor
+    from mozes.ingest import edgar
+    conn = db.connect(tmp_path / "target.db")
+    db.upsert_watch(conn, "ZZZZ", cik="123", company="Novel Bio", source="dynamic_news_discovery")
+    db.upsert_watch(conn, "SLS", cik="456", company="SELLAS", source="priority")
+    conn.execute("INSERT INTO sponsor_ticker_map VALUES(?,?,?,?,?,?,?)",
+                 ("novel", "Novel Bio", "ZZZZ", "0000000123", .99, "SEC-v2C-equity", "2026-10-08"))
+    seen = []
+    monkeypatch.setattr(edgar, "recent_filings_v2", lambda cik, **_kwargs: seen.append(cik) or [])
+    monkeypatch.setenv("SEC_USER_AGENT", "Test Operator test@example.com")
+    result = live_monitor.run_monitor(conn, audit=False, ctgov_diff=False, sec=True,
+                                      priority_only=True, hot_ticker="ZZZZ", hot_cik="123",
+                                      hot_accession="0000000000-26-000001")
+    assert result["status"] == "OK"
+    assert seen == ["0000000123", "456"]
