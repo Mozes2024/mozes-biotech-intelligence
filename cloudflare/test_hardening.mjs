@@ -56,6 +56,17 @@ try {
   assert.equal(db.sqlite.prepare("SELECT COUNT(*) AS n FROM edge_events").get().n,5);
   assert.equal(reads.filter(x=>x.endsWith("ex99.htm")).length,5);
 
+  // SEC inline-XBRL viewer links resolve to the exact accession's primary document.
+  const ixDb=database(), ix=new HotEdge(state(),{ALERTS_DB:ixDb,SEC_USER_AGENT:"test"});
+  const ixReads=[];
+  globalThis.fetch=async url=>{ixReads.push(String(url));return new Response(String(url).includes("browse-edgar")?atom:String(url).endsWith("filing-index.htm")?`<tr><td>8-K</td><td><a href="/ix?doc=${new URL(String(url)).pathname.replace("filing-index.htm","primary.htm")}">primary</a></td></tr>`:"routine filing");};
+  await ix.pollSec("8-K",now);
+  assert.deepEqual(await ix.analyzePending(now),{processed:3,failed:0});
+  assert.equal(ixReads.filter(url=>url.endsWith("primary.htm")).length,3);
+  assert.equal(ixReads.some(url=>url.includes("/ix?")),false);
+  globalThis.fetch=async()=>new Response('<tr><td>8-K</td><td><a href="/ix?doc=https://attacker.example/primary.htm">primary</a></td></tr>');
+  assert.deepEqual(await ix.analyzePending(later),{processed:0,failed:2});
+
   // A broken exhibit remains retryable and does not block siblings.
   const brokenDb=database(), broken=new HotEdge(state(),{ALERTS_DB:brokenDb,SEC_USER_AGENT:"test"});
   globalThis.fetch=async url=>new Response(String(url).includes("browse-edgar")?atom:String(url).endsWith("filing-index.htm")?'<a href="ex99.htm">EX-99</a>':"Novel Bio met its primary endpoint", {status:String(url)===filings[0].base+"ex99.htm"?503:200});
