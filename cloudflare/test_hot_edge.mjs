@@ -58,4 +58,6 @@ await new Promise(resolve => setTimeout(resolve, 0));
 assert.equal(rearmed, true);
 console.log("cloudflare hot edge: all checks passed");
 await import("./test_materiality.mjs");
+await import("./test_clinical.mjs");
 await import("./test_hardening.mjs");
+await import("./test_candidates.mjs");

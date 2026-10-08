@@ -20,6 +20,7 @@ from .priority import priority_tickers
 from .live_intelligence import enrich_live_rows
 from .financial_context import enrich_financial_context, operation_health
 from .latency_metrics import summary as latency_summary
+from .clinical_events import clinical_payload
 
 VERSION = "0.3.2"
 
@@ -262,6 +263,7 @@ def build(conn, today: date):
         "watch_universe": _watch_universe(conn),
         "refresh": refresh,
         "alerts": recent_alerts(conn),
+        "clinical_intelligence": clinical_payload(conn),
         "alert_config": channel_configuration(conn),
         "hot_latency": latency_summary(conn),
         "edge_health": (lambda row: json.loads(row[0]) if row else None)(conn.execute(

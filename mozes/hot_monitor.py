@@ -122,14 +122,21 @@ def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True, f
     details = {"started_at": started, "feeds": {}, "monitor": None, "alerts": None, "errors": {}, "steps": []}
     try:
         details["watch_seed"] = _step(conn, details, "watch_seed", lambda: seed_priority_watches(conn))
+        from .clinical_events import retry_unresolved, retain_candidates
+        details['clinical_retries'] = _step(conn,details,'clinical_retries',lambda: retry_unresolved(conn))
+        retain_candidates(conn)
         details["feeds"]["fda"] = _step(conn, details, "fda", lambda: poll_fda_feeds(conn, fetch=fetch))
         if include_wires:
             details["feeds"]["wires"] = _step(conn, details, "wires", lambda: poll_wire_feeds(conn, fetch=fetch))
 
         def company_ir():
             hot = set(priority_tickers())
+            registry=ir_entries()
+            observed={r['observation_key'].split(':',1)[1]:r['observed_at'] for r in conn.execute("SELECT observation_key,observed_at FROM monitor_observations WHERE observation_key LIKE 'official_feed:%'")}
+            broader=sorted([r for r in registry if r['ticker'] not in hot],key=lambda r:(observed.get(r['ticker'],''),r['ticker']))[:8]
+            if isinstance(fetch,PassFetcher):fetch.prefetch([r.get('feed_url') or r['site'] for r in broader])
             issuers = [{"ticker": row["ticker"], "sponsor": row.get("company") or row["ticker"]}
-                       for row in ir_entries() if row["ticker"] in hot]
+                       for row in registry if row["ticker"] in hot]+[{'ticker':r['ticker'],'sponsor':r['company']} for r in broader]
             return poll_official_feeds(conn, issuers, fetch=fetch, now=datetime.now(timezone.utc))
 
         details["feeds"]["company_ir"] = _step(conn, details, "company_ir", company_ir)
@@ -162,7 +169,8 @@ def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True, f
     feed_errors = sum(_error_count((value or {}).get("errors")) for value in details["feeds"].values()
                        if isinstance(value, dict))
     feed_errors += _error_count((details.get("alerts") or {}).get("errors"))
-    if details["errors"] and len(details["errors"]) == len(details["steps"]):
+    source_steps = [s for s in details['steps'] if s!='clinical_retries']
+    if source_steps and all(s in details['errors'] for s in source_steps):
         details["status"] = "FAILED"
     elif details["errors"] or feed_errors:
         details["status"] = "PARTIAL"

@@ -95,6 +95,8 @@ jobs:
       - name: Enrich the correlated Edge event
         # Process the exact Edge source before general reconciliation.
         run: python -m mozes.edge_enrichment process
+      - name: Reconcile bounded clinical issuer discovery candidates
+        run: python -m mozes.clinical_reconcile process
       - name: Hot feeds (FDA, wires, Nasdaq halts, company IR) + push
         run: python -m mozes.hot_monitor --once --no-sec --allow-partial
       - name: Hot priority observe + alert outbox
@@ -130,6 +132,8 @@ jobs:
           retention-days: 3
       - name: Acknowledge Edge enrichment after durable artifact upload
         run: python -m mozes.edge_enrichment ack
+      - name: Acknowledge clinical candidate decisions after durable artifact upload
+        run: python -m mozes.clinical_reconcile ack
       - name: Publish the small alert feed independently of Pages
         # The durable monitor artifact is already saved. A feed outage retries next run.
         continue-on-error: true

@@ -42,6 +42,18 @@ def record_change(conn, *, ticker, change_type, previous_value, new_value, sourc
                   event_id=None, candidate_id=None, nct_id=None, asset=None,
                   source_hash=None, metadata=None, identity=None):
     """Stable identity includes severity, so a later escalation is retained."""
+    clinical = None
+    if (source_type in {'wire','company_ir','sec','fda'} and isinstance(new_value,dict)
+            and new_value.get('headline') and not (metadata or {}).get('clinical_event_id')):
+        from .clinical_events import classify_clinical, ingest_clinical, source_issuer
+        headline = str(new_value['headline'])
+        summary = str(new_value.get('summary') or '')
+        scope = classify_clinical(headline+'\n'+summary)
+        clinical = ingest_clinical(conn,headline=headline,summary=summary,source_url=source_url or '',
+            published_at=new_value.get('published_at') or new_value.get('accepted') or (metadata or {}).get('source_published_at') or _now(),
+            source_type=source_type,ticker=ticker,issuer=source_issuer(conn,ticker,source_type,source_url),publish=scope['catalyst'])
+        if scope['catalyst'] and clinical.get('change_id'):
+            return clinical['change_id']
     key = identity or [ticker, event_id, candidate_id, nct_id, change_type,
                        previous_value, new_value, source_url, source_hash]
     change_id = "CHG-" + _hash([key, severity])[:24]
@@ -60,6 +72,9 @@ def record_change(conn, *, ticker, change_type, previous_value, new_value, sourc
         except Exception:
             # Delivery must never roll back detection; outbox failures are retried later.
             pass
+    if clinical:
+        from .clinical_events import bind_change
+        bind_change(conn,clinical['event_id'],change_id)
     return change_id
 
 

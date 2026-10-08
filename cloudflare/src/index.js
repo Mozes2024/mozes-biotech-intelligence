@@ -3,6 +3,7 @@
 import { handleAlertFeed } from "./alert-feed.js";
 import { acknowledge, eventTrace } from "./edge-contract.js";
 import { edgeMetrics } from "./edge-metrics.js";
+import {candidates,candidateAck,investigate,candidateStats} from './candidate-contract.js';
 export { HotEdge } from "./hot-edge.js";
 
 export default {
@@ -15,6 +16,9 @@ export default {
     if (path === "/alerts") return handleAlertFeed(request, env);
     if (path === "/edge/sync") return syncIssuers(request, env);
     if (path === "/edge/ack") return acknowledge(request, env);
+    if (path === "/edge/candidates") return candidates(request, env);
+    if (path === "/edge/candidate/ack") return candidateAck(request, env);
+    if (path === "/edge/investigate") return investigate(request, env);
     if (path === "/edge/event") return eventTrace(request, env);
     if (path === "/edge/metrics") return publicHealth(await edgeMetrics(env.ALERTS_DB), env);
     if (path === "/edge/health") {
@@ -25,7 +29,7 @@ export default {
       const backlog = await env.ALERTS_DB.prepare("SELECT COUNT(*) AS events,SUM(CASE WHEN analysis_status<>'complete' THEN 1 ELSE 0 END) AS analysis_pending,SUM(CASE WHEN material=1 AND enrichment_ack_at IS NULL THEN 1 ELSE 0 END) AS enrichment_pending FROM edge_events").first();
       return publicHealth({ ...health, status: !sources.length ? "UNKNOWN" : failed === sources.length ? "FAILED" : failed ? "PARTIAL" : "OK",
         stage0_delivery_enabled: Boolean(env.NTFY_URL), enrichment_enabled: env.EDGE_ENRICHMENT_ENABLED !== "0",
-        backlog, metrics: await edgeMetrics(env.ALERTS_DB) }, env);
+        backlog, clinical_operations:await candidateStats(env.ALERTS_DB), metrics: await edgeMetrics(env.ALERTS_DB) }, env);
     }
     return new Response(JSON.stringify({ ok: true, service: "mozes-hot-clock" }), {
       headers: { "content-type": "application/json" },

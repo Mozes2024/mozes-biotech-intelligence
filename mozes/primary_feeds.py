@@ -143,7 +143,10 @@ def poll_fda_feeds(conn, *, fetch, now=None, max_items=20, resolve_headline=None
                     source_url=url, source_type="fda")
             for item in items:
                 text = item["title"] + " " + item.get("summary", "")
+                from .clinical_events import ingest_clinical
                 if not BIOTECHISH.search(text):
+                    ingest_clinical(conn,headline=item['title'],summary=item.get('summary',''),source_url=item['url'],
+                                    published_at=item['published_at'],source_type='fda',publish=False)
                     continue
                 outcome = classify_outcome(text)
                 issuer = resolve_headline(conn, item["title"]) or resolve_alias(text)
@@ -173,21 +176,33 @@ def poll_wire_feeds(conn, *, fetch, now=None, resolve_headline=None, max_items=3
     """Wire headlines are investigation signals; SEC/FDA remain verification."""
     now = now or datetime.now(timezone.utc)
     from .news_signals import resolve_headline as default_resolve
+    supplied_resolver = resolve_headline is not None
     resolve_headline = resolve_headline or default_resolve
     seen = errors = 0
     for name, url in WIRE_FEEDS:
         try:
-            items = _parse_rss_items(fetch(url), now=now, max_age_hours=12)[:max_items]
+            items = _parse_rss_items(fetch(url), now=now, max_age_hours=168)[:max_items]
             observe(conn, f"wire_feed:{name}", {"status": "active", "checked_at": now.isoformat(), "items": len(items)},
                     source_url=url, source_type="wire")
             for item in items:
                 text = item["title"] + " " + item.get("summary", "")
                 if not BIOTECHISH.search(text):
+                    from .clinical_events import ingest_clinical
+                    ingest_clinical(conn,headline=item['title'],summary=item.get('summary',''),source_url=item['url'],
+                                    published_at=item['published_at'],source_type='wire',publish=False)
                     continue
                 issuer = (resolve_headline(conn, item["title"]) or resolve_alias(item["title"])
                           or _exchange_symbol(item.get("summary", "")[:400]))
                 ticker = issuer["ticker"] if issuer else None
-                outcome = classify_outcome(text)
+                from .clinical_events import classify_clinical, resolve_issuer
+                verified = resolve_issuer(conn,item['title'],item.get('summary',''))
+                if verified:
+                    issuer = verified
+                    ticker = verified['ticker']
+                elif not supplied_resolver:
+                    issuer = None
+                    ticker = None
+                outcome = classify_clinical(text)
                 before = conn.total_changes
                 record_change(
                     conn, ticker=ticker, change_type="wire_release_signal", previous_value=None,

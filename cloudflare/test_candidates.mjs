@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import {database} from './test_hardening.mjs';
+import {HotEdge} from './src/hot-edge.js';
+import {classifyClinical} from './src/clinical-events.js';
+import {candidates,candidateAck,investigate,candidateStats} from './src/candidate-contract.js';
+import {acknowledge} from './src/edge-contract.js';
+
+const db=database(), env={ALERTS_DB:db,EDGE_SYNC_TOKEN:'test-secret'};
+const edge=new HotEdge({storage:{}},env);
+const event={event_id:'EDGE-'+'a'.repeat(24),source:'businesswire',source_url:'https://www.businesswire.com/news/test',
+ headline:'Novel Bio will present expanded Phase 2 SUNRISE results',summary:'Novel Bio (Nasdaq: ZZZZ) will report data in Q4 2026.',published_at:'2026-10-05',first_seen_at:'2026-10-08'};
+const scope=classifyClinical(event.headline+' '+event.summary);
+const request=(path,body)=>new Request('https://edge.example/edge/'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer test-secret'},...(body?{body:JSON.stringify(body)}:{})});
+await edge.persistCandidate(event,scope,null,'2026-10-08','ZZZZ');
+assert.equal((await candidates(new Request('https://edge.example/edge/candidates'),env)).status,401);
+assert.equal((await investigate(new Request('https://edge.example/edge/investigate?q=ZZZZ'),env)).status,401);
+assert.equal((await (await candidates(request('candidates'),env)).json()).candidates.length,1);
+const receipt={candidate_id:event.event_id,github_run_id:'42',lifecycle:'SUPPRESSED',suppression_reason:'issuer_unresolved'};
+assert.equal((await candidateAck(request('candidate/ack',receipt),env)).status,200);
+assert.equal((await (await candidates(request('candidates'),env)).json()).candidates.length,0);
+let row=db.sqlite.prepare('SELECT * FROM edge_candidates').get();
+assert.equal(row.completed_at,null);assert.equal(row.verification_attempts,1);
+await candidateAck(request('candidate/ack',receipt),env);
+assert.equal(db.sqlite.prepare('SELECT verification_attempts FROM edge_candidates').get().verification_attempts,1);
+assert.equal((await candidateAck(request('candidate/ack',{...receipt,github_run_id:'43',lifecycle:'PUBLISHED'}),env)).status,400);
+const published={...receipt,github_run_id:'43',lifecycle:'PUBLISHED',suppression_reason:null,ticker:'ZZZZ',cik:'123',change_id:'CHG-'+'b'.repeat(24),catalyst_id:'CAT-'+'c'.repeat(24)};
+await candidateAck(request('candidate/ack',published),env);
+row=db.sqlite.prepare('SELECT * FROM edge_candidates').get();
+assert.equal(row.lifecycle,'PUBLISHED');assert.ok(row.completed_at);
+assert.equal(JSON.parse(row.history_json).at(-2).state,'ENRICHED');
+assert.equal((await candidateStats(db)).events_published,1);
+assert.equal((await (await investigate(request('investigate?q=Novel%20Bio'),env)).json()).events.length,1);
+// Same publisher entry does not add writes/history; changed evidence can reopen it.
+await edge.persistCandidate(event,scope,{ticker:'ZZZZ',cik:'123'},'2026-10-08');
+const before=db.sqlite.prepare('SELECT history_json FROM edge_candidates').get().history_json;
+await edge.persistCandidate(event,scope,{ticker:'ZZZZ',cik:'123'},'2026-10-08');
+assert.equal(db.sqlite.prepare('SELECT history_json FROM edge_candidates').get().history_json,before);
+await edge.persistCandidate({...event,summary:event.summary+' Updated timing expected in December 2026.'},scope,{ticker:'ZZZZ',cik:'123'},'2026-10-08');
+row=db.sqlite.prepare('SELECT * FROM edge_candidates').get();
+assert.equal(row.completed_at,null);assert.equal(row.github_run_id,null);
+assert.equal(row.suppression_reason,'classification_uncertain');
+assert.equal((await (await candidates(request('candidates'),env)).json()).candidates.length,1);
+// Enrichment ACK links the audit trail, and future scheduling never pages Stage-0.
+await edge.persist({...event,ticker:'ZZZZ',cik:'123',form:'rss',accepted_at:null,material:true,polarity:'unknown'});
+await edge.classifyEvent(event.event_id,scope);
+assert.equal(db.sqlite.prepare('SELECT actionable FROM edge_events').get().actionable,0);
+const ack={edge_event_id:event.event_id,status:'completed',change_id:published.change_id,catalyst_id:published.catalyst_id,github_run_id:'44',completed_at:'2026-10-08T08:00:00Z',alert_ids:[],delivery:[]};
+assert.equal((await acknowledge(request('ack',ack),env,'2026-10-08T08:01:00Z')).status,200);
+row=db.sqlite.prepare('SELECT * FROM edge_candidates').get();
+assert.equal(row.suppression_reason,null);assert.equal(JSON.parse(row.history_json).at(-1).state,'PUBLISHED');
+console.log('clinical candidate private queue, retry, provenance and ACK: all checks passed');

@@ -78,6 +78,7 @@ _SCHEDULING = re.compile(
 )
 
 ALERTABLE_CHANGE_TYPES = frozenset({
+    "clinical_catalyst_signal",
     "sec_material_filing", "sec_filing_signal", "company_release_signal",
     "news_signal", "wire_release_signal", "nasdaq_halt_signal", "nasdaq_volatility_pause",
     "fda_release_signal",
@@ -130,6 +131,8 @@ def alert_priority(change_type: str, severity: str, outcome: dict | None = None,
     outcome = outcome or {}
     if not ticker:
         return "P3"
+    if change_type == "clinical_catalyst_signal" or outcome.get("actionable") is False:
+        return "P2" if outcome.get("material") else "P3"
     if watched and (change_type == "nasdaq_halt_signal" or severity == "critical"):
         return "P1"
     if watched and change_type in {"sec_material_filing", "company_release_signal", "fda_release_signal",

@@ -33,7 +33,10 @@ def edge_request(path, *, payload=None, opener=urllib.request.urlopen):
     request = urllib.request.Request(url, data=json.dumps(payload).encode() if payload is not None else None,
         headers={"Authorization": "Bearer " + token, "Content-Type": "application/json", "User-Agent": "MOZES-EdgeSync/1.0"})
     with opener(request, timeout=15) as response:
-        return json.loads(response.read(65536))
+        limit=262144 if path=='candidates' else 65536
+        raw=response.read(limit+1)
+        if len(raw)>limit:raise ValueError('Edge control response too large')
+        return json.loads(raw)
 
 
 def validate_source(event):
@@ -91,6 +94,8 @@ def process(conn, event, *, fetch=None, github_run_id=None):
     if not content.strip():
         raise ValueError("empty primary source document")
     outcome = classify_outcome(content)
+    from .clinical_events import classify_clinical
+    outcome = classify_clinical(content,outcome)
     digest = hashlib.sha256(raw.encode()).hexdigest()
     archive_id = edge_id + "-SRC-" + digest
     if not conn.execute("SELECT 1 FROM source_archive WHERE source_id=?", (archive_id,)).fetchone():
@@ -98,7 +103,7 @@ def process(conn, event, *, fetch=None, github_run_id=None):
                           event.get("published_at") or event.get("accepted_at"), db.utcnow(), raw,
                           {"edge_event_id": edge_id})
     sec = event["source"] == "sec"
-    value = {"headline": content[:300] if sec else event["headline"], "summary": content[:1200], "outcome": outcome,
+    value = {"headline": content[:300] if sec else event["headline"], "summary": content[:8000], "outcome": outcome,
              "form": event.get("form"), "accession": event.get("accession"), "accepted": event.get("accepted_at"),
              "published_at": event.get("published_at")}
     # Preserve existing canonical CHG identities and priority rules.
@@ -130,7 +135,10 @@ def ack_payload(conn, edge_id, *, github_run_id=None):
     # A detection whose enqueue failed is not successful until a retry records a decision.
     if not deliveries and not conn.execute("SELECT 1 FROM alert_enqueue_decisions WHERE change_id=?", (change_id,)).fetchone():
         raise RuntimeError("Edge change has no durable outbox decision")
+    change=conn.execute('SELECT new_value FROM change_events WHERE change_id=?',(change_id,)).fetchone()
+    value=json.loads(change[0]) if change else {}
     return {"edge_event_id": edge_id, "status": "completed", "change_id": change_id,
+            "catalyst_id": value.get('catalyst_id') if isinstance(value,dict) else None,
             "github_run_id": github_run_id or os.environ.get("GITHUB_RUN_ID") or receipt["github_run_id"],
             "completed_at": db.utcnow(), "alert_ids": [row["alert_id"] for row in deliveries], "delivery": deliveries}
 

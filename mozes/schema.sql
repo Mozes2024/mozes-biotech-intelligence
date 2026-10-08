@@ -374,3 +374,37 @@ CREATE TABLE IF NOT EXISTS edge_event_links (
   processed_at TEXT NOT NULL,
   source_hash TEXT NOT NULL
 );
+
+-- Clinical announcement audit is independent of investment scoring/registry estimates.
+CREATE TABLE IF NOT EXISTS clinical_events (
+  event_id TEXT PRIMARY KEY, source_url TEXT NOT NULL, source_type TEXT NOT NULL,
+  published_at TEXT NOT NULL, first_seen_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+  headline TEXT NOT NULL, summary TEXT NOT NULL, lifecycle TEXT NOT NULL,
+  suppression_reason TEXT, ticker TEXT, cik TEXT, content_hash TEXT NOT NULL,
+  classification_json TEXT, catalyst_id TEXT, change_id TEXT, edge_event_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_clinical_issuer ON clinical_events(ticker,first_seen_at);
+CREATE TABLE IF NOT EXISTS clinical_event_history (
+  sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id TEXT NOT NULL REFERENCES clinical_events(event_id) ON DELETE CASCADE,
+  lifecycle TEXT NOT NULL, reason TEXT, recorded_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS issuer_discovery_queue (
+  event_id TEXT PRIMARY KEY REFERENCES clinical_events(event_id) ON DELETE CASCADE,
+  ticker_hint TEXT, status TEXT NOT NULL, attempts INTEGER NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS clinical_catalysts (
+  catalyst_id TEXT PRIMARY KEY, ticker TEXT NOT NULL, cik TEXT NOT NULL,
+  program TEXT, event_type TEXT NOT NULL, headline TEXT NOT NULL,
+  window_json TEXT NOT NULL, first_seen_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS clinical_catalyst_sources (
+  catalyst_id TEXT NOT NULL REFERENCES clinical_catalysts(catalyst_id),
+  event_id TEXT NOT NULL,
+  source_url TEXT NOT NULL, published_at TEXT NOT NULL, source_hash TEXT NOT NULL,
+  PRIMARY KEY(catalyst_id,event_id)
+);
+CREATE TABLE IF NOT EXISTS edge_candidate_receipts (
+  candidate_id TEXT PRIMARY KEY, producer_run_id TEXT NOT NULL,
+  receipt_json TEXT NOT NULL, processed_at TEXT NOT NULL
+);
