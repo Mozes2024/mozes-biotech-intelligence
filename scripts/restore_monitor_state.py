@@ -6,6 +6,7 @@ failed to download — that is how live alerts (e.g. LPCN) disappear from the si
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -13,6 +14,7 @@ import sqlite3
 import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
+from contextlib import closing
 from pathlib import Path
 
 
@@ -85,12 +87,13 @@ def _manifest_generated_at(root: Path):
 
 
 def _list_success_runs():
+    # Failed/cancelled producers are eligible only with a verified uploaded checkpoint.
     runs = json.loads(gh(
         "run", "list", "--workflow", "lightweight-monitor.yml", "--branch", "main",
-        "--status", "success", "--limit", "20",
+        "--status", "completed", "--limit", "20",
         "--json", "databaseId,createdAt,conclusion",
     ))
-    runs = [r for r in runs if r.get("conclusion") == "success" and r.get("databaseId")]
+    runs = [r for r in runs if r.get("conclusion") in {"success", "failure", "cancelled"} and r.get("databaseId")]
     runs.sort(key=lambda r: r.get("createdAt") or "", reverse=True)
     return runs
 
@@ -134,7 +137,7 @@ def restore(run_id=None):
             continue
         if (meta.get("head_branch") != "main" or meta.get("name") != "lightweight-live-monitor"
                 or (meta.get("head_repository") or {}).get("full_name") != repo
-                or meta.get("conclusion") not in {None, "success"}):
+                or meta.get("conclusion") not in {None, "success", "failure", "cancelled"}):
             print(f"State restore skipped run {candidate}: untrusted metadata")
             if run_id:
                 raise ValueError("untrusted or unsuccessful source run")
@@ -147,6 +150,15 @@ def restore(run_id=None):
                 if source is None:
                     print(f"State restore unavailable for run {candidate}: mozes-live.db missing")
                     continue
+                checkpoint_path = source.with_name("edge-checkpoint.json")
+                if checkpoint_path.exists():
+                    checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+                    if checkpoint.get("schema") != 1 or str(checkpoint.get("producer_run_id")) != candidate or checkpoint.get("db_sha256") != hashlib.sha256(source.read_bytes()).hexdigest():
+                        raise ValueError("monitor checkpoint hash/run mismatch")
+                elif meta.get("conclusion") in {"failure", "cancelled"}:
+                    if run_id:
+                        raise ValueError("unsuccessful source has no durable checkpoint")
+                    continue
                 stamp = _manifest_generated_at(root)
                 if newest_created and stamp and stamp < newest_created - MAX_REWIND:
                     print(
@@ -154,7 +166,7 @@ def restore(run_id=None):
                         f"is older than allowed rewind behind {newest_created.isoformat()}"
                     )
                     continue
-                with sqlite3.connect(f"file:{source}?mode=ro", uri=True) as conn:
+                with closing(sqlite3.connect(f"file:{source}?mode=ro", uri=True)) as conn:
                     if conn.execute("PRAGMA quick_check").fetchone()[0] != "ok":
                         raise ValueError("monitor DB failed integrity check")
                 shutil.copy2(source, destination)

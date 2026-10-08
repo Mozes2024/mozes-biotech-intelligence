@@ -1,6 +1,8 @@
 // Cron is only a watchdog for the Durable Object's recurring Stage-0 alarm.
 
 import { handleAlertFeed } from "./alert-feed.js";
+import { acknowledge, eventTrace } from "./edge-contract.js";
+import { edgeMetrics } from "./edge-metrics.js";
 export { HotEdge } from "./hot-edge.js";
 
 export default {
@@ -12,15 +14,28 @@ export default {
     const path = new URL(request.url).pathname;
     if (path === "/alerts") return handleAlertFeed(request, env);
     if (path === "/edge/sync") return syncIssuers(request, env);
+    if (path === "/edge/ack") return acknowledge(request, env);
+    if (path === "/edge/event") return eventTrace(request, env);
+    if (path === "/edge/metrics") return publicHealth(await edgeMetrics(env.ALERTS_DB), env);
     if (path === "/edge/health") {
       const stub = env.HOT_EDGE.get(env.HOT_EDGE.idFromName("global"));
-      return stub.fetch("https://edge.internal/health");
+      const health = await (await stub.fetch("https://edge.internal/health")).json();
+      const sources = Object.values(health.sources || {});
+      const failed = sources.filter(row => row.status === "FAILED").length;
+      const backlog = await env.ALERTS_DB.prepare("SELECT COUNT(*) AS events,SUM(CASE WHEN analysis_status<>'complete' THEN 1 ELSE 0 END) AS analysis_pending,SUM(CASE WHEN material=1 AND enrichment_ack_at IS NULL THEN 1 ELSE 0 END) AS enrichment_pending FROM edge_events").first();
+      return publicHealth({ ...health, status: !sources.length ? "UNKNOWN" : failed === sources.length ? "FAILED" : failed ? "PARTIAL" : "OK",
+        stage0_delivery_enabled: Boolean(env.NTFY_URL), enrichment_enabled: env.EDGE_ENRICHMENT_ENABLED !== "0",
+        backlog, metrics: await edgeMetrics(env.ALERTS_DB) }, env);
     }
     return new Response(JSON.stringify({ ok: true, service: "mozes-hot-clock" }), {
       headers: { "content-type": "application/json" },
     });
   },
 };
+
+function publicHealth(body, env) {
+  return Response.json(body, { headers: { "Cache-Control": "no-store", "Access-Control-Allow-Origin": env.SITE_ORIGIN || "https://mozes2024.github.io", Vary: "Origin" } });
+}
 
 export async function syncIssuers(request, env) {
   if (request.method !== "POST" || !env.EDGE_SYNC_TOKEN ||

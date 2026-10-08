@@ -33,11 +33,12 @@ try {
 
 const queries = [];
 const quietEdge = new HotEdge({ storage }, { ALERTS_DB: {
-  prepare: sql => { queries.push(sql); return { all: async () => ({ results: [] }) }; },
+  prepare: sql => { queries.push(sql); return { bind: () => ({ first: async () => ({n:0}), all: async () => ({ results: [] }) }) }; },
 } });
 await quietEdge.deliver({ material: 0 });
 await quietEdge.flushPending();
-assert.match(queries[0], /material=1 AND enrichment_queued_at IS NULL/);
+assert.match(queries[1], /material=1 AND analysis_status='complete'/);
+assert.match(queries[0], /enrichment_ack_at IS NULL/);
 
 const env = { EDGE_SYNC_TOKEN: "secret" };
 assert.equal((await syncIssuers(new Request("https://edge.example/edge/sync", { method: "POST", body: "{}" }), env)).status, 401);
@@ -56,3 +57,5 @@ await worker.scheduled({ scheduledTime: Date.now() }, { HOT_EDGE: {
 await new Promise(resolve => setTimeout(resolve, 0));
 assert.equal(rearmed, true);
 console.log("cloudflare hot edge: all checks passed");
+await import("./test_materiality.mjs");
+await import("./test_hardening.mjs");

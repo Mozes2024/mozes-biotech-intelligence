@@ -264,6 +264,8 @@ def build(conn, today: date):
         "alerts": recent_alerts(conn),
         "alert_config": channel_configuration(conn),
         "hot_latency": latency_summary(conn),
+        "edge_health": (lambda row: json.loads(row[0]) if row else None)(conn.execute(
+            "SELECT value_json FROM monitor_observations WHERE observation_key='edge_health'").fetchone()),
         "changes": recent_changes(conn),
         "news": recent_changes(conn, limit=50, change_types=("news_signal", "company_release_signal",
                                                        "wire_release_signal", "fda_release_signal",
