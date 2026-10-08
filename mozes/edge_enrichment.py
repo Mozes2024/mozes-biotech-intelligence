@@ -40,6 +40,9 @@ def validate_source(event):
     parts = urlsplit(event["source_url"])
     allowed = {"sec": {"www.sec.gov"}, "businesswire": {"www.businesswire.com", "businesswire.com"},
                "globenewswire": {"www.globenewswire.com", "rss.globenewswire.com"}}
+    # Official wire RSS can supply HTTP links; never fetch plaintext.
+    if event["source"] != "sec" and parts.scheme == "http" and parts.port is None:
+        parts = parts._replace(scheme="https")
     if parts.scheme != "https" or parts.hostname not in allowed.get(event["source"], set()) or parts.username or parts.port not in (None, 443):
         raise ValueError("untrusted Edge source URL")
     if event["source"] == "sec":
@@ -47,13 +50,14 @@ def validate_source(event):
         if not re.fullmatch(r"\d{10}-\d{2}-\d{6}", accession) or not parts.path.startswith(
                 f"/Archives/edgar/data/{int(event['cik'])}/{accession.replace('-', '')}/"):
             raise ValueError("SEC source does not match accession and CIK")
+    return parts.geturl()
 
 
 def process(conn, event, *, fetch=None, github_run_id=None):
     edge_id = event.get("edge_event_id") or event.get("event_id")
     if not re.fullmatch(r"EDGE-[a-f0-9]{24}", edge_id or "") or event.get("analysis_status") != "complete" or not event.get("material"):
         raise ValueError("Edge event not ready for enrichment")
-    validate_source(event)
+    secure_url = validate_source(event)
     run_id = github_run_id or os.environ.get("GITHUB_RUN_ID", "")
     if not re.fullmatch(r"\d{1,20}", run_id):
         raise ValueError("GitHub run ID required for durable trace")
@@ -66,6 +70,7 @@ def process(conn, event, *, fetch=None, github_run_id=None):
         supplied = os.environ.get(env_key)
         if supplied and supplied != str(event.get(field) or ""):
             raise ValueError("workflow input differs from canonical Edge event")
+    event = {**event, "source_url": secure_url}
     prior = conn.execute("SELECT change_id FROM edge_event_links WHERE edge_event_id=?", (edge_id,)).fetchone()
     if prior:
         return prior[0]
@@ -73,6 +78,8 @@ def process(conn, event, *, fetch=None, github_run_id=None):
         def fetch_wire(url):
             request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html"})
             with urllib.request.urlopen(request, timeout=12) as response:
+                if urlsplit(response.geturl()).scheme != "https":
+                    raise ValueError("primary wire redirect must remain HTTPS")
                 validate_source({**event, "source_url": response.geturl()})
                 body = response.read(4_000_001)
                 if len(body) > 4_000_000:

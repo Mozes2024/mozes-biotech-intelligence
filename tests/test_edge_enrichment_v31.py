@@ -55,6 +55,19 @@ def test_failed_primary_fetch_has_no_durable_ack(tmp_path):
         ack_payload(conn, event()["edge_event_id"])
 
 
+def test_official_wire_http_link_is_fetched_only_over_https(tmp_path, monkeypatch):
+    conn = setup(tmp_path)
+    original = event()["source_url"].replace("https:", "http:")
+    monkeypatch.setenv("MOZES_HOT_SOURCE_URL", original)
+    calls = []
+    process(conn, {**event(), "source_url": original},
+            fetch=lambda url: calls.append(url) or "Phase 2 trial met its primary endpoint.", github_run_id="42")
+    assert calls == [event()["source_url"]]
+    monkeypatch.delenv("MOZES_HOT_SOURCE_URL")
+    with pytest.raises(ValueError, match="untrusted"):
+        process(conn, {**event(2), "source_url": "http://attacker.example/"}, fetch=lambda _: "content", github_run_id="42")
+
+
 def test_canonical_edge_source_and_issuer_are_required(tmp_path, monkeypatch):
     conn = setup(tmp_path)
     with pytest.raises(ValueError, match="untrusted"):
