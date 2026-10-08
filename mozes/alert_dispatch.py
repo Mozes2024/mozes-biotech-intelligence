@@ -20,6 +20,7 @@ from . import db
 from .latency_metrics import mark_queued, mark_sent, record_detection
 from .materiality import ALERTABLE_CHANGE_TYPES, PRIORITY_RANK, alert_priority, classify_outcome, should_enqueue
 from .priority import priority_tickers
+from .security import tradability
 
 STAGE1 = "stage1"
 STAGE2 = "stage2"
@@ -62,9 +63,24 @@ def is_watched(conn, ticker):
     if not ticker:
         return False
     ticker = str(ticker).upper()
-    if ticker in set(priority_tickers()):
-        return True
-    return conn.execute("SELECT 1 FROM watch_universe WHERE ticker=? AND active=1", (ticker,)).fetchone() is not None
+    return ticker in set(priority_tickers())
+
+
+def verified_issuer_identity(conn, ticker):
+    """Require a unique SEC equity identity and an active audited US security."""
+    if not ticker or not re.fullmatch(r"[A-Z][A-Z0-9]{0,9}", str(ticker)):
+        return None
+    if str(ticker).endswith(("W", "U", "R")):
+        return None
+    rows = [dict(row) for row in conn.execute(
+        "SELECT ticker,cik,confidence,source,sponsor FROM sponsor_ticker_map WHERE ticker=?", (ticker,))]
+    verified = [row for row in rows if row["source"] == "SEC-v2C-equity"
+                and row["cik"] and row["confidence"] >= 0.85]
+    if len(verified) != 1 or len({row["cik"] for row in rows if row["cik"]}) != 1:
+        return None
+    if not tradability(conn, ticker).get("tradable"):
+        return None
+    return verified[0]
 
 
 def build_stage1_payload(conn, change_id):
@@ -80,8 +96,9 @@ def build_stage1_payload(conn, change_id):
         text_bits.append(str(new_value))
     outcome = classify_outcome(" ".join(text_bits))
     watched = is_watched(conn, row["ticker"])
+    verified = verified_issuer_identity(conn, row["ticker"])
     priority = alert_priority(row["change_type"], row["severity"], outcome,
-                              ticker=row["ticker"], watched=watched)
+                              ticker=row["ticker"], watched=watched or bool(verified))
     published = None
     if isinstance(new_value, dict):
         published = new_value.get("published_at") or new_value.get("accepted")
@@ -91,6 +108,7 @@ def build_stage1_payload(conn, change_id):
         "priority": priority,
         "ticker": row["ticker"],
         "watched": watched,
+        "verified_issuer_cik": verified["cik"] if verified else None,
         "change_id": change_id,
         "change_type": row["change_type"],
         "severity": row["severity"],
@@ -164,6 +182,36 @@ def headline_similarity(left, right):
     return max(jaccard, ratio)
 
 
+_STATE_PATTERNS = {
+    "approval": r"\b(?:fda\s+)?approv(?:al|es|ed)\b",
+    "crl": r"\b(?:CRL|complete response letter)\b",
+    "clinical_hold": r"\bclinical hold\b",
+    "hold_lifted": r"\b(?:lifts?|lifted|removes?|removed|releases?|released)\b.{0,35}\bclinical hold\b|\bclinical hold\b.{0,35}\b(?:lifted|removed|released)\b",
+    "primary_endpoint_met": r"\b(?:met|meets|achieved)\b.{0,30}\bprimary\s+(?:end\s*-?point|endpoint)\b",
+    "primary_endpoint_missed": r"\b(?:did not meet|failed to meet|missed)\b.{0,30}\bprimary\s+(?:end\s*-?point|endpoint)\b",
+    "statistical_significance_failure": r"\b(?:not statistically significant|did not (?:reach|achieve) statistical significance)\b",
+    "futility": r"\bfutility\b",
+    "discontinuation": r"\b(?:discontinu\w*|terminat\w*)\b",
+    "pdufa_extension": r"\bpdufa\b.{0,30}\b(?:extend\w*|extension)\b",
+    "acquisition": r"\b(?:acquir\w*|merger)\b",
+}
+
+
+def material_story_state(payload):
+    value = payload.get("new_value")
+    text = " ".join(str(value.get(k) or "") for k in ("headline", "title", "summary")) if isinstance(value, dict) else str(value or "")
+    outcome = payload.get("outcome") or classify_outcome(text)
+    change_type = payload.get("change_type") or ""
+    family = "release" if change_type in {"wire_release_signal", "company_release_signal", "news_signal"} else change_type
+    flags = {key: bool(re.search(pattern, text, re.I)) for key, pattern in _STATE_PATTERNS.items()}
+    if flags["hold_lifted"]:
+        flags["clinical_hold"] = False
+    if flags["primary_endpoint_missed"]:
+        flags["primary_endpoint_met"] = False
+    return {"polarity": outcome.get("polarity", "unknown"), "material": bool(outcome.get("material")),
+            "change_type_family": family, **flags}
+
+
 def find_primary_alert(conn, payload, *, window_minutes=CONSOLIDATION_WINDOW_MINUTES, threshold=0.55):
     """Earlier Stage-1 alert for the same ticker and story within the window, if any."""
     ticker, headline = payload.get("ticker"), _headline_of(payload)
@@ -184,7 +232,7 @@ def find_primary_alert(conn, payload, *, window_minutes=CONSOLIDATION_WINDOW_MIN
         if other.get("ticker") != ticker:
             continue
         similarity = headline_similarity(headline, _headline_of(other))
-        if similarity >= threshold:
+        if similarity >= threshold and material_story_state(payload) == material_story_state(other):
             return {"change_id": row["change_id"], "similarity": round(similarity, 3)}
     return None
 
