@@ -46,7 +46,8 @@ function parseWire(xml) {
 }
 
 async function get(url, env, sec = false) {
-  const response = await fetch(url, { headers: sec ? { "User-Agent": env.SEC_USER_AGENT || "" } : {},
+  const response = await fetch(url, { headers: { "User-Agent": sec ? env.SEC_USER_AGENT || "" : "MOZES-HotEdge/1.0",
+    Accept: sec ? "application/atom+xml, application/xml" : "application/rss+xml, application/xml" },
     signal: AbortSignal.timeout(8000) });
   if (!response.ok) throw Error(`HTTP ${response.status}`);
   const body = await response.text();
