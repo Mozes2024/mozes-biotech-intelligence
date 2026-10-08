@@ -164,6 +164,8 @@ def ingest_clinical(conn, *, headline, summary="", source_url, published_at, sou
         return {"event_id": event_id, "scope": scope, "change_id": previous["change_id"], "catalyst_id": previous["catalyst_id"], "new_issuer": False}
     if issuer is None:
         if not scope['relevant']:
+            with conn:
+                conn.execute('UPDATE clinical_events SET classification_json=? WHERE event_id=?',(json.dumps(scope),event_id))
             _transition(conn,event_id,'SUPPRESSED',scope['suppression_reason'] or 'outside_scope')
             return {'event_id':event_id,'scope':scope,'change_id':None,'new_issuer':False}
         with conn:
