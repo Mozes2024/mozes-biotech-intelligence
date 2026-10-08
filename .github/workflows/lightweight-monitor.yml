@@ -85,7 +85,6 @@ jobs:
       - name: Restore the single monitor-state lineage
         run: python scripts/restore_monitor_state.py
       - name: Synchronize verified issuer universe to hot edge
-        continue-on-error: true
         run: python -m mozes.edge_sync
       - name: Hot feeds (FDA, wires, Nasdaq halts, company IR) + push
         run: python -m mozes.hot_monitor --once --no-sec --allow-partial

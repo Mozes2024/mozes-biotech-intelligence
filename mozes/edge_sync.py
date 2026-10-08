@@ -27,11 +27,13 @@ def build_universe(conn):
 def sync(conn, *, url=None, token=None, opener=None):
     url = url or os.environ.get("MOZES_EDGE_SYNC_URL")
     token = token or os.environ.get("EDGE_SYNC_TOKEN")
+    if not url and not token:
+        return {"status": "SKIPPED", "reason": "edge sync not configured"}
     if not url or not url.startswith("https://") or not token:
-        return {"status": "SKIPPED", "reason": "edge sync URL/token unavailable"}
+        raise RuntimeError("edge sync configuration incomplete")
     payload = build_universe(conn)
     if not payload["issuers"]:
-        return {"status": "SKIPPED", "reason": "verified universe empty"}
+        raise RuntimeError("verified edge issuer universe empty")
     request = urllib.request.Request(url, data=json.dumps(payload).encode(), method="POST",
                                      headers={"Authorization": "Bearer " + token,
                                               "Content-Type": "application/json"})
