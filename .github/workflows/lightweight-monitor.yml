@@ -16,6 +16,10 @@ on:
         description: 'Optional successful monitor run ID to restore (recovery only)'
         required: false
         type: string
+      recovery_checkpoint_sha256:
+        description: 'Reviewed stale checkpoint SHA256 (explicit recovery approval only)'
+        required: false
+        type: string
       hot_ticker:
         description: 'Edge detected issuer ticker'
         required: false
@@ -71,6 +75,7 @@ jobs:
       MOZES_AI_MODEL: ${{ vars.MOZES_AI_MODEL }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       GH_TOKEN: ${{ github.token }}
+      MONITOR_RECOVERY_SHA256: ${{ inputs.recovery_checkpoint_sha256 }}
       SOURCE_RUN_ID: ${{ inputs.source_run_id }}
       MOZES_HOT_TICKER: ${{ inputs.hot_ticker }}
       MOZES_HOT_CIK: ${{ inputs.hot_cik }}
@@ -89,13 +94,17 @@ jobs:
           cache-dependency-path: pyproject.toml
       - run: pip install -e .
       - name: Restore the single monitor-state lineage
+        id: restore
         run: python scripts/restore_monitor_state.py
       - name: Synchronize verified issuer universe to hot edge
         run: python -m mozes.edge_sync
       - name: Enrich the correlated Edge event
+        id: edge_process
+        continue-on-error: true
         # Process the exact Edge source before general reconciliation.
         run: python -m mozes.edge_enrichment process
       - name: Reconcile bounded clinical issuer discovery candidates
+        id: clinical_process
         run: python -m mozes.clinical_reconcile process
       - name: Hot feeds (FDA, wires, Nasdaq halts, company IR) + push
         run: python -m mozes.hot_monitor --once --no-sec --allow-partial
@@ -117,8 +126,12 @@ jobs:
         if: steps.explanation.outputs.changed == 'true'
         run: python -m mozes.pipeline_v2c export
       - name: Bind durable checkpoint to monitor database
+        id: checkpoint
+        if: ${{ always() && steps.restore.outcome == 'success' }}
         run: python -m mozes.edge_enrichment checkpoint
       - uses: actions/upload-artifact@v4
+        id: checkpoint_upload
+        if: ${{ always() && steps.checkpoint.outcome == 'success' }}
         with:
           name: mozes-live-monitor
           # Keep the artifact small/reliable: the 240MB+ http-cache caused restore to
@@ -127,12 +140,15 @@ jobs:
             .monitor/mozes-live.db
             .monitor/manifest.json
             .monitor/edge-checkpoint.json
+            .monitor/recovery-proof.json
           include-hidden-files: true
           # Runs are minute-frequent; restore only needs the newest successful lineage.
           retention-days: 3
       - name: Acknowledge Edge enrichment after durable artifact upload
+        if: ${{ always() && steps.checkpoint_upload.outcome == 'success' && steps.edge_process.outcome == 'success' }}
         run: python -m mozes.edge_enrichment ack
       - name: Acknowledge clinical candidate decisions after durable artifact upload
+        if: ${{ always() && steps.checkpoint_upload.outcome == 'success' && steps.clinical_process.outcome == 'success' }}
         run: python -m mozes.clinical_reconcile ack
       - name: Publish the small alert feed independently of Pages
         # The durable monitor artifact is already saved. A feed outage retries next run.

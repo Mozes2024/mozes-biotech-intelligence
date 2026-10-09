@@ -6,6 +6,7 @@ import hashlib
 import json
 import sqlite3
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -30,6 +31,8 @@ def _db(path: Path):
 
 def test_restore_refuses_old_candidate_when_newer_successes_exist(tmp_path, monkeypatch, capsys):
     script = module()
+    from mozes import monitor_recovery
+    monkeypatch.setattr(monitor_recovery, "audit_producers", lambda *a, **k: {})
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("GITHUB_REPOSITORY", "Owner/Repo")
     monkeypatch.setenv("MOZES_DB_PATH", str(tmp_path / "mozes-live.db"))
@@ -37,11 +40,11 @@ def test_restore_refuses_old_candidate_when_newer_successes_exist(tmp_path, monk
     def gh(*args, timeout=300):
         if args[:2] == ("run", "list") and "pages.yml" in args:
             return "[]"
-        if args[:2] == ("run", "list"):
-            return json.dumps([
-                {"databaseId": 200, "createdAt": "2026-10-07T13:20:00Z", "conclusion": "success"},
-                {"databaseId": 100, "createdAt": "2026-10-07T10:24:00Z", "conclusion": "success"},
-            ])
+        if args[0] == "api" and "actions/artifacts?" in args[1]:
+            return json.dumps({"artifacts": [
+                {"name": "mozes-live-monitor", "created_at": "2026-10-07T13:20:00Z", "workflow_run": {"id": 200, "head_branch": "main"}},
+                {"name": "mozes-live-monitor", "created_at": "2026-10-07T10:24:00Z", "workflow_run": {"id": 100, "head_branch": "main"}},
+            ]})
         if args[0] == "api" and args[1].endswith("/200"):
             raise subprocess.CalledProcessError(1, ["gh", *args])
         if args[0] == "api" and args[1].endswith("/100"):
@@ -68,6 +71,8 @@ def test_restore_refuses_old_candidate_when_newer_successes_exist(tmp_path, monk
 @pytest.mark.parametrize("conclusion,checkpoint_valid", [("cancelled", True), ("failure", True), ("cancelled", False)])
 def test_cancelled_or_failed_uploaded_checkpoint_survives_ack_boundary(tmp_path, monkeypatch, conclusion, checkpoint_valid):
     script = module()
+    from mozes import monitor_recovery
+    monkeypatch.setattr(monitor_recovery, "audit_producers", lambda *a, **k: {})
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("GITHUB_REPOSITORY", "Owner/Repo")
     destination = tmp_path / "restored.db"
@@ -75,20 +80,21 @@ def test_cancelled_or_failed_uploaded_checkpoint_survives_ack_boundary(tmp_path,
     def gh(*args, timeout=300):
         if args[:2] == ("run", "list") and "pages.yml" in args:
             return "[]"
-        if args[:2] == ("run", "list"):
-            return json.dumps([{"databaseId": 200, "createdAt": "2026-10-08T08:00:00Z", "conclusion": conclusion}])
+        if args[0] == "api" and "actions/artifacts?" in args[1]:
+            return json.dumps({"artifacts": [{"name": "mozes-live-monitor", "created_at": "2026-10-08T08:00:00Z", "workflow_run": {"id": 200, "head_branch": "main"}}]})
         if args[0] == "api":
             return json.dumps({"head_branch": "main", "name": "lightweight-live-monitor",
                 "head_repository": {"full_name": "Owner/Repo"}, "conclusion": conclusion})
         if args[:3] == ("run", "download", "200"):
             root = Path(args[-1]); source = root / "mozes-live.db"; _db(source)
+            (root / "manifest.json").write_text(json.dumps({"generated_at": "2026-10-08T08:00:00Z"}))
             (root / "edge-checkpoint.json").write_text(json.dumps({"schema": 1, "producer_run_id": "200",
                 "db_sha256": hashlib.sha256(source.read_bytes()).hexdigest() if checkpoint_valid else "invalid"}))
             return ""
         raise AssertionError(args)
     monkeypatch.setattr(script, "gh", gh)
     if checkpoint_valid:
-        assert script.restore()
+        assert script.restore(now=datetime(2026, 10, 8, 8, 5, tzinfo=timezone.utc))
         with sqlite3.connect(destination) as conn:
             assert conn.execute("SELECT x FROM t").fetchone()[0] == 1
     else:
