@@ -198,6 +198,11 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
                         raise ValueError("recovery checkpoint SHA256 differs from reviewed source")
                     proof = {"source_run_id": candidate, "source_sha256": digest, "source_manifest_at": stamp.isoformat(),
                              **audit_producers(repo, checkpoint_stamp, gh, now=now, full_history=True, source_run_id=candidate), **verify_durable_history(source)}
+                    from mozes.monitor_recovery import APPROVED_RECOVERY_SHA256, TENX_EVENT_ID, verify_tenx_eligibility
+                    if digest == APPROVED_RECOVERY_SHA256 and candidate == "37786606409":
+                        if not verify_only and os.environ.get("MOZES_EDGE_EVENT_ID") != TENX_EVENT_ID:
+                            raise RuntimeError("approved recovery requires canonical TENX event")
+                        proof.update(verify_tenx_eligibility())
                 else:
                     if checkpoint_stamp < now - MAX_REWIND:
                         raise RuntimeError("stale checkpoint requires reviewed forward recovery and explicit SHA256")

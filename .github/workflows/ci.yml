@@ -61,4 +61,4 @@ jobs:
         run: docker build -t mozes-hot:ci .
       - name: Worker imports and data files are packaged
         run: |
-          docker run --rm mozes-hot:ci python -c "import mozes.hot_monitor, mozes.ir_registry as r; assert r.load_aliases()['GMAB']; print('ok')"
+          docker run --rm mozes-hot:ci python -c "import sys, ssl, sqlite3; assert sys.version_info[:3] == (3, 11, 17); import mozes.hot_monitor, mozes.ir_registry as r; assert r.load_aliases()['GMAB']; print('ok')"
