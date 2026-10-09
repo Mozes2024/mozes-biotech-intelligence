@@ -302,3 +302,39 @@ def test_conflicting_active_monitor_blocks_verification():
             "head_repository": {"full_name": "Owner/Repo"}}]})
     with pytest.raises(RuntimeError, match="active producer"):
         recovery.audit_producers("Owner/Repo", NOW, gh, now=NOW)
+
+
+def eligible_tenx():
+    return {"event_id": recovery.TENX_EVENT_ID, "edge_event_id": recovery.TENX_EVENT_ID,
+            "source": "sec", "ticker": "TENX", "accession": "0001193125-26-417939",
+            "analysis_status": "complete", "material": 1, "enrichment_status": "awaiting_ack",
+            "enrichment_attempts": 66, "enrichment_dispatch_at": "2026-10-09T00:00:00Z"}
+
+def test_tenx_attempts_are_not_acks():
+    assert recovery.verify_tenx_eligibility(trace=lambda path: eligible_tenx())["tenx_eligibility"] == "TENX_ELIGIBLE"
+
+@pytest.mark.parametrize("field,value", [("lifecycle", "SUPPRESSED"), ("suppression_reason", "downgraded"),
+    ("enrichment_ack_at", "completed"), ("enrichment_change_id", "CHG-existing"),
+    ("enrichment_delivery_json", '[{"status":"sent"}]'), ("stage0_sent_at", "sent"),
+    ("material", 0), ("ticker", "OTHER"), ("analysis_status", "pending")])
+def test_tenx_gate_rejects_unsafe_events(field, value):
+    event = {**eligible_tenx(), field: value}
+    with pytest.raises(RuntimeError):
+        recovery.verify_tenx_eligibility(trace=lambda path: event)
+
+def test_tenx_missing_and_http_failure():
+    with pytest.raises(RuntimeError):
+        recovery.verify_tenx_eligibility(trace=lambda path: {})
+    def fail(path):
+        raise recovery.RecoveryConfigurationError("EDGE_SYNC_TOKEN")
+    with pytest.raises(recovery.RecoveryConfigurationError):
+        recovery.verify_tenx_eligibility(trace=fail)
+
+
+def test_tenx_guard_precedes_restore_writes_and_processing():
+    source = (Path(__file__).parents[1] / "scripts/restore_monitor_state.py").read_text()
+    guard = source.index("proof.update(verify_tenx_eligibility())")
+    assert guard < source.index('"status": "VERIFIED_NO_WRITES"')
+    assert guard < source.index("restore_published_receipt(repo)", source.index("def restore("))
+    workflow = (Path(__file__).parents[1] / ".github/workflows/lightweight-monitor.yml").read_text()
+    assert workflow.index("python scripts/restore_monitor_state.py") < workflow.index("python -m mozes.edge_sync")

@@ -165,3 +165,26 @@ def verify_durable_history(source, *, trace=None, opener=urllib.request.urlopen)
             if alert.get("delivered") and not conn.execute("SELECT 1 FROM alert_outbox WHERE change_id=? AND status='sent'", (change,)).fetchone():
                 raise RuntimeError("published delivery absent from checkpoint; preserve receipt before recovery")
         return {"verified_edge_completions": len(links), "verified_feed_changes": len(feed["alerts"])}
+
+
+TENX_EVENT_ID = "EDGE-24534abeca26dcdd08c16db6"
+APPROVED_RECOVERY_SHA256 = "f84633088fe4c6fe622682d852a925567118f371e8950f09e9ebaac7898ec853"
+
+def verify_tenx_eligibility(*, trace=None):
+    """Dispatch attempts are not completion receipts; reject ambiguous durable writes."""
+    event = (trace or verification_edge_request)("event?id=" + TENX_EVENT_ID)
+    expected = {"event_id": TENX_EVENT_ID, "edge_event_id": TENX_EVENT_ID,
+                "source": "sec", "ticker": "TENX", "accession": "0001193125-26-417939",
+                "analysis_status": "complete", "material": 1}
+    if not isinstance(event, dict) or any(event.get(k) != v for k, v in expected.items()):
+        raise RuntimeError("TENX eligibility: missing or mismatched canonical event")
+    if (event.get("lifecycle") == "SUPPRESSED" or event.get("suppression_reason")
+            or event.get("enrichment_status") not in ("pending", "awaiting_ack")
+            or any(event.get(k) for k in ("enrichment_ack_at", "enrichment_completed_at",
+                "enrichment_change_id", "enrichment_github_run_id", "stage0_sent_at"))):
+        raise RuntimeError("TENX eligibility: suppressed, completed or ambiguous delivery")
+    for key in ("enrichment_alert_ids_json", "enrichment_delivery_json"):
+        value = event.get(key)
+        if value not in (None, "", "[]"):
+            raise RuntimeError("TENX eligibility: conflicting delivery evidence")
+    return {"tenx_eligibility": "TENX_ELIGIBLE", "tenx_event_id": TENX_EVENT_ID}
