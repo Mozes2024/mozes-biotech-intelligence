@@ -19,7 +19,7 @@ These code paths explain significant excess consumption; the supplied 329,000-qu
 - Sync applies two conditional JSON-based statements in one D1 transaction. Identical committed snapshots perform zero D1 operations. Changed snapshots update/insert/deactivate only changed records. A failed transaction does not publish its hash or invalidate the cache.
 - Successfully persisted RSS/SEC items have a 48-hour, 12,000-entry bounded cache. Changed content, issuer universe or classification rules reprocess RSS items. ETag/Last-Modified validators are accepted only after processing succeeds; issuer/policy changes force an unconditional fetch. The rule-set contents are part of the policy fingerprint.
 - Hashed RSS GUIDs (URL fallback) are durably linked to the existing candidate/event identity, including after dedup eviction and publisher URL changes. Legacy URL-based IDs remain valid. The nullable source-item column is filled without reopening an otherwise unchanged completed candidate.
-- SEC discovery uses bulk INSERT, and wire candidate/event/classification changes use an atomic three-statement bulk transaction per chunk. Cache completion follows the transaction. Changed evidence can upgrade/downgrade unacknowledged events; unchanged classifications do not write equivalent rows. ACKed events retain their delivery history, while changed candidate evidence can reopen authoritative Python reconciliation.
+- SEC discovery uses bulk INSERT, and wire candidate/event/classification changes use an atomic three-statement bulk transaction per chunk. Cache completion follows the transaction. Changed evidence can upgrade/downgrade unacknowledged events; unchanged classifications do not write equivalent rows. ACKed events and event-linked candidate completion receipts retain their delivery history and remain closed.
 - RSS parsing includes all returned items, bounded to 3,000 items and 1 MiB XML. Payloads over 1.8 MB fail explicitly and remain retryable. SEC walks up to ten 100-item pages and detects missing overlap or repeated/unexhausted windows. Gaps trigger durable, bounded per-issuer SEC submissions/archive backfill (three issuers and up to three relevant archive files per issuer per pass). Backfill waits while analysis work is active.
 - Alarm analysis normally processes up to 12 filings/minute, retaining the old three-per-15-second queue capacity. It runs three network analyses concurrently, batches the results atomically, and reduces the batch during heavy feed pagination to reserve external-request capacity for delivery. Failed analyses retain their retry receipts.
 - Expensive health summaries are cached five minutes (15 minutes in ECO, one hour in PROTECTION), including across restarts; source/alarm indicators remain fresh. Public alert GETs share a five-second in-memory cache; successful publication invalidates it. Existing authentication, CORS, enrichment dispatch claims and durable completion ACKs remain.
@@ -83,6 +83,48 @@ No production-source stress test or authoritative account quota test was run. Ve
 
 ## Deployment: approval required
 
+**Production hold:** do not merge the readiness PR, apply migration 0005 or deploy without explicit approval. The dashboard workaround is already active at `EDGE_INTERVAL_SECONDS=120`; preserve 120 during initial rollout. Wrangler now explicitly declares 120: `keep_vars` alone does not protect variables also declared in the configuration. Reducing the scheduler requires separate approval.
+
+### Mandatory backup and migration gate
+
+After approval, use the reviewed PR commit in a clean checkout. Record the SHA, current Worker deployment/version ID, UTC time, nonsecret effective environment, database counts and completed ACK receipts. From `cloudflare`, run `npm ci`, `npm test`, and `npx wrangler deploy --keep-vars --dry-run`; require scheduler 120 and the expected database binding/ID.
+
+Before any migration, export the entire database outside the repository to an access-controlled directory and record a current Time Travel bookmark. These commands are for the approved production operation only:
+
+```powershell
+$backupDir = Join-Path $env:LOCALAPPDATA ('mozes-d1-backup-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+New-Item -ItemType Directory -Path $backupDir
+npx wrangler d1 export mozes-alerts --remote --output (Join-Path $backupDir 'before-stage-b.sql')
+if ($LASTEXITCODE -ne 0) { throw 'D1 backup failed; stop rollout' }
+Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $backupDir 'before-stage-b.sql')
+npx wrangler d1 time-travel info mozes-alerts --json
+npx wrangler d1 migrations list mozes-alerts --remote
+```
+
+Require a nonempty export, successful commands and a recorded bookmark. Test restoration in an isolated local SQLite database; compare schema, migration ledger, table counts and representative completed ACK/history receipts to the export. Never restore into production as a test. Failed backup/restore verification blocks rollout. Time Travel retention depends on the account plan; do not assume indefinite availability. References: [D1 export](https://developers.cloudflare.com/d1/best-practices/import-export-data/), [Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/).
+
+Require migrations 0001–0004 already applied and **only 0005 pending**. Stop on unexpected pending migrations rather than applying the directory blindly. After approved application, verify `d1_migrations`, `PRAGMA table_info(edge_candidates)` (`source_item_id` nullable), and all four index names/predicates in `sqlite_master` against `0005_d1_optimization.sql`. Compare event/alert/candidate counts and completed ACK receipts before/after, accounting for concurrent legitimate writes. Any unexplained discrepancy blocks deployment. No readiness migration is added; never manually repeat the ALTER TABLE.
+
+### Effective environment checklist
+
+- Verify Worker `mozes-hot-clock`, `ALERTS_DB` ID `9baf99f2-1ccc-4415-affd-2708a7210e7b`, existing `HOT_EDGE` namespace/class and cron `*/2 * * * *`.
+- Compare the reviewed configuration, CLI overrides, dashboard and actual deployed Worker settings. Explicit configuration can override dashboard values. See [Cloudflare deployment options](https://developers.cloudflare.com/workers/wrangler/commands/workers/).
+- Require scheduler **120**, SEC 8-K/6-K **120**, wires **180**, issuer TTL **900**, health TTL **300**, SEC pages **10**, backfill issuers **3**, analysis batch **12**, and documented external-usage reserves. ECO/PROTECTION may extend source intervals.
+- Verify `GITHUB_REPO`, `GITHUB_REF=main`, `WORKFLOW_FILE`, `EDGE_ENRICHMENT_ENABLED=1`, `SITE_ORIGIN` and valid `SEC_USER_AGENT`. Check secret names/bindings without displaying values or overwriting credentials.
+- Observe `/health` for at least two completed cycles: alarm cadence at least 120 seconds plus processing time, expected source effective intervals, successful polling/analysis and ACK traffic. Dashboard values alone are insufficient evidence.
+
+### Reliability validation
+
+ACKs for durably claimed/dispatched work remain acceptable after newer RSS evidence downgrades the event. Completion closes retries and records `SUPERSEDED` in candidate history without reviving delivery eligibility. Resending the identical ACK repairs partial receipt/history failure; conflicting change IDs return 409. ACK handlers share alarm serialization. Updated evidence retains completed event-linked candidate receipts.
+
+A policy JSON/cache-version digest triggers a resumable scan of all stored SEC events, 100 IDs per cycle, independent of recent feeds. Unacknowledged completed filings with missing/different digests are requeued. Normal bounded analysis re-fetches primary evidence with failure backoff and commits candidate, classification, digest and analysis receipts atomically. Completed ACKs remain excluded; pending/failed work uses current policy on its next analysis. Progress advances only after D1 succeeds, and replay after lost progress is idempotent. Changed rule JSON triggers reassessment even with the same human version.
+
+During rollout verify scan completion, backlog age and additional historical-pass D1 reads (not included in steady-state savings). Sample an old upgraded filing, a downgraded filing, an unchanged filing and a completed ACK; ensure receipts/history remain and alerts are not duplicated. Observe an in-flight RSS downgrade followed by completion ACK: retry state must close while suppression remains. Continue the existing 48-hour quota/coverage checklist.
+
+`/health.sec_policy_scan.complete` means the scan finished scheduling work, not that its analysis backlog drained. Check both. The scan pages across the event primary key (including non-SEC IDs) to bound reads without a new index; it only requeues SEC rows. At scheduler 120, batch 12 gives at most six analyses/minute before processing time and retries. Rule JSON changes invalidate automatically; changes to classifier code outside that JSON must bump `POLICY_VERSION`. Already-sent Stage-0 notifications and alerts produced by in-flight Actions cannot be recalled by a later downgrade. Completion records their provenance and prevents repeats; it does not claim exactly-once external delivery.
+
+Rollback uses the existing history-preserving Stage A patch, with an explicit `--var EDGE_INTERVAL_SECONDS:120` for both dry-run and deploy. It preserves the additive schema and existing data. Stage A restores older ACK/reclassification behavior, so pause the rollout, record outstanding completions and reconcile them after redeploying the corrected Worker. Database restore is disaster recovery only: isolate writes, record/export post-backup ACKs and alerts, obtain separate restore approval, restore the recorded bookmark or validated export, then reconcile post-backup records before resuming. Restoring an old database can otherwise repeat alerts or lose ACKs.
+
 Record the existing Worker version, effective dashboard variables, account D1 daily totals and database row counts before changes. Do not print or change secrets. Stage B sets `keep_vars=true` to preserve dashboard-only configuration (including SEC identity if configured as a nonsecret); the Stage A commands explicitly use `--keep-vars`. Inspect explicit polling variables after deployment because retained dashboard values are not proof of effective scheduling. The binding must remain `ALERTS_DB`, database `mozes-alerts`, ID `9baf99f2-1ccc-4415-affd-2708a7210e7b`; the Durable Object class/namespace and migration tag remain unchanged.
 
 Stage A can be deployed first from a separate checkout of `19b7539`:
@@ -90,12 +132,12 @@ Stage A can be deployed first from a separate checkout of `19b7539`:
 ```sh
 git worktree add ../mozes-edge-emergency 19b7539
 cd ../mozes-edge-emergency/cloudflare
-npx --yes wrangler@4.149.0 deploy --keep-vars --dry-run
+npx --yes wrangler@4.149.0 deploy --keep-vars --var EDGE_INTERVAL_SECONDS:120 --dry-run
 # Only after explicit production approval:
-npx --yes wrangler@4.149.0 deploy --keep-vars
+npx --yes wrangler@4.149.0 deploy --keep-vars --var EDGE_INTERVAL_SECONDS:120
 ```
 
-Check the dashboard/deployment configuration for interval overrides and confirm the effective alarm is at least 60 seconds. If projected reads remain unsafe, set `EDGE_INTERVAL_SECONDS="120"` in this checkout's `[vars]`, inspect the dry-run, and deploy that temporary fallback only after approval. The two-minute watchdog remains unchanged. Stage A retains the preexisting candidate pruning policy; Stage B removes it.
+The emergency workaround is already active; no Stage A deploy is needed for this readiness task. If this checkout is later used, require scheduler 120 and apply the history-preservation patch under Rollback. The two-minute watchdog remains unchanged.
 
 Stage B requires migration 0005 before the new Worker (its queries reference `source_item_id`):
 
@@ -105,9 +147,11 @@ npm ci
 npm test
 npx wrangler d1 migrations list mozes-alerts --remote
 # Inspect the list. Existing 0001-0004 must already be applied.
+# Require only 0005 pending. Complete mandatory backup/restore verification above.
 # Only after explicit production approval:
 npx wrangler d1 migrations apply mozes-alerts --remote
-npx wrangler deploy
+# Verify migration ledger, nullable column, four indexes and preserved ACK/history.
+npx wrangler deploy --keep-vars --var EDGE_INTERVAL_SECONDS:120
 ```
 
 Migration 0005 adds one nullable column and four indexes, without changing stored event/alert data. Do not manually rerun its ALTER TABLE statement after it has been recorded as applied. Leave applied migration records intact. No new secret, Durable Object namespace migration, or Actions input is required. Run the existing issuer-sync workflow once; verify the next identical sync returns `unchanged=true`, `changed=0`. Check that the normal interval variables in `wrangler.toml` match deployed values, including 900-second issuer TTL, 300-second summaries and analysis batch 12.
@@ -136,9 +180,9 @@ git apply --check $rollbackPatch
 git apply $rollbackPatch
 Set-Location cloudflare
 npm test
-npx --yes wrangler@4.149.0 deploy --keep-vars --dry-run
+npx --yes wrangler@4.149.0 deploy --keep-vars --var EDGE_INTERVAL_SECONDS:120 --dry-run
 # Only after explicit production approval:
-npx --yes wrangler@4.149.0 deploy --keep-vars
+npx --yes wrangler@4.149.0 deploy --keep-vars --var EDGE_INTERVAL_SECONDS:120
 ```
 
-Retain 60/120-second scheduling. Additive column/indexes remain; old code ignores them. Do not drop tables/indexes/columns, restore the database to an old snapshot, remove the Durable Object namespace, rewind Actions artifacts or clear ACK/history rows. Schema rollback is unnecessary and would risk history. Rolling back to the original 15-second Worker is not an acceptable default during quota exhaustion. Revalidate account usage, effective intervals, fallback Actions and ACKs immediately. Before redeploying Stage B following any direct legacy/manual issuer edits, POST the reviewed verified issuer snapshot to the authenticated `/edge/sync` endpoint with the additional JSON field `"force":true` so the optimization hash cannot hide an out-of-band universe change; do not claim that the cached hash detects external edits.
+Retain 120-second scheduling. Additive column/indexes remain; old code ignores them. Do not drop tables/indexes/columns, restore the database to an old snapshot, remove the Durable Object namespace, rewind Actions artifacts or clear ACK/history rows. Schema rollback is unnecessary and would risk history. Rolling back to the original 15-second Worker is not an acceptable default during quota exhaustion. Revalidate account usage, effective intervals, fallback Actions and ACKs immediately. Before redeploying Stage B following any direct legacy/manual issuer edits, POST the reviewed verified issuer snapshot to the authenticated `/edge/sync` endpoint with the additional JSON field `"force":true` so the optimization hash cannot hide an out-of-band universe change; do not claim that the cached hash detects external edits.

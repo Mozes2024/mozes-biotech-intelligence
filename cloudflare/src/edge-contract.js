@@ -38,7 +38,10 @@ export async function acknowledge(request, env, now = new Date().toISOString()) 
   const db = env.ALERTS_DB;
   const event = await db.prepare("SELECT * FROM edge_events WHERE event_id=?").bind(body.edge_event_id).first();
   if (!event) return new Response("Unknown event", { status: 404 });
-  if (event.analysis_status !== "complete" || !event.material || Date.parse(body.completed_at) < Date.parse(event.first_seen_at))
+  // A claimed dispatch may finish after newer evidence supersedes its eligibility.
+  // Attempts are durable before the remote dispatch; its receipt may itself fail.
+  const dispatched = event.enrichment_attempts > 0 || event.enrichment_dispatch_at;
+  if ((!event.enrichment_ack_at && !dispatched && (event.analysis_status !== "complete" || !event.material)) || Date.parse(body.completed_at) < Date.parse(event.first_seen_at))
     return new Response("Event not ready for ACK", { status: 409 });
   if (!event.enrichment_ack_at) {
     const delivery = body.delivery.map(row => ({ alert_id: row.alert_id, status: row.status,
@@ -48,13 +51,15 @@ export async function acknowledge(request, env, now = new Date().toISOString()) 
   }
   const stored = await db.prepare("SELECT * FROM edge_events WHERE event_id=?").bind(body.edge_event_id).first();
   if (stored.enrichment_change_id !== body.change_id) return new Response("Conflicting ACK", { status: 409 });
-  await db.prepare("UPDATE edge_events SET lifecycle='PUBLISHED' WHERE event_id=?").bind(body.edge_event_id).run();
+  const superseded = !stored.material || stored.analysis_status !== 'complete';
+  await db.prepare("UPDATE edge_events SET lifecycle=? WHERE event_id=?")
+    .bind(superseded ? 'SUPPRESSED' : 'PUBLISHED', body.edge_event_id).run();
   const candidate = await db.prepare('SELECT * FROM edge_candidates WHERE candidate_id=?').bind(body.edge_event_id).first();
   if(candidate && !candidate.completed_at){
     const history=JSON.parse(candidate.history_json);
-    history.push(...['ENRICHED','PUBLISHED'].map(state=>({state,at:stored.enrichment_ack_at})));
-    await db.prepare("UPDATE edge_candidates SET lifecycle='PUBLISHED',suppression_reason=NULL,completed_at=?,github_run_id=?,change_id=?,catalyst_id=?,history_json=? WHERE candidate_id=? AND completed_at IS NULL")
-      .bind(stored.enrichment_ack_at,body.github_run_id,body.change_id,body.catalyst_id||null,JSON.stringify(history.slice(-10)),body.edge_event_id).run();
+    history.push(...['ENRICHED',superseded ? 'SUPERSEDED' : 'PUBLISHED'].map(state=>({state,at:stored.enrichment_ack_at})));
+    await db.prepare("UPDATE edge_candidates SET lifecycle=?,suppression_reason=?,completed_at=?,github_run_id=?,change_id=?,catalyst_id=?,history_json=? WHERE candidate_id=? AND completed_at IS NULL")
+      .bind(superseded ? 'SUPPRESSED' : 'PUBLISHED',superseded ? candidate.suppression_reason || 'classification_uncertain' : null,stored.enrichment_ack_at,stored.enrichment_github_run_id,stored.enrichment_change_id,body.catalyst_id||null,JSON.stringify(history.slice(-10)),body.edge_event_id).run();
   }
   return Response.json({ ok: true, edge_event_id: body.edge_event_id, status: "completed", enrichment_ack_at: stored.enrichment_ack_at });
 }
