@@ -192,7 +192,7 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
                     if digest != recovery_sha256.lower() or not checkpoint_path.exists():
                         raise ValueError("recovery checkpoint SHA256 differs from reviewed source")
                     proof = {"source_run_id": candidate, "source_sha256": digest, "source_manifest_at": stamp.isoformat(),
-                             **audit_producers(repo, stamp, gh, now=now), **verify_durable_history(source)}
+                             **audit_producers(repo, checkpoint_stamp, gh, now=now, full_history=True, source_run_id=candidate), **verify_durable_history(source)}
                 else:
                     if checkpoint_stamp < now - MAX_REWIND:
                         raise RuntimeError("stale checkpoint requires reviewed forward recovery and explicit SHA256")

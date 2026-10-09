@@ -28,21 +28,39 @@ DELIVERY_STEPS = {
 }
 
 
-def audit_producers(repo, since, gh, *, now=None):
+def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run_id=None):
     """Attempts without checkpoints may be ignored only if they made no new state."""
     now = now or datetime.now(timezone.utc)
     if os.environ.get("GITHUB_RUN_ATTEMPT", "1") != "1":
         raise RuntimeError("recovery requires a new run, not a rerun with hidden earlier attempts")
-    query = urlencode({"created": f"{since.isoformat()}..{now.isoformat()}", "per_page": 100})
+    # Dispatch time is not queue acquisition time. Stale recovery scans metadata
+    # across the entire bounded history, then selects by completion/update time.
+    query = urlencode({"per_page": 100} if full_history else
+                      {"created": f"{since.isoformat()}..{now.isoformat()}", "per_page": 100})
     runs = []
-    for page in range(1, 6):
+    for page in range(1, 51 if full_history else 6):
         result = json.loads(gh("api", f"repos/{repo}/actions/workflows/lightweight-monitor.yml/runs?{query}&page={page}"))
         batch = result["workflow_runs"]
         runs.extend(batch)
         if len(batch) < 100:
             break
     else:
-        raise RuntimeError("recovery audit exceeds 500-run bound; manual reconciliation required")
+        raise RuntimeError("producer discovery bound exceeded; manual reconciliation required")
+    if full_history:
+        selected = []
+        for run in runs:
+            if str(run["id"]) == str(source_run_id):
+                continue  # The reviewed hash-bound checkpoint represents this producer.
+            if run["status"] == "completed":
+                updated = datetime.fromisoformat(run["updated_at"].replace("Z", "+00:00"))
+                if updated.tzinfo is None:
+                    raise RuntimeError("producer completion timestamp missing timezone")
+                if updated <= since:
+                    continue
+            selected.append(run)
+        runs = selected
+        if len(runs) > 500:
+            raise RuntimeError("recovery audit exceeds 500 relevant producers; reconcile manually")
 
     def check(run):
         if str(run["id"]) == os.environ.get("GITHUB_RUN_ID") or run["status"] == "queued":

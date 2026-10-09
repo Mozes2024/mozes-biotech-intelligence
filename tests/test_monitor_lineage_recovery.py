@@ -132,6 +132,23 @@ def test_audit_accepts_failed_restore_and_reviewed_prewrite_timeout():
         assert recovery.audit_producers("Owner/Repo", NOW, gh, now=NOW)["audited_producers"] == ["101"]
 
 
+def test_recovery_covers_old_dispatch_that_finished_after_checkpoint():
+    # A created-at cutoff would hide this producer's newer delivery.
+    def gh(*args):
+        if "workflows/" in args[1]:
+            assert "created=" not in args[1]
+            return json.dumps({"workflow_runs": [
+                {"id": 100, "status": "completed"},  # Reviewed source is excluded.
+                {"id": 99, "status": "completed", "created_at": "2026-10-08T00:00:00Z",
+                 "updated_at": NOW.isoformat(), "head_branch": "main",
+                 "name": "lightweight-live-monitor", "head_repository": {"full_name": "Owner/Repo"}},
+            ]})
+        return producer_gh(delivery="success")(*args)
+    with pytest.raises(RuntimeError, match="changed/delivered"):
+        recovery.audit_producers("Owner/Repo", datetime.fromisoformat(OLD.replace("Z", "+00:00")),
+                                gh, now=NOW, full_history=True, source_run_id="100")
+
+
 @pytest.mark.parametrize("kwargs", [
     {"delivery": "failure"}, {"delivery": "success"}, {"missing_step": True}, {"attempt": 2},
     {"enrichment": "success"}, {"enrichment": "failure", "log": "TimeoutError: in record_change"},

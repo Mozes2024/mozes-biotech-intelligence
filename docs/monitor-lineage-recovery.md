@@ -24,7 +24,8 @@ all 6 completed Edge IDs/change IDs and all 37 published changes/delivery
 receipts are represented. The full checkpoint, not a selected-table export,
 preserves the other historical tables too.
 
-The 12:37:43 UTC producer audit covered 250 subsequent runs. Seven failed while
+The 12:50:18 UTC full-history audit covered 252 subsequent completions, including
+runs dispatched before the checkpoint and completed afterward. Seven failed while
 fetching a Business Wire document with `TimeoutError`, before archive/change/
 outbox writes; other runs failed restore. Their enrichment implementation at
 `116d78d9bce29ef94836a47753c656b59c462871` is identical to the implementation
@@ -54,7 +55,11 @@ Stale recovery additionally requires an explicit producer ID and reviewed SHA256
 the latest recognized artifact, SQLite integrity, complete later-run/job evidence,
 matching existing Edge completions, all published changes/sent receipts, and no
 ambiguous nonterminal delivery rows. Reruns, active producers, missing logs/jobs,
-unreviewed enrichment failures, or more than 500 attempts block automated recovery.
+unreviewed enrichment failures, or more than 500 relevant attempts block automated recovery. Stale recovery scans
+up to 5,000 workflow-run metadata records, selecting by completion/update time
+rather than dispatch time; this includes older queued runs and historical reruns.
+Incomplete discovery also blocks recovery. Dispatch ordering is not assumed; see
+[GitHub concurrency semantics](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
 The audit reads Actions and Edge/feed records; it never manufactures sent receipts.
 
 If newer processing occurred without a durable artifact, **stop**. Recover its
