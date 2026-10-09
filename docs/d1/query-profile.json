@@ -1,0 +1,124 @@
+{
+  "basis": "local workerd D1 metadata and EXPLAIN QUERY PLAN; 10000 historical events/candidates, 3 pending rows",
+  "before": {
+    "candidate_existence": {
+      "rows_read": 1,
+      "rows_written": 0,
+      "plan": [
+        "SEARCH edge_candidates USING INDEX sqlite_autoindex_edge_candidates_1 (candidate_id=?)"
+      ]
+    },
+    "analysis_pending": {
+      "rows_read": 8,
+      "rows_written": 0,
+      "plan": [
+        "SEARCH edge_events USING INDEX idx_edge_analysis_pending (analysis_status=?)",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    "candidate_pending": {
+      "rows_read": 10003,
+      "rows_written": 0,
+      "plan": [
+        "SCAN edge_candidates",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    "event_metrics": {
+      "rows_read": 10100,
+      "rows_written": 0,
+      "plan": [
+        "SCAN edge_events",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    "active_enrichment": {
+      "rows_read": 1,
+      "rows_written": 0,
+      "plan": [
+        "SEARCH edge_events USING INDEX idx_edge_enrichment_pending (enrichment_ack_at=? AND enrichment_retry_at>?)"
+      ]
+    },
+    "enrichment_pending": {
+      "rows_read": 9999,
+      "rows_written": 0,
+      "plan": [
+        "SEARCH edge_events USING INDEX idx_edge_analysis_pending (analysis_status=?)",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    "backlog": {
+      "rows_read": 10000,
+      "rows_written": 0,
+      "plan": [
+        "SCAN edge_events"
+      ]
+    },
+    "candidate_statistics": {
+      "rows_read": 10000,
+      "rows_written": 0,
+      "plan": [
+        "SCAN edge_candidates USING COVERING INDEX sqlite_autoindex_edge_candidates_1"
+      ]
+    }
+  },
+  "after": {
+    "candidate_existence": {
+      "rows_read": 1,
+      "rows_written": 0,
+      "plan": [
+        "SEARCH edge_candidates USING INDEX sqlite_autoindex_edge_candidates_1 (candidate_id=?)"
+      ]
+    },
+    "analysis_pending": {
+      "rows_read": 8,
+      "rows_written": 0,
+      "plan": [
+        "SEARCH edge_events USING INDEX idx_edge_analysis_pending (analysis_status=?)",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ]
+    },
+    "candidate_pending": {
+      "rows_read": 3,
+      "rows_written": 0,
+      "plan": [
+        "SCAN edge_candidates USING INDEX idx_edge_candidate_due"
+      ]
+    },
+    "event_metrics": {
+      "rows_read": 101,
+      "rows_written": 0,
+      "plan": [
+        "SEARCH edge_events USING INDEX idx_edge_event_time (first_seen_at>?)"
+      ]
+    },
+    "active_enrichment": {
+      "rows_read": 1,
+      "rows_written": 0,
+      "plan": [
+        "SEARCH edge_events USING INDEX idx_edge_enrichment_pending (enrichment_ack_at=? AND enrichment_retry_at>?)"
+      ]
+    },
+    "enrichment_pending": {
+      "rows_read": 0,
+      "rows_written": 0,
+      "plan": [
+        "SEARCH edge_events USING INDEX idx_edge_delivery_due (material=? AND analysis_status=?)"
+      ]
+    },
+    "backlog": {
+      "rows_read": 10000,
+      "rows_written": 0,
+      "plan": [
+        "SCAN edge_events"
+      ]
+    },
+    "candidate_statistics": {
+      "rows_read": 10000,
+      "rows_written": 0,
+      "plan": [
+        "SCAN edge_candidates USING COVERING INDEX sqlite_autoindex_edge_candidates_1"
+      ]
+    }
+  }
+}

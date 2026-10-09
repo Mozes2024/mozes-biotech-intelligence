@@ -11,6 +11,7 @@ export function database() {
   sqlite.exec(sql("0002_hot_edge.sql"));
   sqlite.exec(sql("0003_hot_edge_reliability.sql"));
   sqlite.exec(sql("0004_clinical_candidates.sql"));
+  sqlite.exec(sql("0005_d1_optimization.sql"));
   const db = { sqlite, prepare(query) {
     let values = [];
     const statement = { bind(...args) { values = args; return statement; },
@@ -37,6 +38,15 @@ try {
   const old=legacy.prepare("SELECT * FROM edge_events").get();
   assert.equal(old.analysis_status,"pending"); assert.equal(old.enrichment_ack_at,null);
   assert.equal(old.enrichment_dispatch_at,old.enrichment_queued_at);
+  legacy.exec(sql('0004_clinical_candidates.sql'));
+  legacy.exec("INSERT INTO edge_candidates(candidate_id,source,source_url,headline,summary,first_seen_at,classification_json,lifecycle,history_json,content_hash,completed_at,github_run_id) VALUES('historical','sec','https://www.sec.gov/history','history','','2026-10-08','{}','PUBLISHED','[]','old','2026-10-08','42')");
+  const historicalEvent=legacy.prepare('SELECT * FROM edge_events').get();
+  const historicalCandidate=legacy.prepare('SELECT * FROM edge_candidates').get();
+  legacy.exec(sql('0005_d1_optimization.sql'));
+  assert.deepEqual(legacy.prepare('SELECT * FROM edge_events').get(),historicalEvent);
+  const preserved=legacy.prepare('SELECT * FROM edge_candidates').get();
+  assert.equal(preserved.source_item_id,null);delete preserved.source_item_id;
+  assert.deepEqual(preserved,historicalCandidate);
 
   const db=database(), edge=new HotEdge(state(),{ALERTS_DB:db,GITHUB_TOKEN:"secret",GITHUB_REPO:"test/repo",SEC_USER_AGENT:"Operator test@example.com"});
   const filings=Array.from({length:5},(_,i)=>{

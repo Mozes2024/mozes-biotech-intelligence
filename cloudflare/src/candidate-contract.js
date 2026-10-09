@@ -42,5 +42,5 @@ export async function investigate(request,env){
 export async function candidateStats(db){
  const totals=await db.prepare("SELECT COUNT(*) AS events_discovered,SUM(CASE WHEN ticker IS NOT NULL THEN 1 ELSE 0 END) AS issuers_resolved,SUM(CASE WHEN ticker IS NULL THEN 1 ELSE 0 END) AS rejected_before_resolution,SUM(CASE WHEN classification_json IS NOT NULL THEN 1 ELSE 0 END) AS events_classified,SUM(CASE WHEN lifecycle='PUBLISHED' THEN 1 ELSE 0 END) AS events_published,SUM(CASE WHEN catalyst_id IS NOT NULL THEN 1 ELSE 0 END) AS catalysts_created_or_updated FROM edge_candidates").first();
  const reasons=(await db.prepare("SELECT suppression_reason,COUNT(*) AS n FROM edge_candidates WHERE suppression_reason IS NOT NULL GROUP BY suppression_reason").all()).results||[];
- return {...totals,suppressed_by_reason:Object.fromEntries(reasons.map(r=>[r.suppression_reason,r.n])),retention_days:14,max_candidates:3000};
+ return {...totals,suppressed_by_reason:Object.fromEntries(reasons.map(r=>[r.suppression_reason,r.n])),retention_days:null,max_candidates:null};
 }

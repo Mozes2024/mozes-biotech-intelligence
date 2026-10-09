@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "baseline_ref": "116d78d9bce29ef94836a47753c656b59c462871",
+  "method": "24-hour synthetic workload; workerd local D1 meta; weighted unchanged baseline ticks, optimized 1440 actual alarm cycles",
+  "fixture": {
+    "issuers": 200,
+    "rss_items_per_feed": 30,
+    "new_material_wire_items_per_hour": 2,
+    "sec_new_filings": 48,
+    "health_requests": 1440,
+    "issuer_syncs": 96,
+    "enrichment": "disabled; reliability verified separately"
+  },
+  "before": {
+    "queries": 578314,
+    "rows_read": 6213182,
+    "rows_written": 89464
+  },
+  "after": {
+    "queries": 5906,
+    "rows_read": 220169,
+    "rows_written": 1442
+  },
+  "query_reduction_percent": 98.97875548577416,
+  "reduction_vs_observed_329000_percent": 98.2048632218845,
+  "daily_quota_percent": {
+    "before_read": 124.26364,
+    "after_read": 4.40338,
+    "before_write": 89.464,
+    "after_write": 1.442
+  },
+  "detection_latency_seconds": {
+    "before": {
+      "scheduler": 15,
+      "sec_max_poll_wait": 15,
+      "rss_max_poll_wait": 15
+    },
+    "after": {
+      "scheduler": 60,
+      "sec_max_poll_wait": 180,
+      "rss_max_poll_wait": 240
+    },
+    "basis": "conservative interval plus scheduler bounds; excludes upstream lag, processing, network, backlog and protection/backoff"
+  },
+  "limitations": [
+    "Not production/account totals",
+    "145-filing burst and archive recovery tested separately",
+    "External GitHub/alert delivery and account consumers excluded",
+    "Persistent hot instance; cold restart adds issuer query and can replay committed operations safely"
+  ]
+}

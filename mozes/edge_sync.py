@@ -22,7 +22,7 @@ def build_universe(conn):
                      "source": item.get("source") or "watch_universe"})
     if len(rows) > 5000:
         raise ValueError("edge issuer universe exceeds bounded sync limit")
-    return {"issuers": rows}
+    return {"issuers": sorted(rows, key=lambda row: (str(int(row["cik"])), row["ticker"]))}
 
 
 def sync(conn, *, url=None, token=None, opener=None):

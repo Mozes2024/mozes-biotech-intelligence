@@ -23,7 +23,7 @@ globalThis.fetch = async () => { throw Error("offline"); };
 try {
   await edge.alarm();
   assert.ok(alarm > Date.now());
-  assert.ok(alarm - Date.now() >= 9000);
+  assert.ok(alarm - Date.now() >= 59000);
   const health = await (await edge.fetch(new Request("https://edge.internal/health"))).json();
   assert.equal(health.sources.sec_8K?.status, undefined);
   assert.equal(health.sources["sec_8-K"].status, "FAILED");
@@ -45,6 +45,11 @@ assert.equal((await syncIssuers(new Request("https://edge.example/edge/sync", { 
 const batches = [];
 env.ALERTS_DB = { prepare: sql => ({ bind: (...values) => ({ sql, values }) }),
   batch: async statements => { batches.push(statements); } };
+env.HOT_EDGE = {idFromName:()=> 'global',get:()=>({fetch:async request=>{
+  const {applyIssuerSnapshot}=await import('./src/edge-runtime.js');
+  await applyIssuerSnapshot(env.ALERTS_DB,(await request.json()).issuers);
+  return Response.json({ok:true});
+}})};
 const issuer = { cik: "123", ticker: "ZZZZ", company: "Novel Bio", confidence: .99, source: "SEC-v2C-equity" };
 const authorized = new Request("https://edge.example/edge/sync", { method: "POST",
   headers: { Authorization: "Bearer secret" }, body: JSON.stringify({ issuers: [issuer] }) });
@@ -61,3 +66,4 @@ await import("./test_materiality.mjs");
 await import("./test_clinical.mjs");
 await import("./test_hardening.mjs");
 await import("./test_candidates.mjs");
+await import("./test_optimization.mjs");
