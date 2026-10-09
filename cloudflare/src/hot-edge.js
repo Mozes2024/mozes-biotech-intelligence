@@ -5,7 +5,7 @@ const WIRES = [
   ["businesswire", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGFNXXw=="],
   ["globenewswire", "https://rss.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"],
 ];
-const INTERVAL = env => Math.max(10, Math.min(300, Number(env.EDGE_INTERVAL_SECONDS) || 15)) * 1000;
+const INTERVAL = env => Math.max(60, Math.min(300, Number(env.EDGE_INTERVAL_SECONDS) || 60)) * 1000;
 const ACK_TIMEOUT = env => Math.max(300, Math.min(86400, Number(env.EDGE_ACK_TIMEOUT_SECONDS) || 900)) * 1000;
 const retryDelay = attempts => Math.min(3600000, 60000 * 2 ** Math.min(6, Math.max(0, attempts - 1)));
 const text = value => String(value || "").replace(/<!\[CDATA\[|\]\]>/g, "")
@@ -94,11 +94,18 @@ export class HotEdge {
   }
 
   async alarm() {
+    if (this.running) return this.running;
+    this.running = this.runAlarm();
+    try { return await this.running; } finally { this.running = null; }
+  }
+
+  async runAlarm() {
     const started = Date.now();
     const now = new Date().toISOString();
     const health = await this.state.storage.get("health") || { sources: {} };
     health.last_alarm_at = now;
     health.alarm_running_at = now;
+    // A watchdog may rearm during I/O; the instance guard keeps one cycle active.
     await this.state.storage.setAlarm(started + INTERVAL(this.env));
     await this.state.storage.put("health", health);
     try {
@@ -122,7 +129,7 @@ export class HotEdge {
         }
       }catch(error){this.failure(health,'candidate_retention',now,error);}
     } finally {
-      await this.state.storage.setAlarm(Math.max(started + INTERVAL(this.env), Date.now() + 1000));
+      await this.state.storage.setAlarm(Date.now() + INTERVAL(this.env));
       health.next_alarm_at = await this.state.storage.getAlarm();
       health.alarm_running_at = null;
       await this.state.storage.put("health", health);

@@ -23,7 +23,7 @@ globalThis.fetch = async () => { throw Error("offline"); };
 try {
   await edge.alarm();
   assert.ok(alarm > Date.now());
-  assert.ok(alarm - Date.now() >= 9000);
+  assert.ok(alarm - Date.now() >= 59000);
   const health = await (await edge.fetch(new Request("https://edge.internal/health"))).json();
   assert.equal(health.sources.sec_8K?.status, undefined);
   assert.equal(health.sources["sec_8-K"].status, "FAILED");
