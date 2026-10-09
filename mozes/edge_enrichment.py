@@ -79,15 +79,10 @@ def process(conn, event, *, fetch=None, github_run_id=None):
         return prior[0]
     if fetch is None:
         def fetch_wire(url):
-            request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html"})
-            with urllib.request.urlopen(request, timeout=12) as response:
-                if urlsplit(response.geturl()).scheme != "https":
-                    raise ValueError("primary wire redirect must remain HTTPS")
-                validate_source({**event, "source_url": response.geturl()})
-                body = response.read(4_000_001)
-                if len(body) > 4_000_000:
-                    raise ValueError("primary wire document too large")
-                return body.decode("utf-8", errors="replace")
+            from .wire_transport import fetch_wire as fetch_exact_wire, fetch_with_cooldown
+            return fetch_with_cooldown(conn, url, fetch=lambda target: fetch_exact_wire(
+                target, user_agent=USER_AGENT,
+                validate_redirect=lambda redirect: validate_source({**event, "source_url": redirect})))
         fetch = _get if event["source"] == "sec" else fetch_wire
     raw = fetch(event["source_url"])
     content = html_to_text(raw)
