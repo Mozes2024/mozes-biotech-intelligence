@@ -1,5 +1,6 @@
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {readFileSync,writeFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
 const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response("profile")}}',compatibilityDate:'2026-08-01',d1Databases:{DB:'profile'}}));
 try {
  const db=await mf.getD1Database('DB');
@@ -28,7 +29,12 @@ try {
   }return out;
  };
  const before=await collect();
+ queries.analysis_pending=["SELECT * FROM edge_events INDEXED BY idx_edge_analysis_pending WHERE source='sec' AND enrichment_ack_at IS NULL AND analysis_status IN ('pending','failed') AND (analysis_retry_at IS NULL OR analysis_retry_at<=?) ORDER BY first_seen_at,event_id LIMIT 3",['2026-10-09']];
+ queries.policy_scan=['SELECT event_id FROM edge_events WHERE event_id>? ORDER BY event_id LIMIT 100',['']];
  for(const sql of readFileSync(new URL('./migrations/0005_d1_optimization.sql',import.meta.url),'utf8').split(';').filter(s=>s.trim()))await db.prepare(sql).run();
- const after=await collect();const report={basis:'local workerd D1 metadata and EXPLAIN QUERY PLAN; 10000 historical events/candidates, 3 pending rows',before,after};
+ const after=await collect();
+ assert.ok(after.analysis_pending.rows_read<20,'ACK predicate must not turn analysis into a history scan');
+ assert.ok(after.policy_scan.rows_read<=101,'policy scan must use bounded primary-key pagination');
+ const report={basis:'local workerd D1 metadata and EXPLAIN QUERY PLAN; 10000 historical events/candidates, 3 pending rows',before,after};
  console.log(JSON.stringify(report,null,2));if(process.env.PROFILE_OUTPUT)writeFileSync(process.env.PROFILE_OUTPUT,JSON.stringify(report,null,2)+'\n');
 }finally{await mf.dispose();}

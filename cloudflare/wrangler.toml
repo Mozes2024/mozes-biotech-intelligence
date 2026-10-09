@@ -4,7 +4,7 @@ compatibility_date = "2026-08-01"
 keep_vars = true # Preserve dashboard-only identity/configuration on deploy.
 
 [vars]
-EDGE_INTERVAL_SECONDS = "60"
+EDGE_INTERVAL_SECONDS = "120" # Preserve the emergency production setting on initial rollout.
 EDGE_SEC_INTERVAL_SECONDS = "120"
 EDGE_SEC_8K_INTERVAL_SECONDS = "120"
 EDGE_SEC_6K_INTERVAL_SECONDS = "120"

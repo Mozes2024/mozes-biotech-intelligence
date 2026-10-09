@@ -204,7 +204,9 @@ export class HotEdge {
       } finally {if(this.alertLoading===loading)this.alertLoading=null;}
     }
     if (handlers[path]) {
-      const response=await handlers[path](request,env);
+      const response=await (['/edge/ack','/edge/candidate/ack'].includes(path)
+        ? this.exclusive(()=>handlers[path](request,env))
+        : handlers[path](request,env));
       if(path==='/alerts' && request.method==='POST' && response.ok) {this.alertCache=null;this.alertLoading=null;this.alertGeneration=(this.alertGeneration || 0)+1;}
       return response;
     }
@@ -221,7 +223,7 @@ export class HotEdge {
         high_water_at:s.high_water_at,gap:s.gap,failures:s.failures,
       }]));
       return Response.json({ ...health, cache:{...this.cacheStats,scope:'current DO instance',issuer_hit_rate:this.cacheStats.issuer_hits/(this.cacheStats.issuer_hits+this.cacheStats.issuer_misses || 1),item_hit_rate:this.cacheStats.item_hits/(this.cacheStats.item_hits+this.cacheStats.item_misses || 1)},source_schedule,
-        budget:this.usage.report(this.env),next_alarm_at: await this.state.storage.getAlarm() });
+        budget:this.usage.report(this.env),sec_policy_scan:await this.state.storage.get('sec_policy_scan'),next_alarm_at: await this.state.storage.getAlarm() });
     }
     return new Response("Not found", { status: 404 });
   }
@@ -344,8 +346,9 @@ export class HotEdge {
   }
 
   async analyzePending(now = new Date().toISOString(), limit = 3) {
+    await this.requeueSecPolicy();
     const db = this.db;
-    const rows = (await db.prepare("SELECT * FROM edge_events WHERE source='sec' AND analysis_status IN ('pending','failed') AND (analysis_retry_at IS NULL OR analysis_retry_at<=?) ORDER BY first_seen_at,event_id LIMIT ?").bind(now,limit).all()).results || [];
+    const rows = (await db.prepare("SELECT * FROM edge_events INDEXED BY idx_edge_analysis_pending WHERE source='sec' AND enrichment_ack_at IS NULL AND analysis_status IN ('pending','failed') AND (analysis_retry_at IS NULL OR analysis_retry_at<=?) ORDER BY first_seen_at,event_id LIMIT ?").bind(now,limit).all()).results || [];
     const successes=[],receipts=[];
     // Keep six simultaneous SEC connections at most: three filings, each with
     // sequential index/document requests. Twelve analyses/minute preserves the
@@ -374,7 +377,7 @@ export class HotEdge {
           throw Error("invalid primary SEC URL");
         if (!href && /-index\.html?$/i.test(candidate.pathname)) throw Error("primary filing document missing");
         const content = href ? await get(candidate.href, this.env, true) : index;
-        const outcome = classifyClinical(content,fastOutcome(content));
+        const outcome = {...classifyClinical(content,fastOutcome(content)),policy_digest:await this.secPolicyDigest()};
         const record=await this.candidateRecord({...event,source_url:candidate.href,summary:content.slice(0,8000)},outcome,{ticker:event.ticker,cik:event.cik},now);
         const sourceHash=await hash(content);
         successes.push(record);
@@ -389,6 +392,28 @@ export class HotEdge {
       FROM incoming WHERE edge_events.event_id=incoming.event_id`).bind(JSON.stringify(receipts))]:[];
     await persistWireBatch(db,successes,statements);
     return { processed: successes.length, failed: receipts.length-successes.length };
+  }
+
+  async secPolicyDigest() {
+    return hash(POLICY_VERSION + CLASSIFICATION_POLICY);
+  }
+
+  async requeueSecPolicy() {
+    // One bounded keyset page per cycle, independent of the publisher's recent
+    // window. Persist progress only after D1 succeeds; replay is idempotent.
+    if (!this.state.storage.get || !this.state.storage.put) return;
+    const policy = await this.secPolicyDigest();
+    const saved = await this.state.storage.get('sec_policy_scan');
+    const scan = saved?.policy === policy ? saved : {policy,cursor:'',complete:false};
+    if (scan.complete) return;
+    const rows = (await this.db.prepare("SELECT event_id FROM edge_events WHERE event_id>? ORDER BY event_id LIMIT 100").bind(scan.cursor).all()).results || [];
+    if (rows.length) {
+      await this.db.prepare(`UPDATE edge_events SET analysis_status='pending',analysis_retry_at=NULL,analysis_attempts=0,last_analysis_error=NULL
+        WHERE source='sec' AND event_id IN (SELECT value FROM json_each(?)) AND enrichment_ack_at IS NULL AND analysis_status='complete'
+        AND COALESCE(json_extract(classification_json,'$.policy_digest'),'')<>?`)
+        .bind(JSON.stringify(rows.map(row=>row.event_id)),policy).run();
+    }
+    await this.state.storage.put('sec_policy_scan',{policy,cursor:rows.at(-1)?.event_id || scan.cursor,complete:rows.length<100});
   }
 
   async candidateRecord(event,outcome,issuer,now,tickerHint=null) {
