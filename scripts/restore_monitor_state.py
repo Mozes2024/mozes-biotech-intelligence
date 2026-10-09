@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -29,7 +30,8 @@ def _parse_iso(value):
     if not value:
         return None
     try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        result = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return result if result.tzinfo is not None else None
     except ValueError:
         return None
 
@@ -87,22 +89,30 @@ def _manifest_generated_at(root: Path):
 
 
 def _list_success_runs():
-    # Failed/cancelled producers are eligible only with a verified uploaded checkpoint.
-    runs = json.loads(gh(
-        "run", "list", "--workflow", "lightweight-monitor.yml", "--branch", "main",
-        "--status", "completed", "--limit", "20",
-        "--json", "databaseId,createdAt,conclusion",
-    ))
-    runs = [r for r in runs if r.get("conclusion") in {"success", "failure", "cancelled"} and r.get("databaseId")]
+    # Failed attempts without artifacts neither advance lineage nor crowd it out.
+    # Include expired artifacts: a newer lost checkpoint must still block rewind.
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    runs = []
+    for page in range(1, 6):
+        result = json.loads(gh("api", f"repos/{repo}/actions/artifacts?per_page=100&page={page}"))
+        artifacts = result["artifacts"]
+        runs.extend({"databaseId": a["workflow_run"]["id"], "createdAt": a["created_at"]}
+                    for a in artifacts if a.get("name") == "mozes-live-monitor"
+                    and a.get("workflow_run", {}).get("head_branch") == "main")
+        if len(runs) >= 20 or len(artifacts) < 100:
+            break
+    else:
+        raise RuntimeError("artifact discovery bound exhausted; refusing empty/old bootstrap")
     runs.sort(key=lambda r: r.get("createdAt") or "", reverse=True)
     return runs
 
 
-def restore(run_id=None):
+def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
+    now = now or datetime.now(timezone.utc)
+    if recovery_sha256 and (not run_id or not re.fullmatch(r"[a-fA-F0-9]{64}", recovery_sha256)):
+        raise ValueError("stale recovery requires explicit source run and SHA256")
     destination = Path(os.environ.get("MOZES_DB_PATH", ".monitor/mozes-live.db"))
-    destination.parent.mkdir(parents=True, exist_ok=True)
     repo = os.environ.get("GITHUB_REPOSITORY", "")
-    restore_published_receipt(repo)
 
     if run_id:
         candidates = [{"databaseId": str(run_id), "createdAt": None}]
@@ -110,8 +120,7 @@ def restore(run_id=None):
     else:
         candidates = _list_success_runs()
         if not candidates:
-            print("No successful monitor runs listed; initial bootstrap will start empty")
-            return False
+            raise RuntimeError("no durable monitor artifacts; refusing empty/old bootstrap")
         newest_created = _parse_iso(candidates[0].get("createdAt"))
         print(
             "Restore candidates (newest first): "
@@ -127,14 +136,14 @@ def restore(run_id=None):
         if newest_created and created and created < newest_created - MAX_REWIND:
             print(
                 f"Refusing to rewind monitor state to run {candidate} "
-                f"({run.get('createdAt')}); newer successes exist within {MAX_REWIND}."
+                f"({run.get('createdAt')}); newer durable checkpoints exist within {MAX_REWIND}."
             )
             break
         try:
             meta = json.loads(gh("api", f"repos/{repo}/actions/runs/{candidate}"))
         except (subprocess.CalledProcessError, OSError, ValueError, subprocess.TimeoutExpired) as exc:
             print(f"State restore unavailable for run {candidate}: meta {type(exc).__name__}")
-            continue
+            break
         if (meta.get("head_branch") != "main" or meta.get("name") != "lightweight-live-monitor"
                 or (meta.get("head_repository") or {}).get("full_name") != repo
                 or meta.get("conclusion") not in {None, "success", "failure", "cancelled"}):
@@ -148,28 +157,62 @@ def restore(run_id=None):
                 root = Path(tmp)
                 source = _find_db(root)
                 if source is None:
-                    print(f"State restore unavailable for run {candidate}: mozes-live.db missing")
-                    continue
+                    raise ValueError("mozes-live.db missing")
                 checkpoint_path = source.with_name("edge-checkpoint.json")
+                checkpoint = None
                 if checkpoint_path.exists():
                     checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
                     if checkpoint.get("schema") != 1 or str(checkpoint.get("producer_run_id")) != candidate or checkpoint.get("db_sha256") != hashlib.sha256(source.read_bytes()).hexdigest():
                         raise ValueError("monitor checkpoint hash/run mismatch")
                 elif meta.get("conclusion") in {"failure", "cancelled"}:
-                    if run_id:
-                        raise ValueError("unsuccessful source has no durable checkpoint")
-                    continue
+                    raise ValueError("unsuccessful source has no durable checkpoint")
                 stamp = _manifest_generated_at(root)
-                if newest_created and stamp and stamp < newest_created - MAX_REWIND:
+                if stamp is None:
+                    raise ValueError("monitor manifest timestamp missing or invalid")
+                checkpoint_stamp = _parse_iso((checkpoint or {}).get("created_at")) or stamp
+                if checkpoint_stamp > now + timedelta(minutes=5):
+                    raise ValueError("checkpoint timestamp is in the future")
+                if newest_created and checkpoint_stamp < newest_created - MAX_REWIND:
                     print(
                         f"State restore skipped run {candidate}: manifest {stamp.isoformat()} "
                         f"is older than allowed rewind behind {newest_created.isoformat()}"
                     )
-                    continue
+                    raise ValueError("checkpoint outside rewind window")
                 with closing(sqlite3.connect(f"file:{source}?mode=ro", uri=True)) as conn:
                     if conn.execute("PRAGMA quick_check").fetchone()[0] != "ok":
                         raise ValueError("monitor DB failed integrity check")
-                shutil.copy2(source, destination)
+                proof = None
+                if run_id:
+                    latest = _list_success_runs()
+                    if not latest or str(latest[0]["databaseId"]) != candidate:
+                        raise ValueError("newer durable artifact supersedes requested source")
+                if recovery_sha256:
+                    from mozes.monitor_recovery import audit_producers, verify_durable_history
+                    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+                    if digest != recovery_sha256.lower() or not checkpoint_path.exists():
+                        raise ValueError("recovery checkpoint SHA256 differs from reviewed source")
+                    proof = {"source_run_id": candidate, "source_sha256": digest, "source_manifest_at": stamp.isoformat(),
+                             **audit_producers(repo, stamp, gh, now=now), **verify_durable_history(source)}
+                else:
+                    if checkpoint_stamp < now - MAX_REWIND:
+                        raise RuntimeError("stale checkpoint requires reviewed forward recovery and explicit SHA256")
+                    from mozes.monitor_recovery import audit_producers
+                    audit_producers(repo, checkpoint_stamp, gh, now=now)
+                if verify_only:
+                    if proof is None:
+                        raise ValueError("verify-only requires recovery SHA256")
+                    print(json.dumps({"status": "VERIFIED_NO_WRITES", **proof}))
+                    return True
+                if destination.exists() and hashlib.sha256(destination.read_bytes()).hexdigest() != hashlib.sha256(source.read_bytes()).hexdigest():
+                    raise ValueError("existing local database differs; refusing to overwrite newer history")
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                restore_published_receipt(repo)
+                staged = destination.with_name(destination.name + ".restore")
+                shutil.copy2(source, staged)
+                os.replace(staged, destination)
+                shutil.copy2(next(root.rglob("manifest.json")), destination.with_name("manifest.json"))
+                if proof:
+                    destination.with_name("recovery-proof.json").write_text(json.dumps(proof), encoding="utf-8")
                 # http-cache is optional warm-start only; never block lineage restore on it.
                 cache = root / "http-cache"
                 if not cache.is_dir():
@@ -184,9 +227,10 @@ def restore(run_id=None):
                 print(f"Restored monitor state from run {candidate}"
                       + (f" (manifest {stamp.isoformat()})" if stamp else ""))
                 return True
-        except (subprocess.CalledProcessError, OSError, ValueError, sqlite3.Error,
+        except (subprocess.CalledProcessError, OSError, ValueError, RuntimeError, sqlite3.Error,
                 subprocess.TimeoutExpired) as exc:
             print(f"State restore unavailable for run {candidate}: {type(exc).__name__}: {exc}")
+            break  # A known newer checkpoint cannot be replaced by an older one.
     if run_id:
         raise RuntimeError("requested source artifact could not be restored")
     print("No reusable monitor artifact within rewind window; failing closed rather than "
@@ -197,5 +241,8 @@ def restore(run_id=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-id")
+    parser.add_argument("--verify-recovery-only", action="store_true")
     args = parser.parse_args()
-    restore(args.run_id or os.environ.get("SOURCE_RUN_ID") or None)
+    restore(args.run_id or os.environ.get("SOURCE_RUN_ID") or None,
+            recovery_sha256=os.environ.get("MONITOR_RECOVERY_SHA256") or None,
+            verify_only=args.verify_recovery_only)

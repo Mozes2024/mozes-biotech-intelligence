@@ -55,6 +55,38 @@ def test_failed_primary_fetch_has_no_durable_ack(tmp_path):
         ack_payload(conn, event()["edge_event_id"])
 
 
+def test_timeout_recovery_preserves_sent_receipt_and_retry_does_not_deliver_twice(tmp_path):
+    from datetime import datetime, timedelta, timezone
+    from mozes.alert_dispatch import dispatch_pending
+    conn = setup(tmp_path)
+    def timeout(_):
+        raise TimeoutError("primary wire unavailable")
+    with pytest.raises(TimeoutError):
+        process(conn, event(), fetch=timeout, github_run_id="42")
+    assert conn.execute("SELECT COUNT(*) FROM edge_event_links").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM alert_outbox").fetchone()[0] == 0
+    change = process(conn, event(), fetch=lambda _: "Phase 2 trial met its primary endpoint.", github_run_id="43")
+    calls = []
+    sender = {"log": lambda payload: calls.append(payload) or {"provider_message_id": "sent-once"}}
+    now = datetime.now(timezone.utc) + timedelta(minutes=1)
+    assert dispatch_pending(conn, sender=sender, now=now)["sent"] == 1
+    # Both the original event retry and another Edge ID for the same source reuse CHG/outbox identity.
+    assert process(conn, event(), fetch=timeout, github_run_id="44") == change
+    assert process(conn, event(2), fetch=lambda _: "Phase 2 trial met its primary endpoint.", github_run_id="45") == change
+    assert dispatch_pending(conn, sender=sender, now=now)["sent"] == 0
+    assert len(calls) == 1
+    assert ack_payload(conn, event()["edge_event_id"])["delivery"][0]["status"] == "sent"
+    assert ack_payload(conn, event(2)["edge_event_id"])["change_id"] == change
+
+
+def test_partial_workflow_checkpoints_but_failed_enrichment_is_not_acknowledged():
+    workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/lightweight-monitor.yml").read_text()
+    assert "id: edge_process\n        continue-on-error: true" in workflow
+    assert "always() && steps.restore.outcome == 'success'" in workflow
+    assert "always() && steps.checkpoint.outcome == 'success'" in workflow
+    assert "steps.checkpoint_upload.outcome == 'success' && steps.edge_process.outcome == 'success'" in workflow
+
+
 def test_official_wire_http_link_is_fetched_only_over_https(tmp_path, monkeypatch):
     conn = setup(tmp_path)
     original = event()["source_url"].replace("https:", "http:")
