@@ -71,7 +71,7 @@ On a separate 10,000-record historical fixture, candidate pending reads fell fro
 - Configuration/schema: `cloudflare/wrangler.toml`, `cloudflare/migrations/0005_d1_optimization.sql`, `cloudflare/package.json`, `cloudflare/package-lock.json`.
 - Compatibility/CI: `mozes/edge_sync.py`, `.github/workflows/ci.yml`. The lightweight-monitor workflow is inspected and preserved.
 - Verification: `cloudflare/test_hot_edge.mjs`, `cloudflare/test_hardening.mjs`, `cloudflare/test-db.mjs`, `cloudflare/test_optimization.mjs`, `cloudflare/benchmark_d1.mjs`, `cloudflare/profile_d1.mjs`.
-- Reports/runbook: `docs/d1/workload-24h.json`, `docs/d1/query-profile.json`, `docs/d1-optimization.md`.
+- Reports/runbook: `docs/d1/workload-24h.json`, `docs/d1/query-profile.json`, `docs/d1/rollback-stage-a.patch`, `docs/d1-optimization.md`.
 
 Miniflare and Wrangler are pinned development-only tools; no application runtime dependency is added. The patched Miniflare release carries an upstream alpha tag and matches Wrangler's workerd generation. Local `npm audit` reports zero vulnerabilities. No global installation was used.
 
@@ -124,6 +124,21 @@ Migration 0005 adds one nullable column and four indexes, without changing store
 
 ## Rollback
 
-Prefer the temporary 120-second profile if quota pressure remains high while correctness is intact. For a Stage B correctness regression, record the incident/gaps and restore the explicitly recorded Stage A Worker version with `npx wrangler rollback <stage-A-version-id>` after approval. Additive column/indexes may remain; old code ignores them. Do not drop tables/indexes/columns, restore the database to an old snapshot, remove the Durable Object namespace, rewind Actions artifacts or clear ACK/history rows. Schema rollback is unnecessary and would risk history.
+Prefer the temporary 120-second profile if quota pressure remains high while correctness is intact. For a Stage B correctness regression, record the incident/gaps and deploy Stage A **with the supplied history-preservation patch**, rather than restoring its legacy pruning. The patch was applied against `19b7539` in an isolated checkout; its JavaScript suite and Wrangler dry-run pass. The prepared local rollback checkout is `C:\Users\Moshe\Documents\mozes-biotech-edge-rollback`.
 
-Stage A rollback restores legacy candidate pruning and less efficient SQL; review that consequence before proceeding. If candidate-history preservation is required during rollback, prepare a reviewed Stage A hotfix removing its `candidate_pruned_day` DELETE block before deploying, and retain 60/120-second scheduling. Rolling back to the original 15-second Worker is not an acceptable default during quota exhaustion. Revalidate account usage, effective intervals, fallback Actions and ACKs immediately. Before redeploying Stage B following any direct legacy/manual issuer edits, POST the reviewed verified issuer snapshot to the authenticated `/edge/sync` endpoint with the additional JSON field `"force":true` so the optimization hash cannot hide an out-of-band universe change; do not claim that the cached hash detects external edits.
+To reproduce from the approved Stage B repository root in PowerShell:
+
+```powershell
+$rollbackPatch = (Resolve-Path ./docs/d1/rollback-stage-a.patch).Path
+git worktree add ../mozes-edge-rollback 19b7539
+Set-Location ../mozes-edge-rollback
+git apply --check $rollbackPatch
+git apply $rollbackPatch
+Set-Location cloudflare
+npm test
+npx --yes wrangler@4.149.0 deploy --keep-vars --dry-run
+# Only after explicit production approval:
+npx --yes wrangler@4.149.0 deploy --keep-vars
+```
+
+Retain 60/120-second scheduling. Additive column/indexes remain; old code ignores them. Do not drop tables/indexes/columns, restore the database to an old snapshot, remove the Durable Object namespace, rewind Actions artifacts or clear ACK/history rows. Schema rollback is unnecessary and would risk history. Rolling back to the original 15-second Worker is not an acceptable default during quota exhaustion. Revalidate account usage, effective intervals, fallback Actions and ACKs immediately. Before redeploying Stage B following any direct legacy/manual issuer edits, POST the reviewed verified issuer snapshot to the authenticated `/edge/sync` endpoint with the additional JSON field `"force":true` so the optimization hash cannot hide an out-of-band universe change; do not claim that the cached hash detects external edits.
