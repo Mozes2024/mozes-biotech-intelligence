@@ -100,6 +100,26 @@ adds new records forward from it.
    publish feeds, sync issuers or ACK events. GitHub secret values are not readable
    through `gh secret list`; an operator needs an authorized secure environment.
    Do not substitute an empty token or claim private endpoint verification passed.
+
+   Prefer the isolated GitHub Actions verifier after its PR is approved and merged;
+   it uses the existing repository secret without copying it to a local machine:
+
+   ```sh
+   gh workflow run verify-monitor-recovery.yml --repo Mozes2024/mozes-biotech-intelligence --ref main
+   ```
+
+   This manually triggered workflow has only `contents: read` and `actions: read`,
+   fixed producer/checksum inputs, and no processing, sync, artifact upload, ACK,
+   delivery or publishing steps. It shares the monitor concurrency lock, so the
+   full-history/receipt snapshot cannot overlap an active monitor producer.
+   Require successful completion and `VERIFIED_NO_WRITES` from the verification
+   step; missing/unusable control configuration reports only `EDGE_SYNC_TOKEN`
+   or `MOZES_EDGE_SYNC_URL`, without values. Connections close on both success
+   and failure, and temporary cleanup cannot replace the original gate error.
+   Capture the verification run URL and reviewed main SHA. Before the single
+   authorized alert-producing dispatch, recheck the producer is still latest,
+   no conflicting execution exists and every original safety condition holds.
+   A verifier success does not authorize additional processing or checkpoint reuse.
 4. Obtain explicit approval to resume notification-producing processing. Then
    execute **one new** manual main-branch run, prioritizing the older SEC backlog:
 
