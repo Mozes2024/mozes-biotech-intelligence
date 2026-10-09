@@ -4,6 +4,7 @@ import io
 import json
 import sqlite3
 import subprocess
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,6 +22,8 @@ def restore_fixture(tmp_path, monkeypatch, *, missing=False, corrupt=False):
     script = module()
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("GITHUB_REPOSITORY", "Owner/Repo")
+    monkeypatch.setenv("EDGE_SYNC_TOKEN", "test-token")
+    monkeypatch.setenv("MOZES_EDGE_SYNC_URL", "https://trusted.example/edge/sync")
     monkeypatch.setenv("MOZES_DB_PATH", str(tmp_path / "state" / "live.db"))
     source = tmp_path / "original.db"
     _db(source)
@@ -161,11 +164,12 @@ def test_audit_rejects_possible_newer_writes_and_incomplete_evidence(kwargs):
 
 def history(tmp_path):
     path = tmp_path / "history.db"
-    with sqlite3.connect(path) as c:
+    with closing(sqlite3.connect(path)) as c:
         c.executescript("CREATE TABLE change_events(change_id TEXT); INSERT INTO change_events VALUES('CHG-old');"
             "CREATE TABLE alert_outbox(change_id TEXT,status TEXT); INSERT INTO alert_outbox VALUES('CHG-old','sent');"
             "CREATE TABLE edge_event_links(edge_event_id TEXT,change_id TEXT);"
             "INSERT INTO edge_event_links VALUES('EDGE-old','CHG-old');")
+        c.commit()
     return path
 
 
@@ -191,3 +195,110 @@ def test_history_gate_blocks_loss_or_duplicate_delivery(tmp_path, monkeypatch, c
     feed = lambda *a, **k: io.BytesIO(json.dumps({"schema": 1, "alerts": [{"change_id": "CHG-new" if case == "new_change" else "CHG-old", "delivered": True}]}).encode())
     with pytest.raises(RuntimeError):
         recovery.verify_durable_history(path, trace=trace, opener=feed)
+
+
+@pytest.mark.parametrize("failure", [None, "trace", "feed", "receipt"])
+def test_verification_closes_sqlite_before_cleanup_even_on_original_error(tmp_path, monkeypatch, failure):
+    path = history(tmp_path)
+    monkeypatch.setenv("MOZES_EDGE_SYNC_URL", "https://trusted.example")
+    real_connect = sqlite3.connect
+    opened = []
+    def connect(*args, **kwargs):
+        conn = real_connect(*args, **kwargs)
+        opened.append(conn)
+        return conn
+    monkeypatch.setattr(recovery.sqlite3, "connect", connect)
+    def trace(_):
+        if failure == "trace":
+            raise RuntimeError("original trace error")
+        return {"enrichment_ack_at": "now", "enrichment_change_id": "wrong" if failure == "receipt" else "CHG-old"}
+    def feed(*args, **kwargs):
+        if failure == "feed":
+            raise RuntimeError("original feed error")
+        return io.BytesIO(json.dumps({"schema": 1, "alerts": []}).encode())
+    if failure:
+        message = "Edge completion receipt differs" if failure == "receipt" else f"original {failure} error"
+        with pytest.raises(RuntimeError, match=message):
+            recovery.verify_durable_history(path, trace=trace, opener=feed)
+    else:
+        recovery.verify_durable_history(path, trace=trace, opener=feed)
+    assert len(opened) == 1
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        opened[0].execute("SELECT 1")
+    path.unlink()  # On Windows this fails if the connection still locks the file.
+
+
+def test_restore_preserves_original_error_when_cleanup_cannot_complete(tmp_path, monkeypatch):
+    script, digest = restore_fixture(tmp_path, monkeypatch)
+    original = RuntimeError("original verification failure")
+    def fail(*args, **kwargs):
+        raise original
+    monkeypatch.setattr(recovery, "audit_producers", lambda *a, **k: {})
+    monkeypatch.setattr(recovery, "verify_durable_history", fail)
+    real_cleanup = script.tempfile.TemporaryDirectory._rmtree
+    def cleanup(cls, name, ignore_errors=False, repeat=False):
+        real_cleanup(name, ignore_errors=True)
+        if not ignore_errors:
+            raise PermissionError("simulated Windows cleanup failure")
+    monkeypatch.setattr(script.tempfile.TemporaryDirectory, "_rmtree", classmethod(cleanup))
+    with pytest.raises(RuntimeError) as error:
+        script.restore("100", recovery_sha256=digest, verify_only=True, now=NOW)
+    assert error.value.__cause__ is original
+    assert not (tmp_path / "state").exists()
+
+
+@pytest.mark.parametrize("token,url,name", [
+    ("", "https://trusted.example", "EDGE_SYNC_TOKEN"),
+    ("private-dummy-token", "", "MOZES_EDGE_SYNC_URL"),
+    ("private-dummy-token", "https://user:secret@trusted.example", "MOZES_EDGE_SYNC_URL"),
+    ("private-dummy-token", "https://trusted.example:bad", "MOZES_EDGE_SYNC_URL"),
+    ("private-dummy-token\n", "https://trusted.example", "EDGE_SYNC_TOKEN"),
+])
+def test_cli_missing_or_invalid_configuration_reports_only_name(tmp_path, token, url, name):
+    import os
+    import sys
+    root = Path(__file__).resolve().parents[1]
+    env = {**os.environ, "PYTHONPATH": str(root), "EDGE_SYNC_TOKEN": token, "MOZES_EDGE_SYNC_URL": url}
+    result = subprocess.run([sys.executable, str(root / "scripts/restore_monitor_state.py"),
+                             "--run-id", "37786606409", "--verify-recovery-only"],
+                            cwd=tmp_path, env=env, capture_output=True, text=True)
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert result.stderr.strip() == name
+    assert "private-dummy-token" not in result.stderr
+
+
+@pytest.mark.parametrize("status,name", [(401, "EDGE_SYNC_TOKEN"), (403, "EDGE_SYNC_TOKEN"),
+                                        (404, "MOZES_EDGE_SYNC_URL"), (503, "MOZES_EDGE_SYNC_URL")])
+def test_unusable_private_configuration_never_reports_http_body_or_secret(monkeypatch, status, name):
+    import urllib.error
+    def fail(*args, **kwargs):
+        raise urllib.error.HTTPError("https://trusted.example", status, "private-dummy-token", None, None)
+    monkeypatch.setattr(recovery, "edge_request", fail)
+    with pytest.raises(recovery.RecoveryConfigurationError) as error:
+        recovery.verification_edge_request("event?id=EDGE-old")
+    assert str(error.value) == name
+    assert error.value.__suppress_context__
+
+
+def test_read_only_workflow_has_fixed_inputs_and_no_write_or_processing_steps():
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / ".github/workflows/verify-monitor-recovery.yml").read_text()
+    assert "workflow_dispatch: {}" in workflow
+    assert "contents: read\n  actions: read" in workflow
+    assert "group: mozes-hot-monitor" in workflow and "cancel-in-progress: false" in workflow
+    assert "${{ secrets.EDGE_SYNC_TOKEN }}" in workflow and "${{ vars.MOZES_EDGE_SYNC_URL }}" in workflow
+    assert "MONITOR_RECOVERY_SHA256: 'f84633088fe4c6fe622682d852a925567118f371e8950f09e9ebaac7898ec853'" in workflow
+    assert "python scripts/restore_monitor_state.py --run-id 37786606409 --verify-recovery-only" in workflow
+    for forbidden in ("write", "schedule:", "pull_request:", "push:", "upload-artifact", "cache:",
+                      "edge_enrichment", "edge_sync", "alert_dispatch", "pipeline_v2c", "gh workflow run"):
+        assert forbidden not in workflow.replace("Verify recovery without writes", "")
+
+
+def test_conflicting_active_monitor_blocks_verification():
+    def gh(*args):
+        return json.dumps({"workflow_runs": [{"id": 101, "status": "in_progress",
+            "head_branch": "main", "name": "lightweight-live-monitor",
+            "head_repository": {"full_name": "Owner/Repo"}}]})
+    with pytest.raises(RuntimeError, match="active producer"):
+        recovery.audit_producers("Owner/Repo", NOW, gh, now=NOW)

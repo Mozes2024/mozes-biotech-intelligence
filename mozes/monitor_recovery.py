@@ -4,12 +4,48 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 from datetime import datetime, timezone
 from urllib.parse import urlencode, urlsplit
 
 from .edge_enrichment import edge_request
+
+
+class RecoveryConfigurationError(RuntimeError):
+    """Report the configuration name, never its value or an HTTP response body."""
+
+
+def validate_verification_configuration():
+    token = os.environ.get("EDGE_SYNC_TOKEN", "")
+    if not token.strip() or not token.isascii() or "\r" in token or "\n" in token:
+        raise RecoveryConfigurationError("EDGE_SYNC_TOKEN")
+    try:
+        parts = urlsplit(os.environ.get("MOZES_EDGE_SYNC_URL", ""))
+        valid = (parts.scheme == "https" and parts.hostname and not parts.username
+                 and not parts.password and parts.port in (None, 443)
+                 and not parts.query and not parts.fragment)
+    except ValueError:
+        valid = False
+    if not valid:
+        raise RecoveryConfigurationError("MOZES_EDGE_SYNC_URL")
+
+
+def verification_edge_request(path):
+    # A redirect must never carry the control token to another endpoint.
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+    try:
+        return edge_request(path, opener=urllib.request.build_opener(NoRedirect()).open)
+    except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403):
+            raise RecoveryConfigurationError("EDGE_SYNC_TOKEN") from None
+        raise RecoveryConfigurationError("MOZES_EDGE_SYNC_URL") from None
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+        raise RecoveryConfigurationError("MOZES_EDGE_SYNC_URL") from None
 
 
 # Both revisions have the same reviewed enrichment implementation: fetch precedes writes.
@@ -97,9 +133,12 @@ def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run
     return {"audited_producers": checked, "audited_through": now.isoformat()}
 
 
-def verify_durable_history(source, *, trace=edge_request, opener=urllib.request.urlopen):
+def verify_durable_history(source, *, trace=None, opener=urllib.request.urlopen):
     """Do not synthesize sent receipts from feed headlines or mutable source data."""
-    with sqlite3.connect(source.as_uri() + "?mode=ro", uri=True) as conn:
+    if trace is None:
+        validate_verification_configuration()
+        trace = verification_edge_request
+    with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as conn:
         conn.row_factory = sqlite3.Row
         links = conn.execute("SELECT * FROM edge_event_links").fetchall()
         if conn.execute("SELECT COUNT(*) FROM alert_outbox WHERE status IN ('pending','sending','failed')").fetchone()[0]:

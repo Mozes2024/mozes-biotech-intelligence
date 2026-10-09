@@ -1,0 +1,34 @@
+name: verify-monitor-recovery
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  # Hold the production lineage lock while taking the read-only evidence snapshot.
+  group: mozes-hot-monitor
+  cancel-in-progress: false
+  queue: max
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
+      MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
+      SOURCE_RUN_ID: '37786606409'
+      MONITOR_RECOVERY_SHA256: 'f84633088fe4c6fe622682d852a925567118f371e8950f09e9ebaac7898ec853'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Require main
+        run: python -c "import os; assert os.environ['GITHUB_REF'] == 'refs/heads/main', 'main required'"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the checked-out verifier
+        run: pip install -e .
+      - name: Verify recovery without writes
+        run: python scripts/restore_monitor_state.py --run-id 37786606409 --verify-recovery-only

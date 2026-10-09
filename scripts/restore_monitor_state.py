@@ -18,6 +18,8 @@ from datetime import datetime, timedelta, timezone
 from contextlib import closing
 from pathlib import Path
 
+from mozes.monitor_recovery import RecoveryConfigurationError, validate_verification_configuration
+
 
 MAX_REWIND = timedelta(minutes=45)
 
@@ -109,6 +111,8 @@ def _list_success_runs():
 
 def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
     now = now or datetime.now(timezone.utc)
+    if verify_only:
+        validate_verification_configuration()
     if recovery_sha256 and (not run_id or not re.fullmatch(r"[a-fA-F0-9]{64}", recovery_sha256)):
         raise ValueError("stale recovery requires explicit source run and SHA256")
     destination = Path(os.environ.get("MOZES_DB_PATH", ".monitor/mozes-live.db"))
@@ -128,6 +132,7 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
         )
         candidates = candidates[:12]
 
+    last_error = None
     for run in candidates:
         candidate = str(run["databaseId"])
         if not candidate.isdigit():
@@ -152,7 +157,7 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
                 raise ValueError("untrusted or unsuccessful source run")
             continue
         try:
-            with tempfile.TemporaryDirectory() as tmp:
+            with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
                 gh("run", "download", candidate, "-n", "mozes-live-monitor", "-D", tmp, timeout=300)
                 root = Path(tmp)
                 source = _find_db(root)
@@ -227,12 +232,15 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
                 print(f"Restored monitor state from run {candidate}"
                       + (f" (manifest {stamp.isoformat()})" if stamp else ""))
                 return True
+        except RecoveryConfigurationError:
+            raise
         except (subprocess.CalledProcessError, OSError, ValueError, RuntimeError, sqlite3.Error,
                 subprocess.TimeoutExpired) as exc:
+            last_error = exc
             print(f"State restore unavailable for run {candidate}: {type(exc).__name__}: {exc}")
             break  # A known newer checkpoint cannot be replaced by an older one.
     if run_id:
-        raise RuntimeError("requested source artifact could not be restored")
+        raise RuntimeError("requested source artifact could not be restored") from last_error
     print("No reusable monitor artifact within rewind window; failing closed rather than "
           "bootstrapping an older lineage that would drop live alerts")
     raise RuntimeError("monitor state restore failed; refusing empty/old bootstrap")
@@ -243,6 +251,9 @@ if __name__ == "__main__":
     parser.add_argument("--run-id")
     parser.add_argument("--verify-recovery-only", action="store_true")
     args = parser.parse_args()
-    restore(args.run_id or os.environ.get("SOURCE_RUN_ID") or None,
-            recovery_sha256=os.environ.get("MONITOR_RECOVERY_SHA256") or None,
-            verify_only=args.verify_recovery_only)
+    try:
+        restore(args.run_id or os.environ.get("SOURCE_RUN_ID") or None,
+                recovery_sha256=os.environ.get("MONITOR_RECOVERY_SHA256") or None,
+                verify_only=args.verify_recovery_only)
+    except RecoveryConfigurationError as exc:
+        parser.exit(1, str(exc) + "\n")
