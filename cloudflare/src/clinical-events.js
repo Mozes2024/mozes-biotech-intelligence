@@ -1,4 +1,5 @@
 import rules from "../../mozes/data/clinical_event_rules.json" with { type: "json" };
+export const CLASSIFICATION_POLICY = JSON.stringify(rules);
 
 export function classifyClinical(raw, outcome = { material: false, polarity: "unknown" }) {
   const sample = String(raw || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").slice(0, 4000)

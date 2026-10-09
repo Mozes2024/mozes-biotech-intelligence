@@ -1,9 +1,5 @@
 // Cron is only a watchdog for the Durable Object's recurring Stage-0 alarm.
 
-import { handleAlertFeed } from "./alert-feed.js";
-import { acknowledge, eventTrace } from "./edge-contract.js";
-import { edgeMetrics } from "./edge-metrics.js";
-import {candidates,candidateAck,investigate,candidateStats} from './candidate-contract.js';
 export { HotEdge } from "./hot-edge.js";
 
 export default {
@@ -13,23 +9,18 @@ export default {
   },
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
-    if (path === "/alerts") return handleAlertFeed(request, env);
     if (path === "/edge/sync") return syncIssuers(request, env);
-    if (path === "/edge/ack") return acknowledge(request, env);
-    if (path === "/edge/candidates") return candidates(request, env);
-    if (path === "/edge/candidate/ack") return candidateAck(request, env);
-    if (path === "/edge/investigate") return investigate(request, env);
-    if (path === "/edge/event") return eventTrace(request, env);
-    if (path === "/edge/metrics") return publicHealth(await edgeMetrics(env.ALERTS_DB), env);
+    const stub = env.HOT_EDGE?.get(env.HOT_EDGE.idFromName("global"));
+    if (["/alerts","/edge/ack","/edge/candidates","/edge/candidate/ack","/edge/investigate","/edge/event"].includes(path)) return stub.fetch(request);
+    if (path === "/edge/metrics") return publicHealth((await (await stub.fetch("https://edge.internal/summaries")).json()).metrics, env);
     if (path === "/edge/health") {
-      const stub = env.HOT_EDGE.get(env.HOT_EDGE.idFromName("global"));
       const health = await (await stub.fetch("https://edge.internal/health")).json();
       const sources = Object.values(health.sources || {});
       const failed = sources.filter(row => row.status === "FAILED").length;
-      const backlog = await env.ALERTS_DB.prepare("SELECT COUNT(*) AS events,SUM(CASE WHEN analysis_status<>'complete' THEN 1 ELSE 0 END) AS analysis_pending,SUM(CASE WHEN material=1 AND enrichment_ack_at IS NULL THEN 1 ELSE 0 END) AS enrichment_pending FROM edge_events").first();
+      const summary = await (await stub.fetch("https://edge.internal/summaries")).json();
       return publicHealth({ ...health, status: !sources.length ? "UNKNOWN" : failed === sources.length ? "FAILED" : failed ? "PARTIAL" : "OK",
         stage0_delivery_enabled: Boolean(env.NTFY_URL), enrichment_enabled: env.EDGE_ENRICHMENT_ENABLED !== "0",
-        backlog, clinical_operations:await candidateStats(env.ALERTS_DB), metrics: await edgeMetrics(env.ALERTS_DB) }, env);
+        ...summary }, env);
     }
     return new Response(JSON.stringify({ ok: true, service: "mozes-hot-clock" }), {
       headers: { "content-type": "application/json" },
@@ -71,16 +62,10 @@ export async function syncIssuers(request, env) {
     if (!/^\d{1,10}$/.test(row?.cik || "") || !/^[A-Z][A-Z0-9]{0,9}$/.test(row?.ticker || "") ||
         typeof row.company !== "string" || row.company.length < 3 || row.company.length > 200 ||
         typeof row.source !== "string" || row.source.length > 80 ||
-        !(row.confidence >= 0.85 && row.confidence <= 1) || seen.has(row.cik))
+        !Number.isFinite(row.confidence) || !(row.confidence >= 0.85 && row.confidence <= 1) || seen.has(String(Number(row.cik))))
       return new Response("Invalid issuer", { status: 400 });
-    seen.add(row.cik);
+    seen.add(String(Number(row.cik)));
   }
-  const now = new Date().toISOString();
-  const db = env.ALERTS_DB;
-  const statements = [db.prepare("UPDATE edge_issuers SET active=0")];
-  const upsert = db.prepare("INSERT INTO edge_issuers(cik,ticker,company,confidence,source,active,updated_at) VALUES(?,?,?,?,?,1,?) ON CONFLICT(cik) DO UPDATE SET ticker=excluded.ticker,company=excluded.company,confidence=excluded.confidence,source=excluded.source,active=1,updated_at=excluded.updated_at");
-  for (const row of body.issuers)
-    statements.push(upsert.bind(row.cik, row.ticker, row.company, row.confidence, row.source, now));
-  await db.batch(statements);
-  return Response.json({ ok: true, count: body.issuers.length });
+  const stub=env.HOT_EDGE.get(env.HOT_EDGE.idFromName('global'));
+  return stub.fetch(new Request('https://edge.internal/sync',{method:'POST',body:JSON.stringify(body)}));
 }

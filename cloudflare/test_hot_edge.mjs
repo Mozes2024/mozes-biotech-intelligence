@@ -45,6 +45,11 @@ assert.equal((await syncIssuers(new Request("https://edge.example/edge/sync", { 
 const batches = [];
 env.ALERTS_DB = { prepare: sql => ({ bind: (...values) => ({ sql, values }) }),
   batch: async statements => { batches.push(statements); } };
+env.HOT_EDGE = {idFromName:()=> 'global',get:()=>({fetch:async request=>{
+  const {applyIssuerSnapshot}=await import('./src/edge-runtime.js');
+  await applyIssuerSnapshot(env.ALERTS_DB,(await request.json()).issuers);
+  return Response.json({ok:true});
+}})};
 const issuer = { cik: "123", ticker: "ZZZZ", company: "Novel Bio", confidence: .99, source: "SEC-v2C-equity" };
 const authorized = new Request("https://edge.example/edge/sync", { method: "POST",
   headers: { Authorization: "Bearer secret" }, body: JSON.stringify({ issuers: [issuer] }) });
@@ -61,3 +66,4 @@ await import("./test_materiality.mjs");
 await import("./test_clinical.mjs");
 await import("./test_hardening.mjs");
 await import("./test_candidates.mjs");
+await import("./test_optimization.mjs");

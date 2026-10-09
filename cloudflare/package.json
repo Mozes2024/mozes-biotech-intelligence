@@ -4,6 +4,12 @@
   "type": "module",
   "scripts": {
     "test": "node test.mjs && node test_alert_feed.mjs && node test_hot_edge.mjs",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "benchmark": "node benchmark_d1.mjs",
+    "profile": "node profile_d1.mjs"
+  },
+  "devDependencies": {
+    "miniflare": "5.20261006.1-alpha",
+    "wrangler": "4.149.0"
   }
 }

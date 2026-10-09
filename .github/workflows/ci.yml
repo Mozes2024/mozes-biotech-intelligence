@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Reproduce the pinned pre-optimization D1 benchmark.
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -26,6 +28,7 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
       - run: pip install -e ".[dev]"
+      - run: npm ci --prefix cloudflare
       - name: Complete offline regression suite
         run: pytest -q
       - name: Syntax checks
@@ -37,6 +40,10 @@ jobs:
           node cloudflare/test.mjs
           node cloudflare/test_alert_feed.mjs
           node cloudflare/test_hot_edge.mjs
+      - name: Local D1 query plans and 24-hour workload
+        run: |
+          node cloudflare/profile_d1.mjs
+          node cloudflare/benchmark_d1.mjs
       - name: Offline product smoke test
         env:
           MOZES_DB_PATH: /tmp/mozes-ci.db

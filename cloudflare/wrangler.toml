@@ -1,9 +1,23 @@
 name = "mozes-hot-clock"
 main = "src/index.js"
 compatibility_date = "2026-08-01"
+keep_vars = true # Preserve dashboard-only identity/configuration on deploy.
 
 [vars]
 EDGE_INTERVAL_SECONDS = "60"
+EDGE_SEC_INTERVAL_SECONDS = "120"
+EDGE_SEC_8K_INTERVAL_SECONDS = "120"
+EDGE_SEC_6K_INTERVAL_SECONDS = "120"
+EDGE_BUSINESSWIRE_INTERVAL_SECONDS = "180"
+EDGE_GLOBENEWSWIRE_INTERVAL_SECONDS = "180"
+EDGE_ISSUER_CACHE_SECONDS = "900"
+EDGE_HEALTH_CACHE_SECONDS = "300"
+EDGE_SEC_MAX_PAGES = "10"
+EDGE_SEC_BACKFILL_ISSUERS = "3"
+EDGE_ANALYSIS_BATCH_SIZE = "12"
+# Local estimates reserve room for other account D1 consumers. Tune after validation.
+EDGE_OTHER_DAILY_READ_ROWS = "1000000"
+EDGE_OTHER_DAILY_WRITE_ROWS = "10000"
 GITHUB_REPO = "Mozes2024/mozes-biotech-intelligence"
 WORKFLOW_FILE = "lightweight-monitor.yml"
 GITHUB_REF = "main"
