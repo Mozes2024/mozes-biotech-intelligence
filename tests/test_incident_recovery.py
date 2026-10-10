@@ -13,7 +13,7 @@ from mozes import monitor_recovery
 
 
 @pytest.fixture
-def gate(monkeypatch):
+def gate(monkeypatch, tmp_path):
     scripts = Path(__file__).parents[1] / "scripts"
     monkeypatch.syspath_prepend(str(scripts))
     spec = importlib.util.spec_from_file_location("incident", scripts / "incident_recovery.py")
@@ -26,6 +26,7 @@ def gate(monkeypatch):
     monkeypatch.setenv("GITHUB_RUN_ID", "900")
     monkeypatch.setenv("GITHUB_SHA", "a" * 40)
     monkeypatch.setenv("MOZES_INCIDENT_APPROVED_MAIN", "a" * 40)
+    monkeypatch.setenv("MOZES_DB_PATH", str(tmp_path / "live.db"))
     for key in ("MOZES_NTFY_URL", "MOZES_WEBHOOK_URL", "MOZES_SMTP_USER", "MOZES_SMTP_PASSWORD"):
         monkeypatch.delenv(key, raising=False)
     return m
@@ -38,7 +39,13 @@ def ready(m, monkeypatch, *, capacity=True):
     monkeypatch.setattr(m, "public_feed", lambda: {"revision":
         "246b6cd8797afa35a7986eba94f102d1f0975b552bd4af6dfc9b9f529587b73c", "alerts": [None] * 40})
     restores = []
-    monkeypatch.setattr(m.restore, "restore", lambda *a, **k: restores.append(k) or True)
+    def restore(*a, **kwargs):
+        restores.append(kwargs)
+        if not kwargs.get("verify_only"):
+            import os
+            Path(os.environ["MOZES_DB_PATH"]).with_name("recovery-proof.json").write_text('{}')
+        return True
+    monkeypatch.setattr(m.restore, "restore", restore)
     state = {"ref": None, "record": None, "posts": []}
     lock = threading.Lock()
 
