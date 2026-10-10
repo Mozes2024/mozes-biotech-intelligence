@@ -55,3 +55,38 @@ vm.createContext(context);vm.runInContext(fs.readFileSync('web/alerts_ui.js','ut
 """
     result = subprocess.run(['node', '-e', script], cwd=ROOT, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr + result.stdout
+
+
+def test_in_site_popup_opens_alerts_without_native_permission_and_deduplicates_reload():
+    script = r"""
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const source=fs.readFileSync('web/alerts_ui.js','utf8');let saved=null;
+const storage={getItem:()=>saved,setItem:(_,value)=>{saved=value}};
+const old={change_id:'CHG-old',ticker:'OLD',headline:'Existing',priority:'P2'};
+const fresh={change_id:'CHG-new',ticker:'NEW',headline:'New verified event',priority:'P1'};
+function browser(){
+ const open={},dismiss={},popup={hidden:true,innerHTML:'',querySelector:key=>key==='[data-open-alerts]'?open:dismiss};
+ const context={D:{alerts:[],alert_config:{}},apiMode:false,page:'dash',document:{hidden:false},
+  window:{localStorage:storage},navigator:{},$:id=>{assert.equal(id,'alertPopups');return popup},
+  esc:value=>value,alertWhyHe:a=>a.headline,render:()=>{},feed:null};
+ context.fetch=async()=>({ok:true,json:async()=>context.feed});
+ vm.createContext(context);vm.runInContext(source,context);
+ return {context,popup,open};
+}
+function feed(rows,revision){return {schema:1,revision,generated_at:'2026-10-10T08:00:00Z',alerts:rows,alert_config:{}}}
+(async()=>{
+ const first=browser();first.context.feed=feed([old],'baseline');await first.context.checkForAlerts();
+ assert.equal(first.popup.hidden,true);
+ first.context.feed=feed([fresh,old],'new');await first.context.checkForAlerts();
+ assert.equal(first.popup.hidden,false);assert.match(first.popup.innerHTML,/New verified event/);
+ assert.equal('Notification' in first.context.window,false,'in-site popup requires no native permission API');
+ first.open.onclick();assert.equal(first.context.page,'alerts');assert.equal(first.popup.hidden,true);
+ assert.equal(first.context.D.alerts[0].change_id,'CHG-new','new alert is available to Alerts rendering');
+ await first.context.checkForAlerts();assert.equal(first.popup.hidden,true,'same revision does not repeat');
+ const reloaded=browser();reloaded.context.feed=feed([fresh,old],'new');await reloaded.context.checkForAlerts();
+ reloaded.context.feed=feed([fresh,old],'later-revision');await reloaded.context.checkForAlerts();
+ assert.equal(reloaded.popup.hidden,true,'persisted seen IDs prevent duplicate popup after reload');
+})().catch(e=>{console.error(e);process.exitCode=1});
+"""
+    result = subprocess.run(['node', '-e', script], cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr + result.stdout
