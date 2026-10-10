@@ -1,0 +1,66 @@
+--- a/cloudflare/src/hot-edge.js
++++ b/cloudflare/src/hot-edge.js
+@@ -273,13 +273,51 @@
+   }
+ 
+   async flushPending(now = new Date().toISOString()) {
++    // Coalesce overlapping drains in this instance; D1 claims also enforce the cap.
++    if (this.deliveryRunning) return this.deliveryRunning;
++    this.deliveryRunning = this.drainPending(now);
++    try { return await this.deliveryRunning; } finally { this.deliveryRunning = null; }
++  }
++
++  async drainPending(now) {
+     // D1 retains the backlog; cap unacknowledged dispatches so retries cannot flood Actions.
+     const active = await this.env.ALERTS_DB.prepare("SELECT COUNT(*) AS n FROM edge_events WHERE material=1 AND enrichment_ack_at IS NULL AND enrichment_retry_at>?").bind(now).first();
+     const capacity = Math.max(0, 3 - (active?.n || 0));
++    if (!capacity && !this.env.NTFY_URL) return;
++    if (!this.deliveryCursorLoaded) {
++      this.deliveryCursor = await this.state.storage.get('delivery_cursor');
++      this.deliveryCursorLoaded = true;
++    }
++    const cursor = this.deliveryCursor;
++    const validCursor = cursor && typeof cursor.first_seen_at === 'string'
++      && Number.isFinite(Date.parse(cursor.first_seen_at)) && /^EDGE-[a-f0-9]{24}$/.test(cursor.event_id);
++    let cutoff = validCursor && typeof cursor.round_cutoff === 'string'
++      && Number.isFinite(Date.parse(cursor.round_cutoff)) && cursor.round_cutoff <= now ? cursor.round_cutoff : now;
++    const limit = this.env.NTFY_URL ? 3 : capacity;
+     const pending = this.env.NTFY_URL
+       ? "((actionable=1 AND stage0_sent_at IS NULL) OR (enrichment_ack_at IS NULL AND (enrichment_retry_at IS NULL OR enrichment_retry_at<=?)))"
+       : "(enrichment_ack_at IS NULL AND (enrichment_retry_at IS NULL OR enrichment_retry_at<=?))";
+-    const rows = (await this.env.ALERTS_DB.prepare(`SELECT * FROM edge_events WHERE material=1 AND analysis_status='complete' AND ${pending} ORDER BY first_seen_at,event_id LIMIT 3`).bind(now).all()).results || [];
++    const select = `SELECT * FROM edge_events WHERE material=1 AND analysis_status='complete' AND (enrichment_ack_at IS NULL OR (actionable=1 AND stage0_sent_at IS NULL)) AND ${pending} AND first_seen_at<=?`;
++    const values = validCursor ? [now, cutoff, cursor.first_seen_at, cursor.event_id] : [now, cutoff];
++    const rows = (await this.env.ALERTS_DB.prepare(`${select}${validCursor ? ' AND (first_seen_at,event_id)>(?,?)' : ''} ORDER BY first_seen_at,event_id LIMIT ${limit}`).bind(...values).all()).results || [];
++    if (validCursor && rows.length < limit) {
++      // Finish the frozen tail before admitting newer arrivals into the next round.
++      cutoff = now;
++      const head = (await this.env.ALERTS_DB.prepare(`${select} AND (first_seen_at,event_id)<=(?,?) ORDER BY first_seen_at,event_id LIMIT ${limit - rows.length}`).bind(now, cutoff, cursor.first_seen_at, cursor.event_id).all()).results || [];
++      rows.push(...head);
++    }
++    if (rows.length) {
++      // Cursor is only a scheduling hint. Advance before I/O so dispatch/source
++      // failures cannot pin the queue. D1 deadlines, identities and ACKs stay authoritative.
++      const last = rows[rows.length - 1];
++      const next = {first_seen_at:last.first_seen_at,event_id:last.event_id,round_cutoff:cutoff};
++      await this.state.storage.put('delivery_cursor', next);
++      this.deliveryCursor = next;
++    } else if (validCursor) {
++      // Empty queues need one lookup on subsequent ticks, not repeated wrap scans.
++      await this.state.storage.put('delivery_cursor', null);
++      this.deliveryCursor = null;
++    }
+     const outcomes = await Promise.allSettled(rows.map((row, index) => this.deliver(row, now, index < capacity)));
+     if (outcomes.some(item => item.status === "rejected")) throw Error("pending downstream delivery");
+   }
+@@ -303,8 +341,8 @@
+     if (allowDispatch && !event.enrichment_ack_at && (!event.enrichment_retry_at || event.enrichment_retry_at <= now)) {
+       const attempts = (event.enrichment_attempts || 0) + 1;
+       const deadline = new Date(Date.parse(now) + ACK_TIMEOUT(this.env)).toISOString();
+-      const claimed = await db.prepare("UPDATE edge_events SET enrichment_attempts=enrichment_attempts+1,enrichment_retry_at=?,last_enrichment_error=? WHERE event_id=? AND enrichment_ack_at IS NULL AND (enrichment_retry_at IS NULL OR enrichment_retry_at<=?)")
+-        .bind(deadline, event.enrichment_dispatch_at ? "completion ACK timeout; retrying" : "awaiting completion ACK", event.event_id, now).run();
++      const claimed = await db.prepare("UPDATE edge_events SET enrichment_attempts=enrichment_attempts+1,enrichment_retry_at=?,last_enrichment_error=? WHERE event_id=? AND material=1 AND analysis_status='complete' AND enrichment_ack_at IS NULL AND (enrichment_retry_at IS NULL OR enrichment_retry_at<=?) AND (SELECT COUNT(*) FROM edge_events WHERE material=1 AND enrichment_ack_at IS NULL AND enrichment_retry_at>?)<3")
++        .bind(deadline, event.enrichment_dispatch_at ? "completion ACK timeout; retrying" : "awaiting completion ACK", event.event_id, now, now).run();
+       if (!claimed.meta?.changes) return;
+       try {
+         if (await dispatchEnrichment(this.env, event))
