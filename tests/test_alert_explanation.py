@@ -62,7 +62,7 @@ def test_ai_cannot_add_a_number_absent_from_the_evidence(tmp_path, monkeypatch):
             return json.dumps({'summary_he': 'התוצאה מבוססת על 999 מטופלים', 'evidence_ids': ['source-1']})
     enrich_pending(conn, fetch=lambda *a: '<p>' + 'The Phase 3 study met its primary endpoint. ' * 5 + '</p>', provider=Provider())
     analysis = recent_alerts(conn)[0]['explanation']
-    assert analysis['ai_status'] == 'fallback' and '999' not in analysis['summary_he']
+    assert analysis['ai_status'] == 'evidence_guard' and '999' not in analysis['summary_he']
 
 
 def test_halt_code_t3_does_not_claim_the_stock_is_still_halted():

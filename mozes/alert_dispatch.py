@@ -18,7 +18,8 @@ from datetime import datetime, timedelta, timezone
 
 from . import db
 from .latency_metrics import mark_queued, mark_sent, record_detection
-from .materiality import ALERTABLE_CHANGE_TYPES, PRIORITY_RANK, alert_priority, classify_outcome, should_enqueue
+from .materiality import (ALERTABLE_CHANGE_TYPES, PRIORITY_RANK, alert_priority,
+                         classify_outcome, should_enqueue, _affirmed, _GUARD, _NEGATIVE_GUARD)
 from .priority import priority_tickers
 from .security import tradability
 
@@ -103,11 +104,22 @@ def build_stage1_payload(conn, change_id):
     elif new_value is not None:
         text_bits.append(str(new_value))
     stored_outcome = new_value.get("outcome") if isinstance(new_value, dict) else None
-    outcome = stored_outcome if isinstance(stored_outcome, dict) else classify_outcome(" ".join(text_bits))
+    # Refresh semantics without replacing stored evidence or event identity.
+    classification_text = " ".join(text_bits)
+    if meta.get("edge_event_id") and isinstance(new_value, dict) and new_value.get("summary"):
+        # The fetched body governs an enriched Edge event, not its older feed
+        # headline (which can say "topline" when the body contains no results).
+        classification_text = str(new_value["summary"])
+    outcome = {**(stored_outcome if isinstance(stored_outcome, dict) else {}),
+               **classify_outcome(classification_text)}
+    if isinstance(stored_outcome, dict) and ("kind" in stored_outcome or row["change_type"] == "clinical_catalyst_signal"):
+        from .clinical_events import classify_clinical
+        outcome = classify_clinical(classification_text, outcome)
     watched = is_watched(conn, row["ticker"])
     verified = verified_issuer_identity(conn, row["ticker"])
     priority = alert_priority(row["change_type"], row["severity"], outcome,
-                              ticker=row["ticker"], watched=watched or bool(verified))
+                              ticker=row["ticker"], watched=watched,
+                              verified=bool(verified))
     published = None
     if isinstance(new_value, dict):
         published = new_value.get("published_at")
@@ -213,12 +225,25 @@ _STATE_PATTERNS = {
 def material_story_state(payload):
     value = payload.get("new_value")
     text = " ".join(str(value.get(k) or "") for k in ("headline", "title", "summary")) if isinstance(value, dict) else str(value or "")
-    outcome = payload.get("outcome") or classify_outcome(text)
+    if payload.get("edge_event_ids") and isinstance(value, dict) and value.get("summary"):
+        text = str(value["summary"])
+    # Compare old and new outbox payloads under the SAME semantic policy.
+    # Otherwise adding flags to new alerts would defeat historical deduplication.
+    stored = payload.get("outcome") or {}
+    outcome = {**stored, **classify_outcome(text)}
+    if "kind" in stored:
+        from .clinical_events import classify_clinical
+        outcome = classify_clinical(text, outcome)
     change_type = payload.get("change_type") or ""
     family = "release" if change_type in {"wire_release_signal", "company_release_signal", "news_signal"} else change_type
     if outcome.get('relevant') and change_type in {'sec_material_filing','fda_release_signal','wire_release_signal','company_release_signal','news_signal'}:
         family = 'release'
-    flags = {key: bool(re.search(pattern, text, re.I)) for key, pattern in _STATE_PATTERNS.items()}
+    text = re.sub(r"\s+", " ", text)
+    flags = {key: _affirmed(re.compile(pattern, re.I), text,
+                          _NEGATIVE_GUARD if key in {"crl", "clinical_hold", "futility", "discontinuation"}
+                          else _GUARD) for key, pattern in _STATE_PATTERNS.items()}
+    # "approval" as a noun in a disclaimer is not a completed decision.
+    flags["approval"] = outcome.get("event_outcome") == "approval"
     if flags["hold_lifted"]:
         flags["clinical_hold"] = False
     if flags["primary_endpoint_missed"]:
@@ -289,6 +314,17 @@ def recent_alerts(conn, *, days=7, limit=100, now=None):
         analysis = conn.execute(
             "SELECT a.result_json FROM alert_analysis_jobs j JOIN alert_analyses a USING(analysis_id) WHERE j.change_id=?",
             (row["change_id"],)).fetchone()
+        explanation = json.loads(analysis[0]) if analysis else None
+        correction = (explanation or {}).get("display_correction") or {}
+        if correction.get("version") == "alert-quality-v3":
+            payload = {**payload, **correction["payload_overrides"]}
+        outcome = payload.get("outcome") or {}
+        source_verified = payload.get("verification_state") == "primary_source" or (
+            bool(payload.get("verified_issuer_cik")) and payload.get("source_type") in {"sec", "fda", "wire", "company_ir"})
+        popup = (source_verified and
+                 (payload.get("priority") == "P1" or payload.get("priority") == "P2" and
+                  (outcome.get("event_family") == "clinical_outcome" and outcome.get("material") or
+                   payload.get("watched") and outcome.get("urgent"))))
         alerts.append({
             "change_id": row["change_id"],
             "edge_event_ids": payload.get("edge_event_ids", []),
@@ -296,20 +332,24 @@ def recent_alerts(conn, *, days=7, limit=100, now=None):
             "priority": payload.get("priority"),
             "ticker": payload.get("ticker"),
             "watched": payload.get("watched"),
+            "issuer_verified": bool(payload.get("verified_issuer_cik")),
             "change_type": payload.get("change_type"),
             "source_type": payload.get("source_type"),
             "source_url": payload.get("source_url"),
             "published_at": payload.get("published_at"),
             "detected_at": payload.get("detected_at"),
             "headline": _headline_of(payload)[:1200] or None,
-            "polarity": (payload.get("outcome") or {}).get("polarity", "unknown"),
+            "polarity": outcome.get("polarity", "unknown"),
+            "event_family": outcome.get("event_family"),
+            "event_outcome": outcome.get("event_outcome"),
+            "popup_eligible": bool(popup) and not bool(correction),
             "verification_state": payload.get("verification_state"),
             "summary": str((payload.get("new_value") or {}).get("summary") or "")[:1200]
                        if isinstance(payload.get("new_value"), dict) else "",
             "corroborated_by": [link["source_type"] for link in links],
             "delivered": bool(row["delivered"]),
             "delivery": delivery,
-            "explanation": json.loads(analysis[0]) if analysis else None,
+            "explanation": explanation,
         })
     return alerts
 
