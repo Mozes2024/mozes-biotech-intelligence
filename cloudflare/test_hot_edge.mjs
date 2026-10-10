@@ -68,3 +68,4 @@ await import("./test_hardening.mjs");
 await import("./test_candidates.mjs");
 await import("./test_optimization.mjs");
 await import("./test_readiness.mjs");
+await import("./test_fairness.mjs");

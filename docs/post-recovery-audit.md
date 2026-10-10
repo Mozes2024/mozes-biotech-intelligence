@@ -17,14 +17,11 @@ The previous one-generation lag was the existing two-minute publication throttle
 not evidence of a corrupted export. CDN responses advertise max-age=600; normal
 and cache-busting reads agree on the new generation. The feed refreshes independently.
 
-Cron configuration remains unchanged: minutes 7,22,37,52, plus existing bounded
-reconciliation slots. Workflow state is active, default branch is main, repository
-is not archived/disabled/a fork. The latest observed cron run is 37975699213 at
-18:47:17 UTC; it failed before recovery. No post-recovery cron execution was
-observed during this audit. GitHub documents that schedules can be delayed or
-dropped under load. That is a possible platform explanation, not a proven cause.
-Do not increase frequency, disable gates, or call manual runs cron evidence.
-Require a real `event=schedule` completion before declaring cron healthy.
+Cron configuration remains unchanged. Three genuine post-recovery scheduled runs
+38001861059, 38016312209 and 38029555075 succeeded. This replaces the earlier
+pre-recovery-only observation; exact schedule timing remains subject to platform delays.
+See [the current fairness/coverage audit](edge-enrichment-fairness.md) for fresh
+private Edge state, ongoing automatic monitor evidence and corrected SEC timestamps.
 
 Two automatic batch runs (37995108068 and 37995108436) failed restore while siblings
 waited for the serialized lock. GitHub reports these waiters as `pending`, whereas
@@ -34,6 +31,9 @@ no started jobs/steps. Active, completed-but-queued, rerun, untrusted and incomp
 evidence still blocks recovery. Do not restore an older artifact after a gate failure.
 
 ## Six pending events
+
+Historical recovery snapshot below; fresh per-event attempts and source evidence
+are in [the fairness audit](edge-enrichment-fairness.md#current-production-evidence).
 
 | Event | Evidence / status |
 | --- | --- |
@@ -62,9 +62,10 @@ The frozen verified universe contains 310 issuers. All were scanned in passes of
 at most three, at no more than one request/second. Recent submissions cover both
 boundary days; no archive pages were needed. The tool allows at most two relevant
 archives per issuer and stops globally on 403/429. Sixteen 8-K/6-K filings were found
-on October 8–9. Ten are not represented in the monitor checkpoint. Separate official
-submissions reads confirmed all ten acceptance timestamps fall between October 8
-13:00 UTC (overlap) and October 9 21:26:14 UTC (first resumed scan).
+on October 8–9. Ten are not represented in the monitor checkpoint. The later primary-source review corrected the boundary: seven acceptance timestamps
+fall within the outage overlap, while VTGN, BRTX and PCVX are post-recovery.
+All ten are retained in Edge; see the per-accession recommendations in
+[the current fairness/coverage audit](edge-enrichment-fairness.md).
 
 | Ticker | Form | Missing monitor accession |
 | --- | --- | --- |
@@ -81,7 +82,7 @@ submissions reads confirmed all ten acceptance timestamps fall between October 8
 
 This is complete inventory for the frozen universe/window, not complete ingestion,
 materiality assessment or proof that all ten are absent from Edge. ATOS is already
-known in Edge. Other Edge presence needs authenticated read-only trace evidence.
+known in Edge. Fresh authenticated read-only traces now establish all ten are present in Edge.
 No missing filing was ingested, enqueued, published or acknowledged by this audit.
 Raw reports, universe hash, checkpoints and logs remain protected outside Git.
 
