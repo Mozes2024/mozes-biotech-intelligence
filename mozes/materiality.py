@@ -150,7 +150,7 @@ def classify_outcome(text: str) -> dict:
         ("submission", r"\b(?:submitted|submits)\b[^.;]{0,100}\b(?:NDA|BLA|marketing application)\b"))
         if _affirmed(re.compile(pattern, re.I), sample, _GUARD)), None)
     family = ("material_safety" if hold else "fda_decision" if approval or crl else
-              "corporate_action" if cvr else "clinical_outcome" if clinical and polarity != "unknown" else
+              "clinical_outcome" if clinical and polarity != "unknown" else "corporate_action" if cvr else
               "merger_acquisition" if re.search(r"\b(?:definitive agreement to be acquired|merger agreement|to be acquired by)\b", sample, re.I) else
               "financing" if re.search(r"\b(?:public offering|private placement|registered direct|financing)\b", sample, re.I) else
               "regulatory_milestone" if milestone else

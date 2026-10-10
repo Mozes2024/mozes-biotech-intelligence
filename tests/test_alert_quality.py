@@ -68,6 +68,8 @@ def test_regulatory_milestones_do_not_claim_new_approval(text, expected):
     outcome = classify_outcome(text)
     assert outcome["event_outcome"] == expected and not outcome["urgent"]
     assert not material_story_state({"new_value": {"summary": text}})["approval"]
+    if expected == "explicit_absence":
+        assert classify_clinical(text)["actionable"] is False
 
 
 @pytest.mark.parametrize("text", [
@@ -77,6 +79,7 @@ def test_regulatory_milestones_do_not_claim_new_approval(text, expected):
     "FDA placed the program on a clinical hold.",
     "The pivotal Phase 3 trial met its primary endpoint.",
     "No other candidate has been approved by the FDA. FDA approved Drug X today.",
+    "The pivotal Phase 3 trial met its primary endpoint. The company also has contingent value rights.",
 ])
 def test_verified_non_watchlist_urgent_developments_remain_p1(text):
     outcome = classify_outcome(text)

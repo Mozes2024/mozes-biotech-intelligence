@@ -33,7 +33,8 @@ def classify_clinical(text, outcome=None):
     routine = has("conference") and has("routine") and not has("data") and not has("regulatory")
     management = has("management", sample[:220]) and not has("data", sample[:220]) and not has("milestone", sample[:220])
     catalyst = relevant and future and (has("data") or has("regulatory") or has("milestone")) and not routine and not management
-    actionable = not future and not routine and not management and (bool(outcome["material"]) or has("regulatory_event"))
+    regulatory_event = has("regulatory_event") and outcome.get("event_family") in {"fda_decision", "regulatory_milestone", "material_safety"}
+    actionable = not future and not routine and not management and (bool(outcome["material"]) or regulatory_event)
     material = actionable or catalyst and (has("important") or has("regulatory")) or relevant and has('milestone') and has('important') and not routine and not management
     kind = "routine_conference" if routine else "management_update" if management else "upcoming_catalyst" if catalyst else "confirmed_development" if actionable else "clinical_update" if relevant else "outside_scope"
     return dict(outcome, relevant=relevant, material=material, actionable=actionable, catalyst=catalyst,
