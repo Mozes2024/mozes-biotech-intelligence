@@ -74,7 +74,7 @@ function alertWhyHe(a){
   if(a.polarity==='positive') bits.push('לפי ניסוח הכותרת זה נשמע חיובי — זה לא אומר שהמניה תעלה.');
   else if(a.polarity==='negative') bits.push('לפי ניסוח הכותרת זה נשמע שלילי — זה לא תחזית מחיר.');
   else if(a.polarity==='mixed') bits.push('הכותרת מעורבת או חלקית; נדרשת קריאה של המקור.');
-  if(a.priority==='P1') bits.push('סומן כדחוף כי המניה במעקב או שהאירוע קריטי.');
+  if(a.priority==='P1') bits.push('סומן כדחוף לפי התפתחות קלינית או רגולטורית מהותית, או שינוי מסחר קריטי; חברות ברשימת מעקב אינה אימות אירוע.');
   if((a.corroborated_by||[]).length) bits.push('דיווח דומה נקלט גם במקור נוסף; זה אינו אימות עצמאי של תוכן ההודעה.');
   return bits.join(' ');
 }

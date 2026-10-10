@@ -1,3 +1,5 @@
 # Frozen CSV hashes must match on Windows and Linux checkouts.
 mozes/data/starter_prices/*.csv text eol=lf
 mozes/data/candidate_prices_2024_2026/*.csv text eol=lf
+# Exact archived SEC evidence must retain its source checksum on every host.
+tests/fixtures/atos_20261008_*.html -text
