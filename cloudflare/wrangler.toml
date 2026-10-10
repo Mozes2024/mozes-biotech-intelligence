@@ -1,8 +1,10 @@
 name = "mozes-hot-clock"
 main = "src/index.js"
 compatibility_date = "2026-08-01"
+keep_vars = true
 
 [vars]
+EDGE_INTERVAL_SECONDS = "120"
 GITHUB_REPO = "Mozes2024/mozes-biotech-intelligence"
 WORKFLOW_FILE = "lightweight-monitor.yml"
 GITHUB_REF = "main"
