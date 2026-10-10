@@ -35,6 +35,51 @@ permission failure stops the incident. Official references:
 [analytics authentication](https://developers.cloudflare.com/analytics/graphql-api/getting-started/authentication/api-token-auth/),
 [Worker content read](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/content/methods/get/).
 
+The D1 HTTP `/query` endpoint accepts D1 Read for SELECT. Cloudflare's
+[May 2, 2025 release note](https://developers.cloudflare.com/d1/platform/release-notes/)
+explicitly states that **D1 Edit is required for any HTTP database write**, including
+the fix for Read combined with unrelated product Edit permissions. This is official
+server-enforcement evidence, not an empirical scoped-token write-denial test.
+No synthetic production writes were attempted. The client additionally allows
+only the fixed reviewed SELECT literal, permitted GET paths and analytics query;
+`rows_written` must be zero. This client restriction supplements provider permissions.
+
+Cloudflare credentials are present only in eligibility, claim revalidation and
+the incident restore step. GitHub/Edge/feed credentials also move from job-level
+environment to their consuming steps. Dependency installation and Python setup
+receive none of these credentials; both checkouts use `persist-credentials: false`.
+Checkout still uses its own action token internally. Existing optional delivery
+configuration is unchanged and must remain disabled.
+
+### Read-contract validation evidence
+
+Authenticated, read-only production responses were captured on October 10 at
+18:38 UTC using the existing Wrangler OAuth login, **not** a newly provisioned
+read-only secret. The actual payloads were replayed locally through the revised
+provider gate. Settings/bundle/deployment/schema/identity checks passed; analytics
+correctly rejected insufficient daily headroom. Recovery remains NO-GO.
+
+| Account-relative endpoint | Observed / required shape |
+| --- | --- |
+| `workers/scripts/mozes-hot-clock/settings` GET | REST `success=true`, object `result`; exact canonical settings digest |
+| `workers/scripts/mozes-hot-clock/deployments` GET | `result.deployments[]`, aware `created_on`, first active deployment, exact 100% version |
+| `workers/scripts/mozes-hot-clock/content/v2` GET | Multipart containing exactly `index.js`; hash decoded module bytes, not multipart boundaries |
+| `workers/scripts/mozes-hot-clock/schedules` GET | `result.schedules[]`, exact original cron |
+| `d1/database/<uuid>` GET | `result.uuid`, `name`, aware `created_at`; exact database identity |
+| `d1/database/<uuid>/query` POST | Two successful SELECT results, explicit `meta.rows_written=0`, complete migrations/events |
+| `graphql` POST | `data.viewer.accounts[0].d1AnalyticsAdaptiveGroups[]`, `dimensions.databaseId/datetimeHour`, numeric integral nonnegative `sum.rowsWritten` |
+
+See official [D1 query](https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/query/),
+[database metadata](https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/get/)
+and [deployment ordering](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/deployments/methods/list/).
+Transport rejects redirects, missing/stale HTTP Date (>120 seconds), errors,
+missing REST/GraphQL envelopes and oversized responses. ISO Z, fractional seconds
+and timezone offsets normalize to UTC; naive dates are rejected. Analytics rejects
+missing/current-hour stale rows, duplicate groups, future hours and limit saturation.
+Before activation, separately approved credential provisioning must verify these
+same read contracts using the actual scoped token; current OAuth success does not
+establish that a future secret has the correct privileges.
+
 ## Gates
 
 - Only a first-attempt `schedule` run on the exact separately approved main SHA,
@@ -51,14 +96,27 @@ permission failure stops the incident. Official references:
   bindings and secret names; only migrations 0001–0004.
 - Provider analytics must show positive rows-written for the target database in
   the **current UTC hour after reset**, with aggregate account writes below 90,000.
+  Also require a persisted automatic analysis/dispatch timestamp after reset and
+  within ten minutes of verification. Hourly metrics alone cannot prove recency.
   Successful reads/reset clock/previous-hour writes do not qualify. Queries are
   read-only SELECTs with `rows_written=0`. No synthetic capacity test is performed.
   Analytics lag can conservatively postpone or prevent recovery; the evidence
   demonstrates legitimate automatic writes, not per-request zero-write sync.
-- Preserve 27 Edge records/eight ACKs, original public-feed revision and 40 alerts.
+- Preserve the **complete** canonical Edge event-ID set, immutable source/ticker/
+  CIK/accession/URL/publication identities and all eight completed ACK/change/run/
+  alert/delivery correlations, not merely the counts. Three sorted canonical JSON
+  SHA256 fingerprints must match the protected audited baseline. Missing fields,
+  substitutions, extra events or partial completion correlations stop recovery.
+  Ordinary dispatch/retry timestamps may advance without changing identities.
+  Preserve original public-feed revision and 40 alerts.
   Existing restore independently verifies all linked ACK/change IDs, published
   receipts and absence of nonterminal outbox state. The pinned full DB preserves
   1,099 changes, 106 archives, 40 outbox records and 38 delivery rows byte-for-byte.
+  Fingerprints derive from protected `lineage-readonly-20261010-1806/live-edge-readonly.json`
+  (file SHA256 `577a020397cd9b30efd2417f699c36d77ff4055ea72e0d4e87a2b7212d7d7f0f`),
+  with all eight ACK/change associations independently matched to the pinned
+  checkpoint's `edge_event_links`. Fingerprint values are pinned in code; full
+  event payloads, checkpoint and captured responses remain outside Git.
 - All five ALMS/VIR/GKOS×2/SGMT events must retain source/ticker/material identity,
   complete analysis, no completion ACK or ambiguous delivery. Validate primary
   source URL without fetching blocked publishers. Do not alter retries/cooldowns.

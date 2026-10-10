@@ -14,8 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
-      GH_TOKEN: ${{ github.token }}
-      EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
       MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
       MOZES_INCIDENT_APPROVED_MAIN: ${{ vars.MOZES_INCIDENT_APPROVED_MAIN }}
       # October 10 incident: independent from the consumed TENX recovery.
@@ -34,4 +32,7 @@ jobs:
       - name: Install the checked-out verifier
         run: pip install -e .
       - name: Verify recovery without writes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
         run: python scripts/restore_monitor_state.py --run-id 38052910145 --verify-recovery-only

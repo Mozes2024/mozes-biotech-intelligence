@@ -3,6 +3,7 @@ import importlib.util
 import json
 import sys
 import threading
+import copy
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
@@ -10,6 +11,34 @@ from pathlib import Path
 import pytest
 
 from mozes import monitor_recovery
+
+
+def canonical_events():
+    return [{"event_id": f"EDGE-{n:024x}", "source": "businesswire", "ticker": "BIO",
+        "cik": "0000000001", "form": None, "accession": None,
+        "source_url": f"https://www.businesswire.com/news/home/{n}", "filing_index_url": None,
+        "first_seen_at": "2026-10-10T12:00:00Z", "accepted_at": None, "published_at": "source-date",
+        "enrichment_ack_at": "2026-10-10T12:01:00Z" if n < 8 else None,
+        "enrichment_completed_at": "2026-10-10T12:00:50Z" if n < 8 else None,
+        "enrichment_change_id": f"CHG-{n:024x}" if n < 8 else None,
+        "enrichment_github_run_id": "100" if n < 8 else None,
+        "enrichment_alert_ids_json": '["alert"]' if n < 8 else None,
+        "enrichment_delivery_json": '[{"status":"sent","channel":"browser"}]' if n < 8 else None,
+        "enrichment_dispatch_at": "2026-10-11T00:55:00Z", "analysis_completed_at": "2026-10-10T12:00:00Z"}
+        for n in range(27)]
+
+
+@pytest.mark.parametrize("field,value", [("event_id", "EDGE-ffffffffffffffffffffffff"),
+    ("source_url", "https://www.businesswire.com/news/replaced"), ("ticker", "OTHER"),
+    ("enrichment_change_id", "CHG-ffffffffffffffffffffffff"),
+    ("enrichment_delivery_json", '[{"status":"sent","channel":"other"}]')])
+def test_complete_edge_fingerprints_detect_same_count_substitution(gate, field, value):
+    rows = canonical_events()
+    expected = gate.edge_fingerprints(rows)
+    changed = copy.deepcopy(rows)
+    changed[0][field] = value
+    assert len(changed) == 27 and sum(bool(row["enrichment_ack_at"]) for row in changed) == 8
+    assert gate.edge_fingerprints(changed) != expected
 
 
 @pytest.fixture
@@ -226,21 +255,25 @@ def test_provider_capacity_requires_actual_current_hour_writes(gate, monkeypatch
     monkeypatch.setattr(gate, "SETTINGS", hashlib.sha256(json.dumps(settings, sort_keys=True,
         separators=(",", ":")).encode()).hexdigest())
     monkeypatch.setattr(gate, "BUNDLE", hashlib.sha256(b"bundle").hexdigest())
+    events = canonical_events()
+    monkeypatch.setattr(gate, "EDGE_FINGERPRINTS", gate.edge_fingerprints(events))
     def cf(path, **kwargs):
         if path.endswith("settings"):
             return settings
         if path.endswith("deployments"):
-            return {"deployments": [{"created_on": "now", "versions": [{"version_id": gate.WORKER, "percentage": 100}]}]}
+            return {"deployments": [{"created_on": "2026-10-10T12:29:11Z", "versions": [{"version_id": gate.WORKER, "percentage": 100}]}]}
         if path.endswith("schedules"):
             return {"schedules": [{"cron": "*/2 * * * *"}]}
         if path.endswith("content/v2"):
             return (b'--BOUND\r\nContent-Disposition: form-data; name="index.js"; filename="index.js"\r\n\r\nbundle\r\n--BOUND--\r\n',
                     'multipart/form-data; boundary="BOUND"')
         if path.endswith("query"):
-            assert "SELECT" in kwargs["body"]["sql"] and "INSERT" not in kwargs["body"]["sql"]
+            assert kwargs["body"] == {"sql": gate.D1_QUERY}
             return [{"success": True, "meta": {"rows_written": 0}, "results": [{"name": name} for name in
                 ["0001_alert_feed.sql", "0002_hot_edge.sql", "0003_hot_edge_reliability.sql", "0004_clinical_candidates.sql"]]},
-                {"success": True, "meta": {"rows_written": 0}, "results": [{"enrichment_ack_at": "done" if n < 8 else None} for n in range(27)]}]
+                {"success": True, "meta": {"rows_written": 0}, "results": events}]
+        if path.endswith(gate.DATABASE):
+            return {"uuid": gate.DATABASE, "name": "mozes-alerts", "created_at": "2026-10-01T00:00:00Z"}
         assert path == "graphql"
         return {"data": {"viewer": {"accounts": [{"d1AnalyticsAdaptiveGroups": [
             {"dimensions": {"databaseId": gate.DATABASE, "datetimeHour": "2026-10-11T01:00:00Z"},
@@ -255,6 +288,32 @@ def test_missing_provider_credential_does_not_issue_request(gate, monkeypatch):
     monkeypatch.delenv("CLOUDFLARE_RECOVERY_READ_TOKEN", raising=False)
     with pytest.raises(RuntimeError, match="CLOUDFLARE_RECOVERY_READ_TOKEN"):
         gate.cf("anything")
+
+
+@pytest.mark.parametrize("kind", ["identity", "ack", "metadata", "missing_deployment", "future_deployment", "content"])
+def test_provider_gate_rejects_corrupted_contract_or_history(gate, monkeypatch, kind):
+    test_provider_capacity_requires_actual_current_hour_writes(gate, monkeypatch, 1, 1, True)
+    original = gate.cf
+    def corrupted(path, **kwargs):
+        value = copy.deepcopy(original(path, **kwargs))
+        if path.endswith("query"):
+            if kind == "identity":
+                value[1]["results"][0]["event_id"] = "EDGE-ffffffffffffffffffffffff"
+            elif kind == "ack":
+                value[1]["results"][0]["enrichment_change_id"] = "CHG-ffffffffffffffffffffffff"
+        if path.endswith(gate.DATABASE) and kind == "metadata":
+            value["uuid"] = "other-database"
+        if path.endswith("deployments"):
+            if kind == "missing_deployment":
+                return {}
+            if kind == "future_deployment":
+                value["deployments"][0]["created_on"] = "2026-10-12T00:00:00Z"
+        if path.endswith("content/v2") and kind == "content":
+            return b"missing module", "text/plain"
+        return value
+    monkeypatch.setattr(gate, "cf", corrupted)
+    with pytest.raises(gate.IncidentGateError):
+        gate.provider_gate(gate.START + timedelta(hours=1))
 
 
 @pytest.mark.parametrize("conclusion", ["success", "failure", "cancelled", None])
@@ -348,3 +407,140 @@ def test_workflow_lock_covers_gate_and_processing_without_downstream_dispatch():
     assert "gh workflow run" not in gate_block
     assert text.index("python scripts/incident_recovery.py process") < text.index("python -m mozes.edge_sync")
     assert "MAX_REWIND = timedelta(minutes=45)" in (Path(__file__).parents[1] / "scripts/restore_monitor_state.py").read_text()
+
+
+def analytics(gate, stamp="2026-10-11T01:00:00Z", writes=1):
+    return {"data": {"viewer": {"accounts": [{"d1AnalyticsAdaptiveGroups": [
+        {"dimensions": {"databaseId": gate.DATABASE, "datetimeHour": stamp},
+         "sum": {"rowsWritten": writes}}]}]}}}
+
+
+@pytest.mark.parametrize("stamp", ["2026-10-11T01:00:00Z", "2026-10-11T01:00:00.000+00:00",
+                                     "2026-10-11T04:00:00+03:00"])
+def test_analytics_normalizes_equivalent_provider_timestamps(gate, stamp):
+    proof = gate.analytics_evidence(analytics(gate, stamp), gate.START + timedelta(hours=1), canonical_events())
+    assert proof["capacity_demonstrated"] and proof["current_hour_rows_written"] == 1
+
+
+@pytest.mark.parametrize("stamp", [None, "2026-10-11T01:00:00", "2026-10-11T00:00:00Z",
+                                     "2026-10-11T02:00:00Z", "2026-10-11T01:00:00.001Z"])
+def test_stale_missing_or_invalid_analytics_timestamps_fail_closed(gate, stamp):
+    with pytest.raises(gate.IncidentGateError):
+        gate.analytics_evidence(analytics(gate, stamp), gate.START + timedelta(hours=1), canonical_events())
+
+
+@pytest.mark.parametrize("writes", [None, "1", True, -1, 1.5, float("inf"), 90000])
+def test_invalid_or_exhausted_provider_counters_fail_closed(gate, writes):
+    with pytest.raises(gate.IncidentGateError):
+        gate.analytics_evidence(analytics(gate, writes=writes), gate.START + timedelta(hours=1), canonical_events())
+
+
+@pytest.mark.parametrize("kind", ["missing", "empty", "null", "errors", "duplicate", "truncated"])
+def test_unavailable_or_incomplete_provider_evidence_fails_closed(gate, kind):
+    value = analytics(gate)
+    groups = value["data"]["viewer"]["accounts"][0]["d1AnalyticsAdaptiveGroups"]
+    if kind == "missing":
+        value = {}
+    elif kind == "empty":
+        groups.clear()
+    elif kind == "null":
+        value["data"] = None
+    elif kind == "errors":
+        value["errors"] = [{"message": "unavailable"}]
+    elif kind == "duplicate":
+        groups.append(copy.deepcopy(groups[0]))
+    else:
+        groups.extend(copy.deepcopy(groups[0]) for _ in range(99))
+    with pytest.raises(gate.IncidentGateError):
+        gate.analytics_evidence(value, gate.START + timedelta(hours=1), canonical_events())
+
+
+def test_hourly_writes_without_recent_legitimate_write_do_not_prove_capacity(gate):
+    events = canonical_events()
+    for event in events:
+        event["enrichment_dispatch_at"] = "2026-10-11T00:01:00Z"
+    assert not gate.analytics_evidence(analytics(gate), gate.START + timedelta(hours=1), events)["capacity_demonstrated"]
+
+
+def test_fingerprints_ignore_order_json_whitespace_and_equivalent_dates(gate):
+    events = canonical_events()
+    expected = gate.edge_fingerprints(events)
+    events.reverse()
+    for event in events:
+        event["first_seen_at"] = "2026-10-10T15:00:00+03:00"
+        if event["enrichment_ack_at"]:
+            event["enrichment_alert_ids_json"] = '[ "alert" ]'
+    assert gate.edge_fingerprints(events) == expected
+
+
+@pytest.mark.parametrize("kind", ["duplicate", "missing", "partial_ack", "missing_change", "invalid_receipt"])
+def test_incomplete_edge_history_fails_closed(gate, kind):
+    events = canonical_events()
+    if kind == "duplicate":
+        events[1]["event_id"] = events[0]["event_id"]
+    elif kind == "missing":
+        del events[0]["source_url"]
+    elif kind == "partial_ack":
+        events[8]["enrichment_change_id"] = events[0]["enrichment_change_id"]
+    elif kind == "missing_change":
+        events[0]["enrichment_change_id"] = None
+    else:
+        events[0]["enrichment_delivery_json"] = '{}'
+    with pytest.raises(gate.IncidentGateError):
+        gate.edge_fingerprints(events)
+
+
+@pytest.mark.parametrize("sql", ["DELETE FROM edge_events", "SELECT 1", "UPDATE edge_events SET material=0"])
+def test_provider_transport_rejects_nonreviewed_sql_before_network(gate, monkeypatch, sql):
+    monkeypatch.setenv("CLOUDFLARE_RECOVERY_READ_TOKEN", "test-only-placeholder")
+    with pytest.raises(gate.IncidentGateError, match="non-read-only"):
+        gate.cf(f"accounts/{gate.ACCOUNT}/d1/database/{gate.DATABASE}/query", body={"sql": sql})
+
+
+@pytest.mark.parametrize("kind", ["auth", "missing_date", "stale_date", "missing_result", "graphql_null"])
+def test_provider_transport_unavailability_is_safe_and_closed(gate, monkeypatch, kind):
+    from datetime import datetime, timezone
+    from email.utils import format_datetime
+    monkeypatch.setenv("CLOUDFLARE_RECOVERY_READ_TOKEN", "test-only-placeholder")
+    class Response:
+        headers = {"Date": format_datetime(datetime.now(timezone.utc))}
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def read(self, limit):
+            return json.dumps({"data": None} if kind == "graphql_null" else {"success": True}).encode()
+    response = Response()
+    if kind == "missing_date":
+        response.headers = {}
+    elif kind == "stale_date":
+        response.headers = {"Date": "Sat, 10 Oct 2026 00:00:00 GMT"}
+    class Opener:
+        def open(self, *args, **kwargs):
+            if kind == "auth":
+                raise gate.urllib.error.HTTPError("redacted", 403, "forbidden", {}, None)
+            return response
+    monkeypatch.setattr(gate.urllib.request, "build_opener", lambda *args: Opener())
+    with pytest.raises(gate.IncidentGateError) as error:
+        if kind == "graphql_null":
+            gate.cf("graphql", body={"query": gate.analytics_query(gate.START)})
+        else:
+            gate.cf(f"accounts/{gate.ACCOUNT}/d1/database/{gate.DATABASE}")
+    assert "test-only-placeholder" not in str(error.value)
+
+
+def test_credentials_are_step_scoped_and_absent_during_dependency_installation():
+    import re
+    root = Path(__file__).parents[1]
+    for name in ("lightweight-monitor.yml", "verify-monitor-recovery.yml"):
+        text = (root / ".github/workflows" / name).read_text()
+        for job in re.split(r"^  [a-z_]+:\s*$", text, flags=re.MULTILINE)[1:]:
+            if "    steps:" not in job:
+                continue
+            config, steps = job.split("    steps:", 1)
+            for credential in ("GH_TOKEN:", "EDGE_SYNC_TOKEN:", "CLOUDFLARE_RECOVERY_READ_TOKEN:", "MOZES_ALERT_FEED_TOKEN:"):
+                assert credential not in config
+            for step in re.split(r"^      - ", steps, flags=re.MULTILINE):
+                if "pip install" in step or "actions/setup-python" in step or "actions/checkout" in step:
+                    assert "CLOUDFLARE_RECOVERY_READ_TOKEN:" not in step
+                    assert "EDGE_SYNC_TOKEN:" not in step
+                    assert "GH_TOKEN:" not in step
+            assert "persist-credentials: false" in steps

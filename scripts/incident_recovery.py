@@ -17,6 +17,7 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from email.parser import BytesParser
 from email.policy import default
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -34,6 +35,19 @@ DATABASE = "9baf99f2-1ccc-4415-affd-2708a7210e7b"
 WORKER = "11c60e3e-b948-43db-90af-35e1e86bb56e"
 BUNDLE = "13e487d7b85e45c6fc48efa70ce755ca91645c6fe35f6f213feeb5f8d94c01e3"
 SETTINGS = "e5fd12e14e3820248e2ff0224543b27b9f85300d05a9fe7eee8ad948fe6cfb00"
+IDENTITY_FIELDS = ("event_id", "source", "ticker", "cik", "form", "accession", "source_url",
+                   "filing_index_url", "first_seen_at", "accepted_at", "published_at")
+ACK_FIELDS = ("event_id", "enrichment_ack_at", "enrichment_completed_at", "enrichment_change_id",
+              "enrichment_github_run_id", "enrichment_alert_ids_json", "enrichment_delivery_json")
+EDGE_FIELDS = tuple(dict.fromkeys(IDENTITY_FIELDS + ACK_FIELDS + ("enrichment_dispatch_at", "analysis_completed_at")))
+D1_QUERY = ("SELECT name FROM d1_migrations ORDER BY id LIMIT 10; SELECT " + ",".join(EDGE_FIELDS)
+            + " FROM edge_events ORDER BY event_id LIMIT 1001;")
+# Deterministic projections of protected audited evidence, never database contents.
+EDGE_FINGERPRINTS = {
+    "event_ids": "5dee66a02bb3b020ab67ad2f1930a1e0fd6d57eb0ffa15914d2d4a17597f79e1",
+    "identities": "e5db31f6fb06a63f1fca07c1aea8be09a7f5fecc49963167c23e8aeffe2752d7",
+    "completed_acks": "6038406ec20f4ebc38fdd380733f62e85b9114478f9fd4557b994facd5c392fb",
+}
 PENDING = {
     "EDGE-0355d6c1d3230e9770d460fa": ("ALMS", "globenewswire"),
     "EDGE-3a1f8b2daff5876b5fe398c3": ("VIR", "businesswire"),
@@ -45,6 +59,104 @@ PENDING = {
 
 class IncidentGateError(RuntimeError):
     """Static, safe gate reason; never a provider response or event payload."""
+
+
+def timestamp(value):
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            raise ValueError()
+        return parsed.astimezone(timezone.utc)
+    except (AttributeError, TypeError, ValueError):
+        raise IncidentGateError("missing/invalid timezone-aware provider timestamp") from None
+
+
+def fingerprint(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def edge_fingerprints(events):
+    if not isinstance(events, list) or len(events) != 27:
+        raise IncidentGateError("Edge identity evidence incomplete")
+    identities, acks, ids = [], [], []
+    for event in events:
+        if not isinstance(event, dict) or not set(EDGE_FIELDS).issubset(event):
+            raise IncidentGateError("Edge identity/correlation fields missing")
+        edge_id = event["event_id"]
+        if not isinstance(edge_id, str) or not re.fullmatch(r"EDGE-[a-f0-9]{24}", edge_id):
+            raise IncidentGateError("invalid canonical Edge identity")
+        ids.append(edge_id)
+        identity = {field: event[field] for field in IDENTITY_FIELDS}
+        identity["first_seen_at"] = timestamp(identity["first_seen_at"]).isoformat()
+        identities.append(identity)
+        if event["enrichment_ack_at"]:
+            ack = {field: event[field] for field in ACK_FIELDS}
+            if not re.fullmatch(r"CHG-[a-f0-9]{24}", ack["enrichment_change_id"] or ""):
+                raise IncidentGateError("completed ACK/change correlation missing")
+            for field in ("enrichment_ack_at", "enrichment_completed_at"):
+                ack[field] = timestamp(ack[field]).isoformat()
+            for field in ("enrichment_alert_ids_json", "enrichment_delivery_json"):
+                try:
+                    ack[field] = json.loads(ack[field])
+                    if not isinstance(ack[field], list):
+                        raise ValueError()
+                except (TypeError, ValueError):
+                    raise IncidentGateError("completed ACK receipt evidence invalid") from None
+            acks.append(ack)
+        elif any(event[field] for field in ACK_FIELDS[2:]):
+            raise IncidentGateError("uncompleted Edge event has ambiguous correlations")
+    if len(set(ids)) != 27 or len(acks) != 8:
+        raise IncidentGateError("Edge identity/ACK set differs")
+    return {"event_ids": fingerprint(sorted(ids)),
+            "identities": fingerprint(sorted(identities, key=lambda row: row["event_id"])),
+            "completed_acks": fingerprint(sorted(acks, key=lambda row: row["event_id"]))}
+
+
+def analytics_query(now):
+    day = now.astimezone(timezone.utc).date().isoformat()
+    return ('{viewer{accounts(filter:{accountTag:"' + ACCOUNT + '"}){'
+        'd1AnalyticsAdaptiveGroups(limit:100,filter:{date_geq:"' + day + '",date_leq:"' + day + '"})'
+        '{sum{rowsWritten} dimensions{datetimeHour databaseId}}}}}')
+
+
+def analytics_evidence(value, now, events):
+    try:
+        accounts = value["data"]["viewer"]["accounts"]
+        if value.get("errors") or not isinstance(accounts, list) or len(accounts) != 1:
+            raise ValueError()
+        groups = accounts[0]["d1AnalyticsAdaptiveGroups"]
+        if not isinstance(groups, list) or not groups or len(groups) >= 100:
+            raise ValueError()
+        total, written, seen = 0, 0, set()
+        hour = now.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        for row in groups:
+            stamp = timestamp(row["dimensions"]["datetimeHour"])
+            database = row["dimensions"]["databaseId"]
+            count = row["sum"]["rowsWritten"]
+            if (not isinstance(database, str) or not database or (database, stamp) in seen
+                    or stamp.date() != hour.date() or stamp > hour
+                    or stamp.minute or stamp.second or stamp.microsecond
+                    or type(count) not in (int, float) or count < 0 or count != int(count)):
+                raise ValueError()
+            seen.add((database, stamp))
+            total += int(count)
+            if database == DATABASE and stamp == hour:
+                written += int(count)
+        if (DATABASE, hour) not in seen:
+            raise IncidentGateError("current-hour provider evidence missing/stale")
+        if total >= 90000:
+            raise IncidentGateError("D1 write headroom insufficient")
+        # Hourly aggregation alone cannot prove a write was recent. Require a
+        # persisted automatic write timestamp too; never manufacture a probe.
+        writes = [timestamp(event[field]) for event in events
+                  for field in ("enrichment_dispatch_at", "analysis_completed_at") if event[field]]
+        recent = [stamp for stamp in writes if max(START, now - timedelta(minutes=10)) <= stamp <= now]
+        return {"capacity_demonstrated": written > 0 and bool(recent),
+                "current_hour_rows_written": written, "daily_rows_written": total,
+                "latest_automatic_write_at": max(recent).isoformat() if recent else None,
+                "worker_version": WORKER}
+    except (KeyError, TypeError, ValueError, OverflowError):
+        raise IncidentGateError("provider analytics incomplete/invalid") from None
 
 
 def api(path, *, body=None, absent_ok=False):
@@ -69,11 +181,22 @@ def cf(path, *, body=None, raw=False):
     token = os.environ.get("CLOUDFLARE_RECOVERY_READ_TOKEN", "")
     if not token.strip():
         raise IncidentGateError("CLOUDFLARE_RECOVERY_READ_TOKEN")
+    base = f"accounts/{ACCOUNT}/workers/scripts/mozes-hot-clock/"
+    get_paths = {base + suffix for suffix in ("settings", "deployments", "schedules", "content/v2")}
+    get_paths.add(f"accounts/{ACCOUNT}/d1/database/{DATABASE}")
+    query_path = f"accounts/{ACCOUNT}/d1/database/{DATABASE}/query"
+    if not ((path in get_paths and body is None)
+            or (path == query_path and body == {"sql": D1_QUERY})
+            or (path == "graphql" and isinstance(body, dict) and set(body) == {"query"})):
+        raise IncidentGateError("non-read-only provider request rejected")
     request = urllib.request.Request("https://api.cloudflare.com/client/v4/" + path,
         data=json.dumps(body).encode() if body is not None else None,
         headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"})
     try:
         with urllib.request.build_opener(NoRedirect()).open(request, timeout=30) as response:
+            server_time = parsedate_to_datetime(response.headers.get("Date", ""))
+            if server_time.tzinfo is None or abs((datetime.now(timezone.utc) - server_time).total_seconds()) > 120:
+                raise IncidentGateError("provider response timestamp missing/stale")
             data = response.read(2097153)
             if len(data) > 2097152:
                 raise IncidentGateError("Cloudflare evidence exceeds bound")
@@ -82,19 +205,37 @@ def cf(path, *, body=None, raw=False):
             value = json.loads(data)
     except (urllib.error.URLError, OSError, ValueError) as exc:
         raise IncidentGateError("Cloudflare read evidence unavailable; no retry") from None
-    if value.get("errors") or value.get("success") is False:
+    if not isinstance(value, dict) or value.get("errors"):
         raise IncidentGateError("Cloudflare read evidence rejected")
-    return value.get("result", value)
+    if path == "graphql":
+        if not isinstance(value.get("data"), dict):
+            raise IncidentGateError("Cloudflare analytics data missing")
+        return value
+    if value.get("success") is not True or "result" not in value or value["result"] is None:
+        raise IncidentGateError("Cloudflare REST envelope incomplete")
+    return value["result"]
 
 
 def provider_gate(now):
+    try:
+        return _provider_gate(now)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        raise IncidentGateError("provider response shape incomplete/invalid") from None
+
+
+def _provider_gate(now):
     base = f"accounts/{ACCOUNT}/workers/scripts/mozes-hot-clock/"
     settings = cf(base + "settings")
     digest = hashlib.sha256(json.dumps(settings, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     if digest != SETTINGS:
         raise IncidentGateError("Worker settings/bindings drift")
     deployments = cf(base + "deployments")["deployments"]
-    latest = max(deployments, key=lambda item: item["created_on"])
+    if not isinstance(deployments, list) or not deployments:
+        raise IncidentGateError("Worker deployment evidence missing")
+    dates = [timestamp(item["created_on"]) for item in deployments]
+    if dates != sorted(dates, reverse=True) or dates[0] > now:
+        raise IncidentGateError("Worker deployment evidence invalid")
+    latest = deployments[0]  # Cloudflare documents first = actively serving deployment.
     if latest["versions"] != [{"version_id": WORKER, "percentage": 100}]:
         raise IncidentGateError("Worker deployment drift")
     if [item["cron"] for item in cf(base + "schedules")["schedules"]] != ["*/2 * * * *"]:
@@ -102,36 +243,32 @@ def provider_gate(now):
     raw, content_type = cf(base + "content/v2", raw=True)
     message = BytesParser(policy=default).parsebytes(
         ("Content-Type: " + content_type + "\r\nMIME-Version: 1.0\r\n\r\n").encode() + raw)
+    if not message.is_multipart():
+        raise IncidentGateError("Worker module response invalid")
     modules = {part.get_filename() or part.get_param("name", header="content-disposition"):
                part.get_payload(decode=True) for part in message.iter_parts()}
+    if list(modules) != ["index.js"] or len(list(message.iter_parts())) != 1:
+        raise IncidentGateError("Worker module set changed/incomplete")
     if hashlib.sha256(modules["index.js"]).hexdigest() != BUNDLE:
         raise IncidentGateError("Worker bundle drift")
-    evidence = cf(f"accounts/{ACCOUNT}/d1/database/{DATABASE}/query", body={"sql":
-        "SELECT name FROM d1_migrations ORDER BY id LIMIT 10; "
-        "SELECT event_id,enrichment_ack_at,enrichment_change_id FROM edge_events ORDER BY event_id LIMIT 1001;"})
+    metadata = cf(f"accounts/{ACCOUNT}/d1/database/{DATABASE}")
+    if (metadata.get("uuid") != DATABASE or metadata.get("name") != "mozes-alerts"
+            or timestamp(metadata.get("created_at")) > now):
+        raise IncidentGateError("D1 database metadata identity differs")
+    evidence = cf(f"accounts/{ACCOUNT}/d1/database/{DATABASE}/query", body={"sql": D1_QUERY})
     if (len(evidence) != 2 or any(not item.get("success") or item["meta"]["rows_written"] != 0 for item in evidence)
             or [row["name"] for row in evidence[0]["results"]] != [
                 "0001_alert_feed.sql", "0002_hot_edge.sql", "0003_hot_edge_reliability.sql", "0004_clinical_candidates.sql"]):
         raise IncidentGateError("D1 schema/read evidence differs")
     events = evidence[1]["results"]
-    if len(events) != 27 or sum(bool(row["enrichment_ack_at"]) for row in events) != 8:
-        raise IncidentGateError("new Edge state requires reconciliation")
+    actual_fingerprints = edge_fingerprints(events)
+    if actual_fingerprints != EDGE_FINGERPRINTS:
+        raise IncidentGateError("Edge identities/ACK correlations differ from audited baseline")
     # Read-only provider analytics. A positive CURRENT UTC hour requires an
     # actual production D1 write; midnight itself or successful SELECT is not proof.
-    query = ('{viewer{accounts(filter:{accountTag:"' + ACCOUNT + '"}){'
-        'd1AnalyticsAdaptiveGroups(limit:100,filter:{date_geq:"2026-10-11",date_leq:"2026-10-11"})'
-        '{sum{rowsWritten} dimensions{datetimeHour databaseId}}}}}')
-    groups = cf("graphql", body={"query": query})["data"]["viewer"]["accounts"][0]["d1AnalyticsAdaptiveGroups"]
-    if len(groups) >= 100:
-        raise IncidentGateError("analytics completeness bound exhausted")
-    total = sum(row["sum"]["rowsWritten"] for row in groups)
-    groups = [row for row in groups if row["dimensions"]["databaseId"] == DATABASE]
-    hour = now.replace(minute=0, second=0, microsecond=0).isoformat().replace("+00:00", "Z")
-    written = sum(row["sum"]["rowsWritten"] for row in groups if row["dimensions"]["datetimeHour"] == hour)
-    if total >= 90000:
-        raise IncidentGateError("D1 write headroom insufficient")
-    return {"capacity_demonstrated": written > 0, "current_hour_rows_written": written,
-            "daily_rows_written": total, "worker_version": WORKER}
+    proof = analytics_evidence(cf("graphql", body={"query": analytics_query(now)}), now, events)
+    proof["edge_fingerprints"] = actual_fingerprints
+    return proof
 
 
 def context(now):
