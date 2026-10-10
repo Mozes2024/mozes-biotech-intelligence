@@ -17,6 +17,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
       MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
+      MOZES_INCIDENT_APPROVED_MAIN: ${{ vars.MOZES_INCIDENT_APPROVED_MAIN }}
       # October 10 incident: independent from the consumed TENX recovery.
       SOURCE_RUN_ID: '38052910145'
       MONITOR_RECOVERY_SHA256: '0ca9e7f01ccb639914820c96489192d8c5e7842d098e52de0c7fcbb6c19687fb'
