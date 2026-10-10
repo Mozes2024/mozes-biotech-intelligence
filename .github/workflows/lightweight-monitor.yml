@@ -49,7 +49,44 @@ concurrency:
   cancel-in-progress: false
   queue: max
 jobs:
+  incident_eligibility:
+    name: incident-eligibility
+    # Disabled until separately reviewed activation; no new cron or dispatcher.
+    if: github.event_name == 'schedule' && vars.MOZES_INCIDENT_RECOVERY_ENABLED == '20261011'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write # Atomic, permanent incident claim; activation requires approval.
+      actions: read
+    outputs:
+      mode: ${{ steps.eligibility.outputs.mode }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
+      MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
+      CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
+      MOZES_INCIDENT_APPROVED_MAIN: ${{ vars.MOZES_INCIDENT_APPROVED_MAIN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e .
+      - name: Verify incident recovery eligibility
+        id: eligibility
+        run: python scripts/incident_recovery.py eligible
+      - name: Acquire irreversible incident recovery claim
+        if: steps.eligibility.outputs.mode == 'recover'
+        run: python scripts/incident_recovery.py claim
   monitor:
+    needs: incident_eligibility
+    if: >-
+      always() && (needs.incident_eligibility.result == 'skipped' ||
+      (needs.incident_eligibility.result == 'success' &&
+      (needs.incident_eligibility.outputs.mode == 'recover' ||
+      needs.incident_eligibility.outputs.mode == 'ordinary')))
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -84,6 +121,9 @@ jobs:
       MOZES_EDGE_EVENT_ID: ${{ inputs.edge_event_id }}
       MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
       EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
+      CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ needs.incident_eligibility.outputs.mode == 'recover' && secrets.CLOUDFLARE_RECOVERY_READ_TOKEN || '' }}
+      MOZES_INCIDENT_APPROVED_MAIN: ${{ vars.MOZES_INCIDENT_APPROVED_MAIN }}
+      INCIDENT_MODE: ${{ needs.incident_eligibility.outputs.mode }}
       RUN_PRIORITY: ${{ inputs.priority_only == true || github.event_name == 'schedule' }}
     steps:
       - uses: actions/checkout@v4
@@ -95,7 +135,12 @@ jobs:
       - run: pip install -e .
       - name: Restore the single monitor-state lineage
         id: restore
-        run: python scripts/restore_monitor_state.py
+        run: |
+          if [ "$INCIDENT_MODE" = 'recover' ] || [ "$SOURCE_RUN_ID" = '38052910145' ]; then
+            python scripts/incident_recovery.py process
+          else
+            python scripts/restore_monitor_state.py
+          fi
       - name: Synchronize verified issuer universe to hot edge
         run: python -m mozes.edge_sync
       - name: Enrich the correlated Edge event
