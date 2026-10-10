@@ -323,7 +323,7 @@ def test_complete_filing_is_reused_for_unchanged_and_new_candidates(tmp_path, mo
 
     def extractor(filing, **kw):
         calls.append(filing['accession'])
-        return [{'statement': 'NCT-NEW Phase 3 topline expected', 'source_id': filing['url'],
+        return [{'statement': 'NCT87654321 Phase 3 topline expected', 'source_id': filing['url'],
                  'source_url': filing['url'], 'accession': filing['accession']}], [
                     {'status': 'OK', 'url': filing['index_url'], 'reason': 'index_extracted'},
                     {'status': 'OK', 'url': filing['url'], 'reason': 'extracted'}]
@@ -334,7 +334,7 @@ def test_complete_filing_is_reused_for_unchanged_and_new_candidates(tmp_path, mo
     refresh.verify_candidates_from_sec(conn)
     conn.execute("INSERT INTO discovery_candidates(candidate_id,nct_id,sponsor,ticker,ticker_confidence,phase,title,"
                  "primary_completion,last_update_posted,status,raw_json,discovered_at) "
-                 "VALUES('C-T001-NEW','NCT-NEW','T001','T001',.9,'PHASE3','New program',"
+                 "VALUES('C-T001-NEW','NCT87654321','T001','T001',.9,'PHASE3','New program',"
                  "'2027-01','2026-10-02','RECRUITING','{}',?)", (db.utcnow(),))
     refresh.verify_candidates_from_sec(conn)
     refresh.verify_candidates_from_sec(conn)  # unchanged observation uses stored listing and extraction

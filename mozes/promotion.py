@@ -11,40 +11,71 @@ from .source_quality import is_primary
 from .lifecycle import is_resolved
 
 
-def _terms(candidate: dict):
-    raw = json.loads(candidate.get("raw_json") or "{}")
+_GENERIC_IDENTITY_WORDS = frozenset("""
+    safety efficacy evaluation study trial clinical phase randomized randomised double
+    blind blinded open label patients subjects treatment therapy standard of care best
+    available chemotherapy placebo oral tablet tablets injection solution saline control
+    comparator arm drug intervention results data assessment endpoint endpoints primary
+    secondary overall survival tolerability pharmacokinetics and the a an in for with
+""".split())
+
+
+def _terms(candidate: dict) -> list[str]:
+    """Specific registry identities only; title words are not identity evidence."""
+    try:
+        raw = json.loads(candidate.get("raw_json") or "{}")
+    except (ValueError, TypeError):
+        return []
+    if not isinstance(raw, dict):
+        return []
     ps = raw.get("protocolSection", raw)
-    arms = ps.get("armsInterventionsModule", {}) if isinstance(ps, dict) else {}
-    names = [x.get("name") for x in arms.get("interventions", []) if x.get("name")]
-    title = candidate.get("title") or ""
-    # Exclude generic trial words; keep drug/program-like tokens.
-    toks = [t for t in re.findall(r"[A-Za-z][A-Za-z0-9-]{3,}", title) if t.lower() not in {"study","phase","trial","randomized","double","blind","patients","subjects","treatment"}]
-    return [x for x in names + toks[:12] if x]
+    if not isinstance(ps, dict):
+        return []
+    identification = ps.get("identificationModule") or {}
+    arms = ps.get("armsInterventionsModule") or {}
+    names = [identification.get("acronym")] if isinstance(identification, dict) else []
+    interventions = arms.get("interventions", []) if isinstance(arms, dict) else []
+    for intervention in interventions if isinstance(interventions, list) else []:
+        if not isinstance(intervention, dict):
+            continue
+        name = intervention.get("name")
+        # Placebo aliases describe the control, never the investigational program.
+        if isinstance(name, str) and re.search(r"\bplacebo\b", name.casefold()):
+            continue
+        names.append(name)
+        aliases = intervention.get("otherNames", [])
+        if isinstance(aliases, list):
+            names.extend(aliases)
+    terms = []
+    seen = set()
+    for name in names:
+        if not isinstance(name, str):
+            continue
+        name = " ".join(name.split())
+        key = name.casefold()
+        words = re.findall(r"[a-z0-9]+", key)
+        if (len(name) < 3 or not words
+                or all(word in _GENERIC_IDENTITY_WORDS or word.isdigit() for word in words)
+                or key in seen):
+            continue
+        seen.add(key)
+        terms.append(name)
+    return terms
 
 
 def candidate_matches_statement(candidate: dict, statement: str) -> tuple[bool, float, list[str]]:
-    text = statement.lower()
-    reasons = []
-    raw = candidate.get("raw_json") or ""
-    nct = candidate.get("nct_id")
-    if nct and nct.lower() in text:
+    text = " ".join(statement.casefold().split())
+    nct = str(candidate.get("nct_id") or "").casefold()
+    cited_trials = set(re.findall(r"(?<![\w-])nct[0-9]{8}(?![\w-])", text))
+    # Shared interventions cannot establish which trial conflicting guidance concerns.
+    if cited_trials and cited_trials != {nct}:
+        return False, 0.0, ["ambiguous or conflicting NCT identifiers"]
+    if re.fullmatch(r"nct[0-9]{8}", nct) and nct in cited_trials:
         return True, 1.0, ["exact NCT identifier"]
-    data = json.loads(raw or "{}")
-    ps = data.get("protocolSection", data)
-    acronym = (ps.get("identificationModule") or {}).get("acronym")
-    interventions = [x.get("name", "") for x in (ps.get("armsInterventionsModule") or {}).get("interventions", [])]
-    names = ([acronym] if acronym else []) + interventions
-    generic = {"placebo", "standard of care", "best available therapy", "chemotherapy"}
-    specific = [name for name in names if len(name) >= 3 and name.lower() not in generic
-                and re.search(r"(?<![a-z0-9])" + re.escape(name.lower()) + r"(?![a-z0-9])", text)]
-    if specific:
-        return True, .90, ["exact registered program/intervention: " + specific[0]]
-    terms = _terms(candidate)
-    hits = [t for t in terms if t.lower() in text]
-    if hits:
-        reasons.append("program/intervention match: " + ", ".join(hits[:3]))
-    score = min(0.95, 0.55 + 0.12 * len(hits)) if hits else 0.0
-    return score >= 0.79, score, reasons
+    for name in _terms(candidate):
+        if re.search(r"(?<![\w-])" + re.escape(name.casefold()) + r"(?![\w-])", text):
+            return True, .90, ["exact registered program/intervention: " + name]
+    return False, 0.0, []
 
 
 def promote_candidate(conn, candidate: dict, extracted: dict, ticker: str, source_type="sec"):
