@@ -3,7 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node test.mjs && node test_alert_feed.mjs && node test_hot_edge.mjs && node test_production_baseline.mjs && node test_fairness.mjs",
-    "deploy": "wrangler deploy"
+    "test": "node test.mjs && node test_alert_feed.mjs && node test_hot_edge.mjs && node test_production_baseline.mjs && node test_fairness.mjs && node test_issuer_sync.mjs",
+    "deploy": "wrangler deploy",
+    "benchmark": "node test_issuer_sync.mjs"
+  },
+  "devDependencies": {
+    "miniflare": "5.20261006.1-alpha",
+    "wrangler": "4.149.0"
   }
 }
