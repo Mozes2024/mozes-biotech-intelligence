@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Verify the exact approved production baseline.
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -26,6 +28,7 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
       - run: pip install -e ".[dev]"
+      - run: npm ci --prefix cloudflare
       - name: Complete offline regression suite
         run: pytest -q
       - name: Syntax checks
@@ -34,9 +37,7 @@ jobs:
           for file in web/*.js; do node --check "$file"; done
       - name: Cloudflare hot edge Worker
         run: |
-          node cloudflare/test.mjs
-          node cloudflare/test_alert_feed.mjs
-          node cloudflare/test_hot_edge.mjs
+          npm test --prefix cloudflare
       - name: Offline product smoke test
         env:
           MOZES_DB_PATH: /tmp/mozes-ci.db

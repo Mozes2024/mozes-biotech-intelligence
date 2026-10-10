@@ -43,13 +43,13 @@ assert.match(queries[0], /enrichment_ack_at IS NULL/);
 const env = { EDGE_SYNC_TOKEN: "secret" };
 assert.equal((await syncIssuers(new Request("https://edge.example/edge/sync", { method: "POST", body: "{}" }), env)).status, 401);
 const batches = [];
-env.ALERTS_DB = { prepare: sql => ({ bind: (...values) => ({ sql, values }) }),
-  batch: async statements => { batches.push(statements); } };
+env.ALERTS_DB = { prepare: sql => ({ all: async()=>({results:[]}),bind: (...values) => ({ sql, values }) }),
+  batch: async statements => { batches.push(statements); return [{results:[{accepted:1}]},{meta:{changes:0}},{meta:{changes:1}}]; } };
 const issuer = { cik: "123", ticker: "ZZZZ", company: "Novel Bio", confidence: .99, source: "SEC-v2C-equity" };
 const authorized = new Request("https://edge.example/edge/sync", { method: "POST",
   headers: { Authorization: "Bearer secret" }, body: JSON.stringify({ issuers: [issuer] }) });
 assert.equal((await syncIssuers(authorized, env)).status, 200);
-assert.equal(batches[0].length, 2);
+assert.equal(batches[0].length, 3);
 let rearmed = false;
 await worker.scheduled({ scheduledTime: Date.now() }, { HOT_EDGE: {
   idFromName: () => "global", get: () => ({ fetch: async () => { rearmed = true; return new Response(); } }),

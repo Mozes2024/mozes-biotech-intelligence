@@ -17,7 +17,9 @@ assert.equal(current.match(/^const INTERVAL = .*$/m)[0],original.match(/^const I
 assert.ok(!current.includes('async runAlarm('),'no Stage A alarm serialization');
 assert.ok(!current.includes('source_item_id'),'no Stage B schema dependency');
 assert.deepEqual(readdirSync(new URL('./migrations/',import.meta.url)).sort(),['0001_alert_feed.sql','0002_hot_edge.sql','0003_hot_edge_reliability.sql','0004_clinical_candidates.sql']);
-for(const file of ['index.js','edge-contract.js','candidate-contract.js','clinical-events.js']){
+assert.equal(readFileSync(new URL('./src/index.js',import.meta.url),'utf8').replace(/\r\n/g,'\n').split('export async function syncIssuers')[0],
+ execFileSync('git',['show',`${base}:cloudflare/src/index.js`],{encoding:'utf8'}).split('export async function syncIssuers')[0],'only issuer sync may change in index');
+for(const file of ['edge-contract.js','candidate-contract.js','clinical-events.js']){
  assert.equal(readFileSync(new URL('./src/'+file,import.meta.url),'utf8').replace(/\r\n/g,'\n'),execFileSync('git',['show',`${base}:cloudflare/src/${file}`],{encoding:'utf8'}),'other runtime modules unchanged');
 }
 

@@ -71,16 +71,51 @@ export async function syncIssuers(request, env) {
     if (!/^\d{1,10}$/.test(row?.cik || "") || !/^[A-Z][A-Z0-9]{0,9}$/.test(row?.ticker || "") ||
         typeof row.company !== "string" || row.company.length < 3 || row.company.length > 200 ||
         typeof row.source !== "string" || row.source.length > 80 ||
-        !(row.confidence >= 0.85 && row.confidence <= 1) || seen.has(row.cik))
+        !Number.isFinite(row.confidence) || !(row.confidence >= 0.85 && row.confidence <= 1) ||
+        seen.has(String(Number(row.cik))))
       return new Response("Invalid issuer", { status: 400 });
-    seen.add(row.cik);
+    seen.add(String(Number(row.cik)));
+    row.cik = String(Number(row.cik));
   }
   const now = new Date().toISOString();
   const db = env.ALERTS_DB;
-  const statements = [db.prepare("UPDATE edge_issuers SET active=0")];
-  const upsert = db.prepare("INSERT INTO edge_issuers(cik,ticker,company,confidence,source,active,updated_at) VALUES(?,?,?,?,?,1,?) ON CONFLICT(cik) DO UPDATE SET ticker=excluded.ticker,company=excluded.company,confidence=excluded.confidence,source=excluded.source,active=1,updated_at=excluded.updated_at");
-  for (const row of body.issuers)
-    statements.push(upsert.bind(row.cik, row.ticker, row.company, row.confidence, row.source, now));
-  await db.batch(statements);
-  return Response.json({ ok: true, count: body.issuers.length });
+  // A matching read is a valid linearization point for a write-free request.
+  // Changed requests never use this read to plan writes: the batch below
+  // rechecks the current database, including concurrent commits.
+  const current = (await db.prepare("SELECT cik,ticker,company,confidence,source FROM edge_issuers WHERE active=1").all()).results;
+  const byCik = new Map(current.map(row => [row.cik, row]));
+  if (current.length === body.issuers.length && body.issuers.every(row => {
+    const old = byCik.get(row.cik);
+    return old && ['ticker','company','confidence','source'].every(key => old[key] === row[key]);
+  })) return Response.json({ ok: true, count: body.issuers.length, changed: 0, unchanged: true });
+  const snapshot = JSON.stringify(body.issuers);
+  // Every gate and mutation executes inside one D1 transaction. No stale read
+  // outside the batch can overwrite a concurrently committed partial snapshot.
+  // Retain at least 95% of active identities (one removal is allowed for small
+  // universes); additions cannot conceal a truncated/replaced universe.
+  const input = `WITH incoming AS (SELECT json_extract(value,'$.cik') AS cik,
+    json_extract(value,'$.ticker') AS ticker,json_extract(value,'$.company') AS company,
+    json_extract(value,'$.confidence') AS confidence,json_extract(value,'$.source') AS source
+    FROM json_each(?)), counts AS (SELECT COUNT(*) AS active,
+    COALESCE(SUM(cik NOT IN (SELECT cik FROM incoming)),0) AS removed
+    FROM edge_issuers WHERE active=1), gate AS
+    (SELECT removed<=MAX(1,CAST(active*0.05 AS INTEGER)) AS accepted FROM counts) `;
+  const results = await db.batch([
+    db.prepare(input + "SELECT accepted FROM gate").bind(snapshot),
+    db.prepare(input + `UPDATE edge_issuers SET active=0,updated_at=? WHERE active=1
+      AND cik NOT IN (SELECT cik FROM incoming) AND (SELECT accepted FROM gate)`)
+      .bind(snapshot, now),
+    db.prepare(input + `INSERT INTO edge_issuers(cik,ticker,company,confidence,source,active,updated_at)
+      SELECT cik,ticker,company,confidence,source,1,? FROM incoming
+      WHERE (SELECT accepted FROM gate)
+      ON CONFLICT(cik) DO UPDATE SET ticker=excluded.ticker,company=excluded.company,
+      confidence=excluded.confidence,source=excluded.source,active=1,updated_at=excluded.updated_at
+      WHERE edge_issuers.ticker IS NOT excluded.ticker OR edge_issuers.company IS NOT excluded.company
+      OR edge_issuers.confidence IS NOT excluded.confidence OR edge_issuers.source IS NOT excluded.source
+      OR edge_issuers.active<>1`).bind(snapshot, now),
+  ]);
+  if (!results[0].results[0].accepted)
+    return new Response("Suspicious universe reduction", { status: 409 });
+  const changed = results.slice(1).reduce((n, r) => n + (r.meta?.changes || 0), 0);
+  return Response.json({ ok: true, count: body.issuers.length, changed, unchanged: changed === 0 });
 }
