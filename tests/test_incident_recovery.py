@@ -497,6 +497,29 @@ def test_provider_transport_rejects_nonreviewed_sql_before_network(gate, monkeyp
         gate.cf(f"accounts/{gate.ACCOUNT}/d1/database/{gate.DATABASE}/query", body={"sql": sql})
 
 
+@pytest.mark.parametrize("kind", ["mutation", "fields", "account", "date", "extra_key"])
+def test_graphql_transport_rejects_unapproved_requests_before_network(gate, monkeypatch, kind):
+    monkeypatch.setenv("CLOUDFLARE_RECOVERY_READ_TOKEN", "test-only-placeholder")
+    query = gate.analytics_query(gate.START)
+    body = {"query": query}
+    if kind == "mutation":
+        body["query"] = "mutation { deleteDatabase(id: \"other\") }"
+    elif kind == "fields":
+        body["query"] = query.replace("rowsWritten", "rowsRead")
+    elif kind == "account":
+        body["query"] = query.replace(gate.ACCOUNT, "unexpected-account")
+    elif kind == "date":
+        body["query"] = gate.analytics_query(gate.START - timedelta(days=1))
+    else:
+        body["variables"] = {}
+    def forbidden_network(*args, **kwargs):
+        pytest.fail("unapproved GraphQL must be rejected before network construction")
+    monkeypatch.setattr(gate.urllib.request, "Request", forbidden_network)
+    monkeypatch.setattr(gate.urllib.request, "build_opener", forbidden_network)
+    with pytest.raises(gate.IncidentGateError, match="non-read-only"):
+        gate.cf("graphql", body=body)
+
+
 @pytest.mark.parametrize("kind", ["auth", "missing_date", "stale_date", "missing_result", "graphql_null"])
 def test_provider_transport_unavailability_is_safe_and_closed(gate, monkeypatch, kind):
     from datetime import datetime, timezone

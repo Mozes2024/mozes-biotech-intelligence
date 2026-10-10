@@ -185,9 +185,10 @@ def cf(path, *, body=None, raw=False):
     get_paths = {base + suffix for suffix in ("settings", "deployments", "schedules", "content/v2")}
     get_paths.add(f"accounts/{ACCOUNT}/d1/database/{DATABASE}")
     query_path = f"accounts/{ACCOUNT}/d1/database/{DATABASE}/query"
+    # Exact incident query only: no arbitrary fields, account, dates or mutations.
     if not ((path in get_paths and body is None)
             or (path == query_path and body == {"sql": D1_QUERY})
-            or (path == "graphql" and isinstance(body, dict) and set(body) == {"query"})):
+            or (path == "graphql" and body == {"query": analytics_query(START)})):
         raise IncidentGateError("non-read-only provider request rejected")
     request = urllib.request.Request("https://api.cloudflare.com/client/v4/" + path,
         data=json.dumps(body).encode() if body is not None else None,
