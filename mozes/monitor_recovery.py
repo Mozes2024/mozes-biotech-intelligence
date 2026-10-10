@@ -99,15 +99,23 @@ def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run
             raise RuntimeError("recovery audit exceeds 500 relevant producers; reconcile manually")
 
     def check(run):
-        if str(run["id"]) == os.environ.get("GITHUB_RUN_ID") or run["status"] == "queued":
-            return None  # The same workflow concurrency lock prevents queued writes.
+        if str(run["id"]) == os.environ.get("GITHUB_RUN_ID"):
+            return None
         if run.get("run_attempt", 1) != 1:
             raise RuntimeError("producer reruns require auditing earlier attempts separately")
         if (run.get("head_branch") != "main" or run.get("name") != "lightweight-live-monitor"
                 or (run.get("head_repository") or {}).get("full_name") != repo
-                or run["status"] != "completed"):
+                or run["status"] not in ("completed", "queued", "pending")):
             raise RuntimeError("untrusted or active producer blocks stale recovery")
         jobs = json.loads(gh("api", f"repos/{repo}/actions/runs/{run['id']}/jobs?per_page=100"))
+        if run["status"] in ("queued", "pending"):
+            # GitHub uses pending for workflow concurrency waiters. Never infer
+            # no writes from that label alone: all returned jobs must be unstarted.
+            if (jobs.get("total_count", len(jobs["jobs"])) != len(jobs["jobs"])
+                    or any(job.get("status") != "queued" or job.get("started_at")
+                           or job.get("completed_at") or job.get("steps") for job in jobs["jobs"])):
+                raise RuntimeError("pending producer has started or incomplete job evidence")
+            return None
         if jobs.get("total_count", len(jobs["jobs"])) != 1 or len(jobs["jobs"]) != 1:
             raise RuntimeError("incomplete or unexpected producer jobs")
         steps = [step for job in jobs["jobs"] for step in job.get("steps", [])]

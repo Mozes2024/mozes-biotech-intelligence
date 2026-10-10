@@ -304,6 +304,31 @@ def test_conflicting_active_monitor_blocks_verification():
         recovery.audit_producers("Owner/Repo", NOW, gh, now=NOW)
 
 
+@pytest.mark.parametrize("status", ["queued", "pending"])
+@pytest.mark.parametrize("jobs", [[], [{"status": "queued", "started_at": None, "steps": []}]])
+def test_unstarted_concurrency_waiter_does_not_block_restore(status, jobs):
+    def gh(*args):
+        if "workflows/" in args[1]:
+            return json.dumps({"workflow_runs": [{"id": 101, "status": status,
+                "head_branch": "main", "name": "lightweight-live-monitor", "run_attempt": 1,
+                "head_repository": {"full_name": "Owner/Repo"}}]})
+        return json.dumps({"total_count": len(jobs), "jobs": jobs})
+    assert recovery.audit_producers("Owner/Repo", NOW, gh, now=NOW)["audited_producers"] == []
+
+
+@pytest.mark.parametrize("job", [{"status": "in_progress"}, {"status": "completed"},
+    {"status": "queued", "started_at": OLD}, {"status": "queued", "steps": [{"name": "delivery"}]}])
+def test_pending_status_with_started_job_still_blocks(job):
+    def gh(*args):
+        if "workflows/" in args[1]:
+            return json.dumps({"workflow_runs": [{"id": 101, "status": "pending",
+                "head_branch": "main", "name": "lightweight-live-monitor", "run_attempt": 1,
+                "head_repository": {"full_name": "Owner/Repo"}}]})
+        return json.dumps({"total_count": 1, "jobs": [job]})
+    with pytest.raises(RuntimeError, match="pending producer"):
+        recovery.audit_producers("Owner/Repo", NOW, gh, now=NOW)
+
+
 def eligible_tenx():
     return {"event_id": recovery.TENX_EVENT_ID, "edge_event_id": recovery.TENX_EVENT_ID,
             "source": "sec", "ticker": "TENX", "accession": "0001193125-26-417939",
