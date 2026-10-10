@@ -17,18 +17,20 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
       MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
-      SOURCE_RUN_ID: '37786606409'
-      MONITOR_RECOVERY_SHA256: 'f84633088fe4c6fe622682d852a925567118f371e8950f09e9ebaac7898ec853'
+      # October 10 incident: independent from the consumed TENX recovery.
+      SOURCE_RUN_ID: '38052910145'
+      MONITOR_RECOVERY_SHA256: '0ca9e7f01ccb639914820c96489192d8c5e7842d098e52de0c7fcbb6c19687fb'
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Require main
-        run: python -c "import os; assert os.environ['GITHUB_REF'] == 'refs/heads/main', 'main required'"
+      - name: Require trusted verification ref
+        # Permit isolated rehearsal before merge; this workflow cannot process alerts.
+        run: python -c "import os; assert os.environ['GITHUB_REF'] in ('refs/heads/main', 'refs/heads/codex/lineage-incident-20261010'), 'trusted verification ref required'"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install the checked-out verifier
         run: pip install -e .
       - name: Verify recovery without writes
-        run: python scripts/restore_monitor_state.py --run-id 37786606409 --verify-recovery-only
+        run: python scripts/restore_monitor_state.py --run-id 38052910145 --verify-recovery-only
