@@ -62,6 +62,10 @@ def api(path, *, body=None, absent_ok=False):
 
 
 def cf(path, *, body=None, raw=False):
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+
     token = os.environ.get("CLOUDFLARE_RECOVERY_READ_TOKEN", "")
     if not token.strip():
         raise IncidentGateError("CLOUDFLARE_RECOVERY_READ_TOKEN")
@@ -69,7 +73,7 @@ def cf(path, *, body=None, raw=False):
         data=json.dumps(body).encode() if body is not None else None,
         headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.build_opener(NoRedirect()).open(request, timeout=30) as response:
             data = response.read(2097153)
             if len(data) > 2097152:
                 raise IncidentGateError("Cloudflare evidence exceeds bound")
