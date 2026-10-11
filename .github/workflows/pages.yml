@@ -58,10 +58,10 @@ jobs:
         run: pip install -e .
       - name: Restore known data without a new source scan
         if: steps.guard.outputs.current == 'true'
-        run: python scripts/restore_monitor_state.py
+        run: python -m scripts.restore_pages_state
       - name: Export current code against stored data (offline)
         if: steps.guard.outputs.current == 'true'
-        run: python -m mozes.pipeline_v2c export
+        run: python -m mozes.pipeline_v2c export --consumer-only
       - uses: actions/upload-artifact@v4
         if: steps.guard.outputs.current == 'true'
         with:
