@@ -64,6 +64,47 @@ DELIVERY_STEPS = {
 }
 
 
+def verify_historical_incident(repo, run, jobs, gh):
+    """Recognize one reviewed pre-claim failure, never a reusable SHA exemption."""
+    head = "ba458d6cab5a97b38d923b4f8bb60ee19ce9377d"
+    if (repo != "Mozes2024/mozes-biotech-intelligence"
+            or str(run.get("id")) != "38133079950" or run.get("head_sha") != head
+            or run.get("status") != "completed" or run.get("conclusion") != "failure"
+            or run.get("event") != "workflow_dispatch" or run.get("run_attempt") != 1):
+        raise RuntimeError("unreviewed historical incident provenance")
+    gate = next(job for job in jobs if job.get("name") == "incident-eligibility")
+    monitor = next((job for job in jobs if job.get("name") == "monitor"), None)
+    steps = gate.get("steps", [])
+    expected_steps = [
+        ("Set up job", "success"), ("Run actions/checkout@v4", "success"),
+        ("Run actions/setup-python@v5", "success"), ("Run pip install -e .", "success"),
+        ("Verify incident recovery eligibility", "failure"),
+        ("Acquire irreversible incident recovery claim", "skipped"),
+        ("Post Run actions/setup-python@v5", "skipped"),
+        ("Post Run actions/checkout@v4", "success"), ("Complete job", "success"),
+    ]
+    if (gate.get("status") != "completed" or gate.get("conclusion") != "failure"
+            or [(s.get("name"), s.get("conclusion")) for s in steps] != expected_steps
+            or any(s.get("status") != "completed" for s in steps)
+            or monitor is None or monitor.get("status") != "completed"
+            or monitor.get("conclusion") != "skipped" or monitor.get("steps") != []):
+        raise RuntimeError("historical incident may have processed state")
+    expected = {
+        ".github/workflows/lightweight-monitor.yml": "d8b2561dcdb6dd018d233b77b7376f4e55da19fe",
+        "scripts/incident_recovery.py": "bf1bb33535bdd420c2770130436c6cbebda9d260",
+        "scripts/restore_monitor_state.py": "5bffd761854b8e7ab01b64a51504c954c6d52331",
+        "mozes/monitor_recovery.py": "864863aa29fa649d761cb5346faf247b951a17c9",
+    }
+    ancestry = json.loads(gh("api", f"repos/{repo}/compare/{head}...main"))
+    if (ancestry.get("status") not in ("ahead", "identical")
+            or ancestry.get("merge_base_commit", {}).get("sha") != head):
+        raise RuntimeError("historical incident is not trusted main ancestry")
+    for path, blob in expected.items():
+        evidence = json.loads(gh("api", f"repos/{repo}/contents/{path}?ref={head}"))
+        if evidence.get("type") != "file" or evidence.get("path") != path or evidence.get("sha") != blob:
+            raise RuntimeError("historical incident code provenance changed or incomplete")
+
+
 def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run_id=None):
     """Attempts without checkpoints may be ignored only if they made no new state."""
     now = now or datetime.now(timezone.utc)
@@ -112,13 +153,41 @@ def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run
             # GitHub uses pending for workflow concurrency waiters. Never infer
             # no writes from that label alone: all returned jobs must be unstarted.
             if (jobs.get("total_count", len(jobs["jobs"])) != len(jobs["jobs"])
-                    or any(job.get("status") != "queued" or job.get("started_at")
-                           or job.get("completed_at") or job.get("steps") for job in jobs["jobs"])):
+                    or any((job.get("status") != "queued" or job.get("started_at")
+                            or job.get("completed_at") or job.get("steps"))
+                           and not (job.get("name") == "incident-eligibility"
+                                    and job.get("conclusion") == "skipped" and not job.get("steps"))
+                           for job in jobs["jobs"])):
                 raise RuntimeError("pending producer has started or incomplete job evidence")
             return None
-        if jobs.get("total_count", len(jobs["jobs"])) != 1 or len(jobs["jobs"]) != 1:
+        if jobs.get("total_count", len(jobs["jobs"])) != len(jobs["jobs"]):
             raise RuntimeError("incomplete or unexpected producer jobs")
-        steps = [step for job in jobs["jobs"] for step in job.get("steps", [])]
+        monitor_jobs = jobs["jobs"]
+        gates = [job for job in monitor_jobs if job.get("name") == "incident-eligibility"]
+        if gates:
+            if len(gates) != 1 or len(monitor_jobs) != 2:
+                raise RuntimeError("incomplete incident job evidence")
+            gate_steps = gates[0].get("steps", [])
+            claims = [s for s in gate_steps if s.get("name") == "Acquire irreversible incident recovery claim"]
+            disabled = gates[0].get("conclusion") == "skipped" and not gate_steps
+            if not disabled and (len(claims) != 1 or claims[0].get("conclusion") != "skipped"):
+                # Includes crashes, ambiguous HTTP failures and successful claims.
+                # An absent ref cannot authorize a second attempt.
+                raise RuntimeError("prior incident claim attempted; no automatic recovery retry")
+            if not disabled:
+                if not any(step.get("name") == "Verify incident recovery eligibility" for step in gate_steps):
+                    raise RuntimeError("unreviewed or incomplete incident eligibility evidence")
+                if str(run["id"]) == "38133079950":
+                    verify_historical_incident(repo, run, monitor_jobs, gh)
+                elif (not os.environ.get("MOZES_INCIDENT_APPROVED_MAIN")
+                      or run.get("head_sha") != os.environ["MOZES_INCIDENT_APPROVED_MAIN"]):
+                    raise RuntimeError("unreviewed or incomplete incident eligibility evidence")
+            monitor_jobs = [job for job in monitor_jobs if job is not gates[0]]
+            if monitor_jobs[0].get("conclusion") == "skipped" and not monitor_jobs[0].get("steps"):
+                return str(run["id"])
+        if len(monitor_jobs) != 1:
+            raise RuntimeError("incomplete or unexpected producer jobs")
+        steps = [step for job in monitor_jobs for step in job.get("steps", [])]
         names = {step["name"] for step in steps}
         if not DELIVERY_STEPS.issubset(names):
             raise RuntimeError("producer evidence lacks required delivery steps")

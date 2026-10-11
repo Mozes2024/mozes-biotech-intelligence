@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 import uuid
+from contextlib import closing
 from collections import defaultdict
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -185,9 +186,14 @@ def semantic_fingerprint(payload):
                    'v2c_statuses': {k: v.get('status') for k, v in (payload.get('intelligence_v2c') or {}).get('modules', {}).items() if k != 'pipeline'}})
 
 
-def export_payload(conn, destination, *, today=None):
+def export_payload(conn, destination, *, today=None, consumer=None):
     from .payload_v3 import build
-    payload = build(conn, today or date.today())
+    payload = build(conn, today or date.today(), consumer_only=consumer is not None)
+    if consumer is not None:
+        payload['checkpoint_at'] = consumer['checkpoint_at']
+        payload['data_age_seconds'] = consumer['data_age_seconds']
+        payload['data_stale'] = consumer['stale']
+        payload['consumer_checkpoint'] = consumer
     payload['build'] = {'extension': 'v2E', 'source_sha': os.environ.get('GITHUB_SHA'),
                         'source_of_truth': 'runtime_export_not_checked_in_web_data_json',
                         'change_cursor': None}
@@ -340,9 +346,28 @@ def main(argv=None):
     parser.add_argument('--deep', action='store_true')
     parser.add_argument('--priority-only', action='store_true')
     parser.add_argument('--output', default='web/data.json')
+    parser.add_argument('--consumer-only', action='store_true')
     args = parser.parse_args(argv)
     if args.deep and args.priority_only:
         parser.error('--deep and --priority-only cannot be combined')
+    if args.consumer_only:
+        if args.mode != 'export' or args.deep or args.priority_only:
+            parser.error('--consumer-only requires plain export')
+        import sqlite3
+        consumer = json.loads(Path('.monitor/pages-consumer.json').read_text(encoding='utf-8'))
+        if (consumer.get('consumer_only') is not True or consumer.get('schema') != 1
+                or consumer.get('db_sha256') != hashlib.sha256(Path(DB_PATH).read_bytes()).hexdigest()):
+            raise RuntimeError('consumer_checkpoint_integrity')
+        at = datetime.fromisoformat(consumer['checkpoint_at'])
+        now = datetime.now(timezone.utc)
+        if at.tzinfo is None or at > now:
+            raise RuntimeError('consumer_checkpoint_chronology')
+        consumer['data_age_seconds'] = int((now - at).total_seconds())
+        consumer['stale'] = consumer['data_age_seconds'] > 2700
+        with closing(sqlite3.connect(Path(DB_PATH).resolve().as_uri() + '?mode=ro', uri=True)) as conn:
+            conn.row_factory = sqlite3.Row
+            export_payload(conn, args.output, consumer=consumer)
+        return 0
     conn = db.connect(DB_PATH)
     ensure_schema(conn)
     if args.mode == 'export':
