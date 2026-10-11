@@ -1,6 +1,16 @@
 # R0a review and rollout boundary
 
-Baseline: `527133b98b68cc64a4f72afeabfed0916eff81ae`. This PR does not deploy.
+Baseline: `f37627492005914078b1bf7a20759751ea1b7d40`. This PR does not deploy.
+
+Status: HOLD. The one-shot deployed-token probe failed `network_or_timeout` and
+was removed. Do not repeat it. The GET-dependent watchdog below is retained as
+review context, not an approved activation path. The current bounded pass adds
+disabled-by-default authenticated checkpoint feedback (see
+[implementation tracker](BIO_IMPLEMENTATION_TRACKER.md)); it does not yet solve
+dispatch/run correlation or missing-receipt reconciliation. No POST-only
+heartbeat replacement or production callback has been enabled.
+The watchdog alarm path now requires `EDGE_MONITOR_HEARTBEAT_ENABLED=1`; the
+default is disabled, independently of the feedback-only flags.
 
 The existing global HotEdge DO owns the watchdog inside its serialized alarm. It
 checks GitHub at most once per five minutes, or ten minutes following failure.
@@ -56,12 +66,12 @@ Actions Read/write, and GitHub documents Actions Read for workflow/artifact/job
 GETs and Actions Write for dispatch. Actual Actions Read authorization of the
 deployed secret is **not independently proven by dispatch success**.
 
-Before a separately approved deployment, verify those GETs securely with the
-existing secret in its runtime, and obtain sanitized PASS evidence. Stop on
+The failed probe did not establish which fetch/body-read phase failed. A new
+GET probe is not authorized. Existing GET-dependent dispatch remains HOLD on
 401/403/429 or incomplete evidence. Do not provision/broaden credentials as part
 of this PR. No new permissions, dependencies, secrets, migrations or infrastructure.
 
-## Proposed approved rollout
+## Historical rollout proposal (blocked; not approved)
 
 1. Review exact PR head and green full CI; merge only with separate approval.
 2. Establish existing token read contracts, compare production bindings/settings

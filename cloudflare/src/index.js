@@ -11,7 +11,7 @@ export default {
     const path = new URL(request.url).pathname;
     if (path === "/edge/sync") return syncIssuers(request, env);
     const stub = env.HOT_EDGE?.get(env.HOT_EDGE.idFromName("global"));
-    if (["/alerts","/edge/ack","/edge/candidates","/edge/candidate/ack","/edge/investigate","/edge/event"].includes(path)) return stub.fetch(request);
+    if (["/alerts","/edge/ack","/edge/candidates","/edge/candidate/ack","/edge/investigate","/edge/event","/edge/checkpoint-feedback"].includes(path)) return stub.fetch(request);
     if (path === "/edge/metrics") return publicHealth((await (await stub.fetch("https://edge.internal/summaries")).json()).metrics, env);
     if (path === "/edge/health") {
       const health = await (await stub.fetch("https://edge.internal/health")).json();

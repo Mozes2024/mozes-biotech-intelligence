@@ -1,5 +1,10 @@
 # Staged deployed-token proof: requires separate deployment authorization
 
+SUPERSEDED: the separately reviewed one-shot probe failed `network_or_timeout`
+and was removed with the prior Worker restored. Do not repeat or redeploy it.
+The text below preserves the original proposal, not a current next action.
+Current implementation work is tracked in `BIO_IMPLEMENTATION_TRACKER.md`.
+
 Current production has no GET-only token probe. Neither a local GH credential
 nor the Cloudflare read token proves the Worker binding's Actions permissions.
 Do not retrieve, export, replace or log the existing GITHUB_TOKEN.

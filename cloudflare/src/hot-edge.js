@@ -7,6 +7,7 @@ import {candidateStats,candidates,candidateAck,investigate} from './candidate-co
 import {acknowledge,eventTrace} from './edge-contract.js';
 import {handleAlertFeed} from './alert-feed.js';
 import {MonitorHeartbeat, DISPATCH_KEY} from './monitor-heartbeat.js';
+import {checkpointFeedback, RECEIPT_KEY} from './checkpoint-feedback.js';
 const WIRES = [
   ["businesswire", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGFNXXw=="],
   ["globenewswire", "https://rss.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"],
@@ -193,6 +194,8 @@ export class HotEdge {
   async fetch(request) {
     await this.ready;
     const path = new URL(request.url).pathname;
+    if (path === '/edge/checkpoint-feedback')
+      return this.exclusive(()=>checkpointFeedback(request, this.state.storage, this.env));
     const env={...this.env,ALERTS_DB:this.db};
     const handlers={'/alerts':handleAlertFeed,'/edge/ack':acknowledge,'/edge/candidates':candidates,
       '/edge/candidate/ack':candidateAck,'/edge/investigate':investigate,'/edge/event':eventTrace};
@@ -221,6 +224,7 @@ export class HotEdge {
     if (path === "/health") {
       const health = await this.state.storage.get("health") || {};
       health.monitor_heartbeat = await this.state.storage.get('monitor_heartbeat') || null;
+      health.monitor_checkpoint_receipt = await this.state.storage.get(RECEIPT_KEY) || null;
       const source_schedule=Object.fromEntries(Object.entries(this.sourceState || {}).map(([name,s])=>[name,{
         effective_interval_seconds:s.effective_interval_seconds,next_at:s.next_at,last_success_at:s.last_success_at,
         high_water_at:s.high_water_at,gap:s.gap,failures:s.failures,
@@ -252,7 +256,8 @@ export class HotEdge {
       // A due liveness check owns this external-fetch budget. Source work resumes
       // on the next 120-second alarm, without advancing source deadlines/cursors.
       // Never mix up to 23 GitHub calls with uncounted analysis/backfill fetches.
-      const heartbeatDue = await this.monitorHeartbeat.due(started);
+      const heartbeatDue = this.env.EDGE_MONITOR_HEARTBEAT_ENABLED === '1' &&
+        await this.monitorHeartbeat.due(started);
       health.monitor_heartbeat_reserved_cycle = heartbeatDue && Boolean(this.env.GITHUB_TOKEN);
       health.monitor_heartbeat_deferred = null;
       if (heartbeatDue) {

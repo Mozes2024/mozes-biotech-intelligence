@@ -3,7 +3,7 @@ import {MonitorHeartbeat, DISPATCH_KEY} from './src/monitor-heartbeat.js';
 import {HotEdge} from './src/hot-edge.js';
 import worker from './src/index.js';
 const now = Date.parse('2026-10-11T16:00:00Z'), repo = 'Mozes2024/mozes-biotech-intelligence';
-const env = {GITHUB_TOKEN:'offline-token', GITHUB_REPO:repo};
+const env = {GITHUB_TOKEN:'offline-token', GITHUB_REPO:repo, EDGE_MONITOR_HEARTBEAT_ENABLED:'1'};
 const iso = n => new Date(n).toISOString();
 const original = globalThis.fetch;
 function harness({age=1500, active=false, ownerAge=60, pages=1, bad=null, http=null, post=204}={}) {
@@ -131,5 +131,14 @@ try {
     assert.equal(h.posts.length,0); // Aged evidence blocks after 45m; no recovery inputs.
     assert.equal(h.memory.get('monitor_heartbeat').category,'outside_producer_restore_window'); count++;
   } finally {Date.now=originalNow;}
+  h=harness();h.storage.getAlarm=async()=>now+120000;h.storage.setAlarm=async()=>{};
+  const disabled=new HotEdge({storage:h.storage},{...env,EDGE_MONITOR_HEARTBEAT_ENABLED:'0'});
+  await disabled.ready;
+  let normalPolls=0;
+  disabled.pollSec=async()=>{normalPolls++;};disabled.pollWire=async()=>{};
+  disabled.analyzePending=async()=>({processed:0});disabled.flushPending=async()=>{};
+  disabled.reconcileGaps=async()=>{};disabled.checkpoint=async()=>{};
+  await disabled.alarm();
+  assert.equal(normalPolls,2);assert.equal(h.requests.length,0);count++;
   console.log(`monitor heartbeat: ${count} checks passed`);
 } finally {globalThis.fetch=original;}
