@@ -13,6 +13,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   test:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -54,6 +55,7 @@ jobs:
           test -s web/data.json
           test -s web/financial_context_ui.js
   worker-image:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -63,3 +65,31 @@ jobs:
       - name: Worker imports and data files are packaged
         run: |
           docker run --rm mozes-hot:ci python -c "import sys, ssl, sqlite3; assert sys.version_info[:3] == (3, 11, 17); import mozes.hot_monitor, mozes.ir_registry as r; assert r.load_aliases()['GMAB']; print('ok')"
+
+  feed-http-diagnostic:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Verify isolated approved ancestry and unchanged recovery source
+        run: |
+          test "$(git rev-parse HEAD^)" = ba458d6cab5a97b38d923b4f8bb60ee19ce9377d
+          git diff --exit-code HEAD^ HEAD -- scripts/incident_recovery.py mozes scripts/restore_monitor_state.py
+          test "$(git diff --name-only HEAD^ HEAD | sort)" = "$(printf '%s\n' .github/workflows/ci.yml scripts/diagnose_feed_http.py | sort)"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e .
+      - name: Sanitized read-only HTTP diagnostic
+        env:
+          CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
+          EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
+          MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
+          GH_TOKEN: ${{ github.token }}
+        run: python -m scripts.diagnose_feed_http
