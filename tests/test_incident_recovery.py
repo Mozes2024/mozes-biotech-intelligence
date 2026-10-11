@@ -4,6 +4,11 @@ import json
 import sys
 import threading
 import copy
+import io
+import urllib.error
+import urllib.request
+import urllib.response
+from email.message import Message
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
@@ -11,6 +16,81 @@ from pathlib import Path
 import pytest
 
 from mozes import monitor_recovery
+
+
+def offline_public_feed(gate, monkeypatch, *, raw=b'{"schema":1,"alerts":[]}', status=200, error=None):
+    monkeypatch.setenv("EDGE_SYNC_TOKEN", "offline-test-token")
+    monkeypatch.setenv("MOZES_EDGE_SYNC_URL", "https://approved.example/edge/sync")
+    requests = []
+    original = urllib.request.build_opener
+
+    class OfflineHTTPS(urllib.request.HTTPSHandler):
+        def https_open(self, request):
+            requests.append(request)
+            if error is not None:
+                raise error
+            headers = Message()
+            if 300 <= status < 400:
+                headers["Location"] = "https://redirect.example/private"
+            response = urllib.response.addinfourl(io.BytesIO(raw), headers, request.full_url, status)
+            response.msg = "offline status"
+            return response
+
+    monkeypatch.setattr(gate.urllib.request, "build_opener",
+                        lambda *handlers: original(OfflineHTTPS(), *handlers))
+    return requests
+
+
+def test_public_feed_uses_reviewed_user_agent_and_bounded_get(gate, monkeypatch):
+    requests = offline_public_feed(gate, monkeypatch)
+    assert gate.public_feed() == {"schema": 1, "alerts": []}
+    assert len(requests) == 1
+    request = requests[0]
+    assert request.full_url == "https://approved.example/alerts"
+    assert request.get_method() == "GET"
+    assert request.get_header("User-agent") == "MOZES-LineageAudit/1.0"
+    assert request.get_header("Authorization") is None
+    assert request.timeout == 15
+
+
+@pytest.mark.parametrize("status", [301, 302, 303, 307, 308, 401, 403, 404, 429, 500])
+def test_public_feed_http_errors_are_sanitized_and_redirects_not_followed(gate, monkeypatch, status):
+    requests = offline_public_feed(gate, monkeypatch, status=status, raw=b"private provider response")
+    with pytest.raises(gate.IncidentGateError, match=f"public_feed HTTP {status}; recovery blocked") as caught:
+        gate.public_feed()
+    assert len(requests) == 1
+    assert "private" not in str(caught.value)
+    assert "example" not in str(caught.value)
+    assert caught.value.__suppress_context__
+
+
+@pytest.mark.parametrize("raw", [b"not-json", b"\xff", b"null", b"[]", b'{}',
+                                b'{"schema":2,"alerts":[]}', b'{"schema":1,"alerts":{}}'])
+def test_public_feed_malformed_responses_fail_closed(gate, monkeypatch, raw):
+    offline_public_feed(gate, monkeypatch, raw=raw)
+    with pytest.raises(gate.IncidentGateError, match="public_feed invalid (JSON|schema)"):
+        gate.public_feed()
+
+
+@pytest.mark.parametrize("error", [TimeoutError("private timeout"),
+                                  urllib.error.URLError("private network error"), OSError("private read error")])
+def test_public_feed_network_failures_are_sanitized(gate, monkeypatch, error):
+    offline_public_feed(gate, monkeypatch, error=error)
+    with pytest.raises(gate.IncidentGateError, match="public_feed network failure; recovery blocked") as caught:
+        gate.public_feed()
+    assert "private" not in str(caught.value)
+    assert caught.value.__suppress_context__
+
+
+@pytest.mark.parametrize("size,allowed", [(262144, True), (262145, False)])
+def test_public_feed_preserves_exact_size_limit(gate, monkeypatch, size, allowed):
+    body = b'{"schema":1,"alerts":[]}'
+    offline_public_feed(gate, monkeypatch, raw=body + b" " * (size - len(body)))
+    if allowed:
+        assert gate.public_feed()["schema"] == 1
+    else:
+        with pytest.raises(gate.IncidentGateError, match="feed evidence exceeds bound"):
+            gate.public_feed()
 
 
 def canonical_events():

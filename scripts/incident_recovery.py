@@ -348,11 +348,27 @@ def pending_gate():
 def public_feed():
     validate_verification_configuration()
     host = urlsplit(os.environ["MOZES_EDGE_SYNC_URL"]).netloc
-    with urllib.request.urlopen("https://" + host + "/alerts", timeout=15) as response:
-        raw = response.read(262145)
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+    request = urllib.request.Request("https://" + host + "/alerts",
+                                    headers={"User-Agent": "MOZES-LineageAudit/1.0"})
+    try:
+        with urllib.request.build_opener(NoRedirect()).open(request, timeout=15) as response:
+            raw = response.read(262145)
+    except urllib.error.HTTPError as exc:
+        raise IncidentGateError(f"public_feed HTTP {exc.code}; recovery blocked") from None
+    except (urllib.error.URLError, TimeoutError, OSError):
+        raise IncidentGateError("public_feed network failure; recovery blocked") from None
     if len(raw) > 262144:
         raise IncidentGateError("feed evidence exceeds bound")
-    return json.loads(raw)
+    try:
+        feed = json.loads(raw)
+    except (ValueError, UnicodeError):
+        raise IncidentGateError("public_feed invalid JSON; recovery blocked") from None
+    if not isinstance(feed, dict) or feed.get("schema") != 1 or not isinstance(feed.get("alerts"), list):
+        raise IncidentGateError("public_feed invalid schema; recovery blocked")
+    return feed
 
 
 def preflight(now):
