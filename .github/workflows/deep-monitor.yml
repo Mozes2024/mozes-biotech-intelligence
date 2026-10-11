@@ -1,7 +1,7 @@
 name: deep-live-monitor
 on:
-  schedule:
-    - cron: '20 6 * * 1,3,5'
+  # Temporarily suspended: authoritative artifact ownership must be fixed first.
+  # Manual deep runs are also operationally prohibited; retain their definition.
   workflow_dispatch:
     inputs:
       deep_refresh:
