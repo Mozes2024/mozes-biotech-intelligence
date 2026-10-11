@@ -1,6 +1,7 @@
 import hashlib
 import json
 import sqlite3
+import sys
 import urllib.error
 from contextlib import closing
 from datetime import datetime, timezone
@@ -8,7 +9,13 @@ from pathlib import Path
 
 import pytest
 
-from scripts import checkpoint_feedback as feedback
+# `pytest`'s console entry point does not install the checkout-only scripts
+# namespace. Scope its import path locally; the runtime uses python -m scripts.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+try:
+    from scripts import checkpoint_feedback as feedback
+finally:
+    sys.path.pop(0)
 
 NOW = datetime(2026, 10, 11, 20, tzinfo=timezone.utc)
 SHA = 'a' * 40
