@@ -277,8 +277,8 @@ export class HotEdge {
       catch (error) { this.failure(health, "downstream", now, error); }
       // Historical candidate/alert records are retained. Only dedup state expires.
       await this.reconcileGaps(health);
-      // Reserve external-fetch headroom for up to 13 bounded GitHub calls.
-      health.monitor_heartbeat_deferred = (this.sourceFetches || 0) > 24 ? 'source_fetch_budget' : null;
+      // Reserve external-fetch headroom for up to 23 bounded GitHub calls.
+      health.monitor_heartbeat_deferred = (this.sourceFetches || 0) > 14 ? 'source_fetch_budget' : null;
       if (!health.monitor_heartbeat_deferred) await this.monitorHeartbeat.check();
     } finally {
       await this.state.storage.setAlarm(Date.now() + INTERVAL(this.env));

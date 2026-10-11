@@ -15,6 +15,8 @@ steps. This is GitHub durability metadata, **not a Worker-side SQLite inspection
 The existing producer independently checks the downloaded database and lineage.
 Missing/ambiguous metadata, reruns, newer deep artifacts, inventory bounds or API
 failures block watchdog dispatch. No older artifact is substituted.
+The artifact inventory bound is 1,500, allowing the three-day retention window
+at the observed event-retry plus nominal schedule cadence; beyond it, fail closed.
 
 A checkpoint aged 20–45 minutes is eligible when all five active Actions states
 are empty. Immediately before an ordinary POST, DO storage records the attempt.

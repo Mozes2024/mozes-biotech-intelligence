@@ -45,7 +45,7 @@ function collection(value, key) {
 
 async function checkpoint(env, now) {
   let artifacts = [], complete = false;
-  for (let page = 1; page <= 5; page++) {
+  for (let page = 1; page <= 15; page++) {
     const result = await api(env, `artifacts?name=mozes-live-monitor&per_page=100&page=${page}`);
     const rows = collection(result, 'artifacts');
     artifacts.push(...rows);
