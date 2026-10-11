@@ -5,7 +5,7 @@ const now = Date.parse('2026-10-11T16:00:00Z'), repo = 'Mozes2024/mozes-biotech-
 const env = {GITHUB_TOKEN:'offline-token', GITHUB_REPO:repo};
 const iso = n => new Date(n).toISOString();
 const original = globalThis.fetch;
-function harness({age=1500, active=false, bad=null, http=null, post=204}={}) {
+function harness({age=1500, active=false, ownerAge=60, bad=null, http=null, post=204}={}) {
   const memory = new Map(), posts = [];
   const storage = {get:async k=>memory.get(k),put:async(k,v)=>memory.set(k,v)};
   globalThis.fetch = async (url, options) => {
@@ -27,7 +27,7 @@ function harness({age=1500, active=false, bad=null, http=null, post=204}={}) {
     else if (url.includes('/workflows/')) {
       const status=new URL(url).searchParams.get('status');
       const wanted=active===true?'queued':active;
-      const rows=active&&status===wanted?[{status,head_branch:'main',head_repository:{full_name:repo}}]:[];
+      const rows=active&&status===wanted?[{id:3,created_at:iso(now-ownerAge*1000),status,head_branch:'main',head_repository:{full_name:repo}}]:[];
       value={total_count:rows.length,workflow_runs:rows};
     } else value={id:1,head_branch:'main',head_repository:{full_name:repo},name:'lightweight-live-monitor',
       path:'.github/workflows/lightweight-monitor.yml',run_attempt:1,status:'completed',conclusion:'success',
@@ -53,6 +53,19 @@ try {
     h=harness({active}); assert.equal((await h.heartbeat.check(now)).status,'ACTIVE_MONITOR');
     assert.equal(h.posts.length,0); count++;
   }
+  for (const active of ['queued','pending','waiting','in_progress','requested']) {
+    h=harness({active,ownerAge:1200});
+    const result=await h.heartbeat.check(now);
+    assert.equal(result.status,'OVERDUE_OWNER');
+    assert.equal(result.active_owner.run_id,3); assert.equal(result.active_owner.age_seconds,1200);
+    assert.equal(result.category,'monitor_owner_overdue'); assert.ok(result.action_required);
+    assert.equal(h.posts.length,0); count++;
+  }
+  h=harness({active:'queued',ownerAge:-1});
+  assert.equal((await h.heartbeat.check(now)).category,'ambiguous_owner'); count++;
+  h=harness({age:2701,active:'queued',ownerAge:3600});
+  assert.equal((await h.heartbeat.check(now)).category,'outside_producer_restore_window');
+  assert.equal(h.posts.length,0); count++;
   h=harness(); await Promise.all(Array.from({length:12},()=>h.heartbeat.check(now)));
   assert.deepEqual(h.posts,[{ref:'main',inputs:{priority_only:'true'}}]); count++;
   // A restart and an ambiguous rejected dispatch retain the durable reservation.
@@ -72,21 +85,28 @@ try {
   h=harness(); globalThis.fetch=async()=>{throw Error('secret must not escape');};
   assert.equal((await h.heartbeat.check(now)).category,'network_or_timeout'); count++;
   h=harness(); h.memory.set(DISPATCH_KEY,now); assert.equal((await h.heartbeat.check(now)).status,'THROTTLED');count++;
-  // The real alarm serializes cron callers and sees an event reservation before heartbeat.
-  h=harness();
+  // Dedicated alarm slots reserve all GitHub headroom, even with sustained source load.
+  h=harness({active:'queued'});
   h.storage.getAlarm=async()=>now+120000; h.storage.setAlarm=async()=>{};
   const edge=new HotEdge({storage:h.storage},{...env,EDGE_INTERVAL_SECONDS:'120'});
   await edge.ready;
-  edge.pollSec=async()=>{}; edge.pollWire=async()=>{}; edge.analyzePending=async()=>({processed:1});
-  edge.flushPending=async()=>{await h.storage.put(DISPATCH_KEY,now);};
+  let polls=0;
+  edge.pollSec=async()=>{polls++;edge.sourceFetches=25;}; edge.pollWire=async()=>{}; edge.analyzePending=async()=>({processed:1});
+  edge.flushPending=async()=>{};
   edge.reconcileGaps=async()=>{}; edge.checkpoint=async()=>{};
-  edge.monitorHeartbeat.check=async()=>new MonitorHeartbeat(h.storage,env).check(now);
-  await Promise.all([edge.alarm(),edge.alarm()]);
-  assert.equal(h.posts.length,0); count++;
-  assert.equal(h.memory.get('monitor_heartbeat').status,'THROTTLED');
-  edge.sourceState={}; edge.pollSec=async()=>{edge.sourceFetches=25;};
-  let checks=0; edge.monitorHeartbeat.check=async()=>{checks++;};
-  await edge.alarm();
-  assert.equal(checks,0); assert.equal(h.memory.get('health').monitor_heartbeat_deferred,'source_fetch_budget');count++;
+  const originalNow=Date.now; let clock=now, checks=0; const checked=[];
+  Date.now=()=>clock;
+  h.memory.set(DISPATCH_KEY,now);
+  edge.monitorHeartbeat.check=async at=>{checks++;checked.push(at);return new MonitorHeartbeat(h.storage,env).check(at);};
+  try {
+    await Promise.all([edge.alarm(),edge.alarm()]);
+    assert.equal(checks,1); assert.equal(polls,0); assert.equal(h.posts.length,0);
+    assert.equal(h.memory.get('monitor_heartbeat').status,'ACTIVE_MONITOR'); count++;
+    for(let cycle=1;cycle<=30;cycle++) {clock=now+cycle*120000;await edge.alarm();}
+    assert.ok(checks>=6); assert.ok(polls>=20);
+    assert.ok(checked.slice(1).every((at,index)=>at-checked[index]<=600000));
+    assert.equal(h.posts.length,0); // Aged evidence blocks after 45m; no recovery inputs.
+    assert.equal(h.memory.get('monitor_heartbeat').category,'outside_producer_restore_window'); count++;
+  } finally {Date.now=originalNow;}
   console.log(`monitor heartbeat: ${count} checks passed`);
 } finally {globalThis.fetch=original;}

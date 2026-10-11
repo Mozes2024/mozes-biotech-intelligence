@@ -5,8 +5,14 @@ Baseline: `527133b98b68cc64a4f72afeabfed0916eff81ae`. This PR does not deploy.
 The existing global HotEdge DO owns the watchdog inside its serialized alarm. It
 checks GitHub at most once per five minutes, or ten minutes following failure.
 There is no D1 query/write in the watchdog. Source polling retains the existing
-120-second interval. A busy source cycle defers the watchdog to reserve external
-fetch headroom; the health response exposes this deferral.
+120-second alarm interval. A due watchdog owns one dedicated alarm cycle: at most
+23 external GitHub calls, with no concurrent source/analysis/backfill/delivery
+fetches. Sources resume on the next alarm with their deadlines/cursors unchanged.
+This adds at most one alarm (120 seconds) to due source work, normally one reserved
+cycle per six minutes, or ten minutes after a blocked check. Primary-source cycles
+keep their original budgets and policies; they cannot indefinitely defer liveness.
+Health exposes `monitor_heartbeat_reserved_cycle`. Missing-token checks perform
+no external calls and therefore do not reserve a source cycle.
 
 Health requires an unexpired nonempty `mozes-live-monitor` artifact, GitHub's
 SHA256 artifact digest, first-party main lightweight workflow provenance, a
@@ -27,6 +33,12 @@ invalid stored timestamp blocks. No incident input, source override or event ID
 is present in the watchdog POST. GitHub's existing concurrency group remains the
 final processing serializer; a separately arriving GitHub schedule can still
 race the read/POST boundary. The watchdog cannot make that external race atomic.
+
+Active owners suppress dispatch. An owner aged at least 20 minutes is reported as
+OVERDUE_OWNER with run ID, state, age and an explicit operator action. This is an
+escalation diagnostic, not cancellation, permission to duplicate a run or a
+checkpoint. Missing/future owner timestamps fail closed. The 45-minute checkpoint
+boundary still blocks; an overdue GitHub runner cannot be repaired by this code.
 
 After 45 minutes this path stops. It cannot repair a prolonged GitHub outage or
 relax MAX_REWIND; R0c requires separate review.
@@ -55,7 +67,7 @@ of this PR. No new permissions, dependencies, secrets, migrations or infrastruct
 4. During a genuinely quiet interval observe FRESH → one ordinary accepted run →
    new bound durable artifact. Verify the next producer restores that artifact,
    publisher cooldowns, receipts and no duplicate alert/outbox entries.
-5. Stop on BLOCKED/deferred cycles or GitHub queue delay approaching 45 minutes.
+5. Stop on BLOCKED/OVERDUE_OWNER or GitHub queue delay approaching 45 minutes.
 
 Rollback is a separately authorized redeployment of the previous Worker bundle.
 Retain DO dispatch timestamps; never delete a recovery claim or restore historical

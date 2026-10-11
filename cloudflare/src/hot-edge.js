@@ -249,6 +249,16 @@ export class HotEdge {
     await this.state.storage.setAlarm(started + INTERVAL(this.env));
     await this.state.storage.put("health", health);
     try {
+      // A due liveness check owns this external-fetch budget. Source work resumes
+      // on the next 120-second alarm, without advancing source deadlines/cursors.
+      // Never mix up to 23 GitHub calls with uncounted analysis/backfill fetches.
+      const heartbeatDue = await this.monitorHeartbeat.due(started);
+      health.monitor_heartbeat_reserved_cycle = heartbeatDue && Boolean(this.env.GITHUB_TOKEN);
+      health.monitor_heartbeat_deferred = null;
+      if (heartbeatDue) {
+        await this.monitorHeartbeat.check(started);
+        if (health.monitor_heartbeat_reserved_cycle) return;
+      }
       const sources = [["sec_8-K", () => this.pollSec("8-K")], ["sec_6-K", () => this.pollSec("6-K")],
         ...WIRES.map(([name, url]) => [name, () => this.pollWire(name, url)])];
       await Promise.all(sources.map(async ([name, poll]) => {
@@ -277,9 +287,6 @@ export class HotEdge {
       catch (error) { this.failure(health, "downstream", now, error); }
       // Historical candidate/alert records are retained. Only dedup state expires.
       await this.reconcileGaps(health);
-      // Reserve external-fetch headroom for up to 23 bounded GitHub calls.
-      health.monitor_heartbeat_deferred = (this.sourceFetches || 0) > 14 ? 'source_fetch_budget' : null;
-      if (!health.monitor_heartbeat_deferred) await this.monitorHeartbeat.check();
     } finally {
       await this.state.storage.setAlarm(Date.now() + INTERVAL(this.env));
       health.next_alarm_at = await this.state.storage.getAlarm();

@@ -88,6 +88,10 @@ async function checkpoint(env, now) {
 
 export class MonitorHeartbeat {
   constructor(storage, env) { this.storage = storage; this.env = env; this.running = null; }
+  async due(now = Date.now()) {
+    const old = await this.storage.get('monitor_heartbeat') || {};
+    return !(old.next_check_at > now);
+  }
   async check(now = Date.now()) {
     if (this.running) return this.running;
     this.running = this.inspect(now);
@@ -105,16 +109,29 @@ export class MonitorHeartbeat {
       if (health.checkpoint_age_seconds < 1200) health.status = 'FRESH';
       else if (health.checkpoint_age_seconds > 2700) fail('outside_producer_restore_window');
       else {
-        let active = false;
+        const owners = [];
         for (const status of ACTIVE) {
           const result = await api(this.env, `workflows/${WORKFLOW}/runs?branch=main&status=${status}&per_page=100`);
           const rows = collection(result, 'workflow_runs');
           if (rows.length !== result.total_count || rows.some(r => r.head_branch !== 'main' || r.status !== status ||
               r.head_repository?.full_name !== REPO)) fail('ambiguous_owner');
-          active ||= rows.length > 0;
+          for (const row of rows) {
+            const created = stamp(row.created_at);
+            if (!Number.isSafeInteger(row.id) || !Number.isFinite(created) || created > now) fail('ambiguous_owner');
+            owners.push({run_id: row.id, status, age_seconds: Math.floor((now-created)/1000)});
+          }
         }
         const last = await this.storage.get(DISPATCH_KEY);
-        if (active) health.status = 'ACTIVE_MONITOR';
+        if (owners.length) {
+          owners.sort((a,b)=>b.age_seconds-a.age_seconds || a.run_id-b.run_id);
+          health.active_owner = owners[0];
+          health.active_owner_count = owners.length;
+          health.status = owners[0].age_seconds >= 1200 ? 'OVERDUE_OWNER' : 'ACTIVE_MONITOR';
+          if (health.status === 'OVERDUE_OWNER') {
+            health.category = 'monitor_owner_overdue';
+            health.action_required = 'inspect_github_owner_without_duplicate_dispatch';
+          }
+        }
         else if (last !== undefined && (!Number.isFinite(last) || last > now)) fail('invalid_throttle');
         else if (last !== undefined && now - last < THROTTLE) health.status = 'THROTTLED';
         else {
