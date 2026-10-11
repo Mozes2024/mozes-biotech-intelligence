@@ -6,6 +6,8 @@ import {edgeMetrics} from './edge-metrics.js';
 import {candidateStats,candidates,candidateAck,investigate} from './candidate-contract.js';
 import {acknowledge,eventTrace} from './edge-contract.js';
 import {handleAlertFeed} from './alert-feed.js';
+import {MonitorHeartbeat, DISPATCH_KEY} from './monitor-heartbeat.js';
+import {checkpointFeedback, RECEIPT_KEY} from './checkpoint-feedback.js';
 const WIRES = [
   ["businesswire", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGFNXXw=="],
   ["globenewswire", "https://rss.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"],
@@ -88,6 +90,7 @@ export class HotEdge {
     this.committed = new Map(); this.candidateCache = new Map();
     this.cacheStats = {issuer_hits:0,issuer_misses:0,item_hits:0,item_misses:0,conditional_hits:0};
     this.ready = this.restore();
+    this.monitorHeartbeat = new MonitorHeartbeat(this.state.storage, this.env);
   }
 
   async restore() {
@@ -191,6 +194,8 @@ export class HotEdge {
   async fetch(request) {
     await this.ready;
     const path = new URL(request.url).pathname;
+    if (path === '/edge/checkpoint-feedback')
+      return this.exclusive(()=>checkpointFeedback(request, this.state.storage, this.env));
     const env={...this.env,ALERTS_DB:this.db};
     const handlers={'/alerts':handleAlertFeed,'/edge/ack':acknowledge,'/edge/candidates':candidates,
       '/edge/candidate/ack':candidateAck,'/edge/investigate':investigate,'/edge/event':eventTrace};
@@ -218,6 +223,8 @@ export class HotEdge {
     if (path === '/summaries') return Response.json(await this.summaries());
     if (path === "/health") {
       const health = await this.state.storage.get("health") || {};
+      health.monitor_heartbeat = await this.state.storage.get('monitor_heartbeat') || null;
+      health.monitor_checkpoint_receipt = await this.state.storage.get(RECEIPT_KEY) || null;
       const source_schedule=Object.fromEntries(Object.entries(this.sourceState || {}).map(([name,s])=>[name,{
         effective_interval_seconds:s.effective_interval_seconds,next_at:s.next_at,last_success_at:s.last_success_at,
         high_water_at:s.high_water_at,gap:s.gap,failures:s.failures,
@@ -246,6 +253,17 @@ export class HotEdge {
     await this.state.storage.setAlarm(started + INTERVAL(this.env));
     await this.state.storage.put("health", health);
     try {
+      // A due liveness check owns this external-fetch budget. Source work resumes
+      // on the next 120-second alarm, without advancing source deadlines/cursors.
+      // Never mix up to 23 GitHub calls with uncounted analysis/backfill fetches.
+      const heartbeatDue = this.env.EDGE_MONITOR_HEARTBEAT_ENABLED === '1' &&
+        await this.monitorHeartbeat.due(started);
+      health.monitor_heartbeat_reserved_cycle = heartbeatDue && Boolean(this.env.GITHUB_TOKEN);
+      health.monitor_heartbeat_deferred = null;
+      if (heartbeatDue) {
+        await this.monitorHeartbeat.check(started);
+        if (health.monitor_heartbeat_reserved_cycle) return;
+      }
       const sources = [["sec_8-K", () => this.pollSec("8-K")], ["sec_6-K", () => this.pollSec("6-K")],
         ...WIRES.map(([name, url]) => [name, () => this.pollWire(name, url)])];
       await Promise.all(sources.map(async ([name, poll]) => {
@@ -554,6 +572,7 @@ export class HotEdge {
     const last=await this.state.storage.get('reconciliation_requested_at') || 0;
     if (Date.now()-last<900000) return;
     try {
+      await this.state.storage.put(DISPATCH_KEY, Date.now());
       const response=await fetch(`https://api.github.com/repos/${this.env.GITHUB_REPO}/actions/workflows/${this.env.WORKFLOW_FILE || 'lightweight-monitor.yml'}/dispatches`,{
         method:'POST',headers:{Authorization:`Bearer ${this.env.GITHUB_TOKEN}`,Accept:'application/vnd.github+json','User-Agent':'mozes-hot-edge','Content-Type':'application/json'},
         body:JSON.stringify({ref:this.env.GITHUB_REF || 'main',inputs:{priority_only:'true'}}),signal:AbortSignal.timeout(8000),
@@ -687,6 +706,7 @@ export class HotEdge {
         .bind(deadline, event.enrichment_dispatch_at ? "completion ACK timeout; retrying" : "awaiting completion ACK", event.event_id, now, now).run();
       if (!claimed.meta?.changes) return;
       try {
+        if (this.env.GITHUB_TOKEN) await this.state.storage.put(DISPATCH_KEY, Date.now());
         if (await dispatchEnrichment(this.env, event))
           await db.prepare("UPDATE edge_events SET enrichment_dispatch_at=COALESCE(enrichment_dispatch_at,?),enrichment_queued_at=? WHERE event_id=? AND enrichment_ack_at IS NULL")
             .bind(now, now, event.event_id).run();

@@ -69,3 +69,5 @@ await import("./test_candidates.mjs");
 await import("./test_optimization.mjs");
 await import("./test_readiness.mjs");
 await import("./test_fairness.mjs");
+await import("./test_monitor_heartbeat.mjs");
+await import("./test_checkpoint_feedback.mjs");
