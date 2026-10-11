@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {MonitorHeartbeat, DISPATCH_KEY} from './src/monitor-heartbeat.js';
 import {HotEdge} from './src/hot-edge.js';
+import worker from './src/index.js';
 const now = Date.parse('2026-10-11T16:00:00Z'), repo = 'Mozes2024/mozes-biotech-intelligence';
 const env = {GITHUB_TOKEN:'offline-token', GITHUB_REPO:repo};
 const iso = n => new Date(n).toISOString();
@@ -78,6 +79,13 @@ try {
   h=harness({age:2701,active:'queued',ownerAge:3600});
   assert.equal((await h.heartbeat.check(now)).category,'outside_producer_restore_window');
   assert.equal(h.posts.length,0); count++;
+  for (const status of ['OVERDUE_OWNER','BLOCKED']) {
+    const response=await worker.fetch(new Request('https://edge.example/edge/health'),{
+      HOT_EDGE:{idFromName:()=> 'global',get:()=>({fetch:async url=>Response.json(
+        url.endsWith('/health')?{sources:{sec:{status:'OK'}},monitor_heartbeat:{status}}:{})})},
+    });
+    assert.equal((await response.json()).status,'PARTIAL'); count++;
+  }
   h=harness(); await Promise.all(Array.from({length:12},()=>h.heartbeat.check(now)));
   assert.deepEqual(h.posts,[{ref:'main',inputs:{priority_only:'true'}}]); count++;
   // A restart and an ambiguous rejected dispatch retain the durable reservation.

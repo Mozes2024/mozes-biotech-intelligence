@@ -37,7 +37,8 @@ race the read/POST boundary. The watchdog cannot make that external race atomic.
 Active owners suppress dispatch. An owner aged at least 20 minutes is reported as
 OVERDUE_OWNER with run ID, state, age and an explicit operator action. This is an
 escalation diagnostic, not cancellation, permission to duplicate a run or a
-checkpoint. Missing/future owner timestamps fail closed. The 45-minute checkpoint
+checkpoint. OVERDUE_OWNER/BLOCKED also make public health PARTIAL even when source
+polls are OK. Missing/future owner timestamps fail closed. The 45-minute checkpoint
 boundary still blocks; an overdue GitHub runner cannot be repaired by this code.
 
 After 45 minutes this path stops. It cannot repair a prolonged GitHub outage or
