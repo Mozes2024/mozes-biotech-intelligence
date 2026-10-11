@@ -8,8 +8,10 @@ There is no D1 query/write in the watchdog. Source polling retains the existing
 120-second alarm interval. A due watchdog owns one dedicated alarm cycle: at most
 23 external GitHub calls, with no concurrent source/analysis/backfill/delivery
 fetches. Sources resume on the next alarm with their deadlines/cursors unchanged.
-This adds at most one alarm (120 seconds) to due source work, normally one reserved
-cycle per six minutes, or ten minutes after a blocked check. Primary-source cycles
+This adds one alarm (120 seconds) plus bounded heartbeat I/O to due source work;
+23 sequential requests each have an eight-second timeout (184 seconds total).
+Normally one cycle per six minutes is reserved, or ten minutes after a blocked
+check, plus I/O duration. Primary-source cycles
 keep their original budgets and policies; they cannot indefinitely defer liveness.
 Health exposes `monitor_heartbeat_reserved_cycle`. Missing-token checks perform
 no external calls and therefore do not reserve a source cycle.
