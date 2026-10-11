@@ -28,7 +28,7 @@ minutes; the browser recomputes age on render. Missing/invalid checkpoint time i
 also stale. A three-hour snapshot can be published truthfully. The producer's
 MAX_REWIND and existing current-main Pages guard remain unchanged.
 
-Inventory bounds are 1,000 named artifacts, 3,000 workflow runs and 40 relevant
+Inventory bounds are 1,500 named artifacts, 3,000 workflow runs and 40 relevant
 producers. Exceeding a bound fails closed. Continuous producer activity can cause
 a TOCTOU/incomplete-producer block; do not silently publish an older candidate.
 This is a consumer, not proof that monitoring is healthy or safe to resume.

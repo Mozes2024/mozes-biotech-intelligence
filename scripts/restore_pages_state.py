@@ -64,7 +64,7 @@ def newest():
     Include expired artifacts and older dispatched waiters. Successful checkpoint
     steps without their artifact block publication rather than rewind it.
     """
-    artifacts = inventory('artifacts?name=mozes-live-monitor', 'artifacts', 10)
+    artifacts = inventory('artifacts?name=mozes-live-monitor', 'artifacts', 15)
     require(artifacts and all(a.get('name') == 'mozes-live-monitor' and _parse_iso(a.get('created_at'))
                               for a in artifacts), 'artifact_inventory')
     artifacts.sort(key=lambda a: _parse_iso(a['created_at']), reverse=True)
