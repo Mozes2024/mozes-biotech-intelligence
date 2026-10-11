@@ -213,8 +213,9 @@ def _health(conn, live, refresh, monitor):
     }
 
 
-def build(conn, today: date):
-    bootstrap_database(conn)
+def build(conn, today: date, *, consumer_only=False):
+    if not consumer_only:
+        bootstrap_database(conn)
     t = today.isoformat()
     validation = validation_status(conn)
     scored = [score_event(conn, e, t) for e in live_event_records(conn, include_quarantined=True)]
