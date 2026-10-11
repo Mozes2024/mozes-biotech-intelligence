@@ -5,10 +5,11 @@ const now = Date.parse('2026-10-11T16:00:00Z'), repo = 'Mozes2024/mozes-biotech-
 const env = {GITHUB_TOKEN:'offline-token', GITHUB_REPO:repo};
 const iso = n => new Date(n).toISOString();
 const original = globalThis.fetch;
-function harness({age=1500, active=false, ownerAge=60, bad=null, http=null, post=204}={}) {
-  const memory = new Map(), posts = [];
+function harness({age=1500, active=false, ownerAge=60, pages=1, bad=null, http=null, post=204}={}) {
+  const memory = new Map(), posts = [], requests=[];
   const storage = {get:async k=>memory.get(k),put:async(k,v)=>memory.set(k,v)};
   globalThis.fetch = async (url, options) => {
+    requests.push(options.method);
     assert.equal(new URL(url).origin, 'https://api.github.com');
     assert.equal(options.redirect, 'error');
     if (http) return new Response('{}',{status:http});
@@ -32,6 +33,14 @@ function harness({age=1500, active=false, ownerAge=60, bad=null, http=null, post
     } else value={id:1,head_branch:'main',head_repository:{full_name:repo},name:'lightweight-live-monitor',
       path:'.github/workflows/lightweight-monitor.yml',run_attempt:1,status:'completed',conclusion:'success',
       event:'workflow_dispatch',head_sha:'a'.repeat(40)};
+    if (pages>1 && value.artifacts) {
+      const page=Number(new URL(url).searchParams.get('page'));
+      const template=value.artifacts[0];
+      value={total_count:pages*100,artifacts:Array.from({length:100},(_,index)=>{
+        const offset=(page-1)*100+index;
+        return {...template,id:2+offset,created_at:iso(Date.parse(at)-offset)};
+      })};
+    }
     if (bad==='artifact_missing' && value.artifacts) value={total_count:0,artifacts:[]};
     if (bad==='artifact_digest' && value.artifacts) delete value.artifacts[0].digest;
     if (bad==='checkpoint_step' && value.jobs) value.jobs[0].steps[0].conclusion='skipped';
@@ -39,7 +48,7 @@ function harness({age=1500, active=false, ownerAge=60, bad=null, http=null, post
     if (bad==='incomplete' && value.workflow_runs) value.total_count=101;
     return Response.json(value);
   };
-  return {memory,storage,posts,heartbeat:new MonitorHeartbeat(storage,env)};
+  return {memory,storage,posts,requests,heartbeat:new MonitorHeartbeat(storage,env)};
 }
 let count=0;
 try {
@@ -49,6 +58,9 @@ try {
     assert.equal(h.posts.length,dispatches); count++;
   }
   let h;
+  h=harness({pages:15});
+  assert.equal((await h.heartbeat.check(now)).status,'DISPATCH_ACCEPTED_UNVERIFIED');
+  assert.equal(h.requests.length,23); assert.equal(h.posts.length,1); count++;
   for (const active of ['queued','in_progress','waiting','pending','requested']) {
     h=harness({active}); assert.equal((await h.heartbeat.check(now)).status,'ACTIVE_MONITOR');
     assert.equal(h.posts.length,0); count++;
@@ -81,6 +93,9 @@ try {
     h=harness({http}); assert.equal((await h.heartbeat.check(now)).category,`http_${http}`);
     assert.equal(h.posts.length,0); count++;
   }
+  h=harness({http:429}); await h.heartbeat.check(now);
+  assert.equal(await h.heartbeat.due(now+120000),false);
+  assert.equal(await h.heartbeat.due(now+600000),true); assert.equal(h.posts.length,0); count++;
   h=harness(); assert.equal((await new MonitorHeartbeat(h.storage,{}).check(now)).category,'token_missing'); count++;
   h=harness(); globalThis.fetch=async()=>{throw Error('secret must not escape');};
   assert.equal((await h.heartbeat.check(now)).category,'network_or_timeout'); count++;
