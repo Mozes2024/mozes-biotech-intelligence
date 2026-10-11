@@ -9,12 +9,16 @@ import shutil
 import sqlite3
 import subprocess
 import tempfile
+import time
 from contextlib import closing
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 REPO = 'Mozes2024/mozes-biotech-intelligence'
 WORKFLOW = 'lightweight-monitor.yml'
+ACTIVE = ('queued', 'in_progress', 'waiting', 'pending', 'requested')
+RESTORE_ATTEMPTS = 3
+RESELECT_WAIT_SECONDS = 20
 
 
 def gh(*args, timeout=300):
@@ -35,7 +39,7 @@ def require(condition, category):
 
 
 def api(path):
-    return json.loads(gh('api', f'repos/{REPO}/actions/{path}'))
+    return json.loads(gh('api', f'repos/{REPO}/actions/{path}', timeout=30))
 
 
 def collection(value, key, *, partial=False):
@@ -45,16 +49,30 @@ def collection(value, key, *, partial=False):
     return rows
 
 
-def inventory(path, key, bound):
+def inventory(path, key, bound=None):
     rows = []
-    for page in range(1, bound + 1):
+    expected = None
+    deadline = time.monotonic() + 90
+    page = 1
+    while bound is None or page <= bound:
+        require(time.monotonic() < deadline, 'inventory_time_budget')
         result = api(f'{path}&per_page=100&page={page}')
+        require(time.monotonic() < deadline, 'inventory_time_budget')
         batch = collection(result, key, partial=True)
+        if expected is None:
+            expected = result['total_count']
+        require(result['total_count'] == expected, 'inventory_changed')
+        require(len(batch) <= 100 and all(type(r.get('id')) is int and r['id'] > 0 for r in batch),
+                'incomplete_inventory')
         rows.extend(batch)
-        if len(rows) == result['total_count']:
+        if len(rows) == expected:
             require(len({r['id'] for r in rows}) == len(rows), 'duplicate_inventory')
             return rows
-        require(batch and len(rows) < result['total_count'], 'incomplete_inventory')
+        # A fixed advertised count bounds this complete scan. Never stop at a
+        # recent creation date: an old queued run/rerun can become a new writer.
+        require(batch and len(rows) < expected and page < (expected + 99) // 100,
+                'incomplete_inventory')
+        page += 1
     raise RuntimeError('producer_inventory_bound')
 
 
@@ -76,9 +94,11 @@ def newest():
     require(isinstance(owner, int), 'artifact_provenance')
     # Branch-filtered searches are capped by GitHub at 1,000 results. Inventory
     # the unfiltered workflow instead and validate every relevant run's branch.
-    rows = inventory(f'workflows/{WORKFLOW}/runs?exclude_pull_requests=true', 'workflow_runs', 30)
-    require(all(_parse_iso(r.get('updated_at')) for r in rows), 'incomplete_inventory')
-    relevant = [r for r in rows if r['id'] == owner or _parse_iso(r['updated_at']) >= _parse_iso(artifact['created_at'])]
+    rows = inventory(f'workflows/{WORKFLOW}/runs?exclude_pull_requests=true', 'workflow_runs')
+    require(all(_parse_iso(r.get('updated_at')) and r.get('status') in ('completed', *ACTIVE)
+                for r in rows), 'incomplete_inventory')
+    relevant = [r for r in rows if r['id'] == owner or r['status'] in ACTIVE
+                or _parse_iso(r['updated_at']) >= _parse_iso(artifact['created_at'])]
     require(len(relevant) <= 40 and sum(r['id'] == owner for r in relevant) == 1, 'producer_inventory_bound')
     selected = None
     for run in relevant:
@@ -93,6 +113,9 @@ def newest():
         if run['status'] == 'completed':
             require(run.get('conclusion') in ('success', 'failure', 'cancelled'), 'unknown_producer_conclusion')
         jobs = collection(api(f"runs/{run['id']}/jobs?filter=all&per_page=100"), 'jobs')
+        # A live owner is a transient publishing conflict, not proof that the
+        # last checkpoint is invalid. Wait, then redo the complete selection.
+        require(run['status'] == 'completed', 'producer_busy')
         monitors = [j for j in jobs if j.get('name') == 'monitor']
         require(len(monitors) <= 1, 'ambiguous_monitor')
         if not monitors:
@@ -149,7 +172,7 @@ def validate(root, run, artifact, now):
                     'checkpoint_at': times[2].isoformat(), 'data_age_seconds': age, 'stale': age > 2700}
 
 
-def restore(*, now=None):
+def _restore_once(*, now=None):
     require(os.environ.get('GITHUB_REPOSITORY') == REPO, 'repository_mismatch')
     now = now or datetime.now(timezone.utc)
     run, artifact = newest()
@@ -169,6 +192,19 @@ def restore(*, now=None):
         metadata.write_text(json.dumps(receipt), encoding='utf-8')
     print('pages_consumer_restore PASS')
     return receipt
+
+
+def restore(*, now=None):
+    for attempt in range(RESTORE_ATTEMPTS):
+        try:
+            return _restore_once(now=now)
+        except RuntimeError as exc:
+            if str(exc) not in ('producer_busy', 'checkpoint_changed', 'inventory_changed'):
+                raise
+            if attempt == RESTORE_ATTEMPTS - 1:
+                raise
+            print(f'pages_consumer_restore WAIT {exc} attempt={attempt + 1}')
+            time.sleep(RESELECT_WAIT_SECONDS)
 
 
 if __name__ == '__main__':
