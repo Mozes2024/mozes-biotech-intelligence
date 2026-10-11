@@ -28,9 +28,22 @@ minutes; the browser recomputes age on render. Missing/invalid checkpoint time i
 also stale. A three-hour snapshot can be published truthfully. The producer's
 MAX_REWIND and existing current-main Pages guard remain unchanged.
 
-Inventory bounds are 1,500 named artifacts, 3,000 workflow runs and 40 relevant
-producers. Exceeding a bound fails closed. Continuous producer activity can cause
-a TOCTOU/incomplete-producer block; do not silently publish an older candidate.
+Inventory bounds are 1,500 named artifacts and 40 relevant producers. Workflow
+history is scanned completely, including every old queued run and recently updated
+rerun, rather than failing permanently after 3,000 lifetime runs. The initial
+advertised count bounds pagination; a changing count, duplicates, missing rows,
+unknown status or a 90-second inventory budget exhaustion fails closed. Each API
+request has a 30-second timeout. This is still a full-history scan, not a constant-
+cost time-window query: sufficiently large/slow inventories can exceed the time
+budget and must be reported, never truncated to make publication pass.
+
+Natural active-producer conflicts, changing inventory counts and checkpoint
+changes permit at most three complete attempts, with 20 seconds between attempts.
+Every attempt reselects, downloads, checks provenance/SHA256/SQLite and rechecks
+the newest checkpoint before copying. Completed but incomplete job evidence,
+reruns requiring review, missing artifacts and failed integrity checks are not
+retryable. Continuous activity can still exhaust these attempts; no monitor is
+dispatched or suppressed and no older candidate is published as a fallback.
 This is a consumer, not proof that monitoring is healthy or safe to resume.
 
 ## Proposed rollout, after separate approval

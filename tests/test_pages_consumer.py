@@ -124,7 +124,7 @@ def test_incomplete_jobs_block(tmp_path, monkeypatch):
     _, _, _, run, artifact = fixture(tmp_path)
     run['status']='in_progress'
     mock_api(monkeypatch,run,artifact)
-    with pytest.raises(RuntimeError,match='incomplete_checkpoint'): pages.newest()
+    with pytest.raises(RuntimeError,match='producer_busy'): pages.newest()
 
 
 def test_provider_inventory_error_is_not_fallback(monkeypatch):
@@ -195,3 +195,136 @@ def test_browser_freshness_ages_independently_of_export_time():
         assert.equal(MozesCheckpointHealth({checkpoint_at},now).stale,true);
     """], cwd=root, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+def test_complete_inventory_beyond_old_lifetime_limit(monkeypatch):
+    rows = [{'id': i} for i in range(1, 3102)]
+    visited = []
+    def api(path):
+        page = int(path.rsplit('=', 1)[1]); visited.append(page)
+        return {'total_count': len(rows), 'workflow_runs': rows[(page-1)*100:page*100]}
+    monkeypatch.setattr(pages, 'api', api)
+    assert pages.inventory('workflows/x/runs?exclude_pull_requests=true', 'workflow_runs') == rows
+    assert visited == list(range(1, 33))
+
+
+@pytest.mark.parametrize('problem', ['missing', 'duplicate', 'count_changed', 'time_budget'])
+def test_complete_inventory_fails_closed(monkeypatch, problem):
+    calls = 0
+    def api(path):
+        nonlocal calls
+        calls += 1
+        rows = [{'id': i} for i in range(1, 101)] if calls == 1 else [{'id': 101}]
+        if problem == 'missing' and calls == 2: rows = []
+        if problem == 'duplicate' and calls == 2: rows = [{'id': 1}]
+        return {'total_count': 102 if problem == 'count_changed' and calls == 2 else 101,
+                'workflow_runs': rows}
+    monkeypatch.setattr(pages, 'api', api)
+    if problem == 'time_budget':
+        ticks = iter([0, 0, 91]); monkeypatch.setattr(pages.time, 'monotonic', lambda: next(ticks))
+    with pytest.raises(RuntimeError):
+        pages.inventory('workflows/x/runs?', 'workflow_runs')
+
+
+@pytest.mark.parametrize('status', pages.ACTIVE)
+def test_old_queued_owner_cannot_be_omitted(tmp_path, monkeypatch, status):
+    _, _, _, run, artifact = fixture(tmp_path)
+    old = deepcopy(run); old.update(id=1, status=status, updated_at=(NOW-timedelta(days=20)).isoformat())
+    mock_api(monkeypatch, run, artifact, extra=[old])
+    with pytest.raises(RuntimeError, match='producer_busy'): pages.newest()
+
+
+def test_old_rerun_with_recent_update_requires_review(tmp_path, monkeypatch):
+    _, _, _, run, artifact = fixture(tmp_path)
+    old = deepcopy(run)
+    old.update(id=1, run_attempt=2, created_at=(NOW-timedelta(days=20)).isoformat(), updated_at=NOW.isoformat())
+    mock_api(monkeypatch, run, artifact, extra=[old])
+    with pytest.raises(RuntimeError, match='rerun_requires_review'): pages.newest()
+
+
+@pytest.mark.parametrize('problem,category', [('queued', 'producer_busy'),
+    ('rerun', 'rerun_requires_review'), ('unknown', 'incomplete_inventory')])
+def test_old_potential_writer_beyond_three_thousand_is_audited(tmp_path, monkeypatch, problem, category):
+    _, _, _, run, artifact = fixture(tmp_path)
+    historic = deepcopy(run); historic['updated_at'] = (NOW-timedelta(days=20)).isoformat()
+    rows = [{**historic, 'id': i} for i in range(100, 3201)]
+    old = {**historic, 'id': 1}
+    if problem == 'queued': old['status'] = 'queued'
+    elif problem == 'rerun': old.update(run_attempt=2, updated_at=NOW.isoformat())
+    else: old['status'] = 'unknown'
+    rows.extend([run, old])
+    def api(path):
+        if path.startswith('artifacts?'): return {'total_count': 1, 'artifacts': [artifact]}
+        if path.startswith('workflows/'):
+            page = int(path.rsplit('=', 1)[1])
+            return {'total_count': len(rows), 'workflow_runs': rows[(page-1)*100:page*100]}
+        return {'total_count': 1, 'jobs': [{'name': 'monitor', 'status': 'completed', 'steps': [
+            {'name': name, 'status': 'completed', 'conclusion': 'success'} for name in
+            ['Bind durable checkpoint to monitor database', 'Run actions/upload-artifact@v4']]}]}
+    monkeypatch.setattr(pages, 'api', api)
+    with pytest.raises(RuntimeError, match=category): pages.newest()
+
+
+def test_changed_checkpoint_download_is_discarded_before_reselection(tmp_path, monkeypatch):
+    import shutil
+    first = tmp_path/'first'; first.mkdir()
+    second = tmp_path/'second'; second.mkdir()
+    source_a, _, _, run_a, artifact_a = fixture(first)
+    source_b, checkpoint_b, _, run_b, artifact_b = fixture(second)
+    with sqlite3.connect(source_b) as conn:
+        conn.execute("INSERT INTO preserved VALUES('NEW','new authoritative state')")
+    run_b['id'] = 3; artifact_b['id'] = 8; artifact_b['workflow_run']['id'] = 3
+    checkpoint_b.update(producer_run_id='3', db_sha256=hashlib.sha256(source_b.read_bytes()).hexdigest())
+    (second/'edge-checkpoint.json').write_text(json.dumps(checkpoint_b))
+    selections = iter([(run_a, artifact_a), (run_b, artifact_b), (run_b, artifact_b), (run_b, artifact_b)])
+    monkeypatch.setattr(pages, 'newest', lambda: next(selections))
+    downloads = []
+    def download(*args):
+        directory = first if args[2] == '2' else second
+        downloads.append(args[2])
+        assert not (tmp_path/'consumer.db').exists()
+        for path in directory.iterdir(): shutil.copyfile(path, Path(args[-1])/path.name)
+        return ''
+    monkeypatch.setattr(pages, 'gh', download)
+    monkeypatch.setattr(pages.time, 'sleep', lambda seconds: None)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('GITHUB_REPOSITORY', pages.REPO)
+    monkeypatch.setenv('MOZES_DB_PATH', str(tmp_path/'consumer.db'))
+    receipt = pages.restore(now=NOW)
+    assert downloads == ['2', '3'] and receipt['artifact_id'] == 8
+    assert (tmp_path/'consumer.db').read_bytes() == source_b.read_bytes()
+    assert source_a.read_bytes() != source_b.read_bytes()
+
+
+@pytest.mark.parametrize('category', ['producer_busy', 'checkpoint_changed', 'inventory_changed'])
+def test_transient_conflict_reselects_with_bounded_wait(monkeypatch, category):
+    calls, waits = [], []
+    def attempt(*, now):
+        calls.append(now)
+        if len(calls) < 3: raise RuntimeError(category)
+        return {'artifact_id': 99}
+    monkeypatch.setattr(pages, '_restore_once', attempt)
+    monkeypatch.setattr(pages.time, 'sleep', waits.append)
+    assert pages.restore() == {'artifact_id': 99}
+    assert len(calls) == 3 and waits == [20, 20]
+
+
+def test_busy_retry_exhaustion_cannot_publish(monkeypatch, tmp_path):
+    calls = []
+    def attempt(*, now):
+        calls.append(now); raise RuntimeError('producer_busy')
+    monkeypatch.setattr(pages, '_restore_once', attempt)
+    monkeypatch.setattr(pages.time, 'sleep', lambda seconds: None)
+    with pytest.raises(RuntimeError, match='producer_busy'): pages.restore()
+    assert len(calls) == 3
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize('category', ['incomplete_inventory', 'incomplete_producer',
+    'incomplete_checkpoint', 'checkpoint_integrity', 'artifact_provenance', 'sqlite_integrity',
+    'rerun_requires_review', 'inventory_time_budget', 'http_403'])
+def test_mandatory_evidence_failure_is_not_retried(monkeypatch, category):
+    def attempt(*, now): raise RuntimeError(category)
+    monkeypatch.setattr(pages, '_restore_once', attempt)
+    monkeypatch.setattr(pages.time, 'sleep', lambda seconds: pytest.fail('unsafe retry'))
+    with pytest.raises(RuntimeError, match=category): pages.restore()
