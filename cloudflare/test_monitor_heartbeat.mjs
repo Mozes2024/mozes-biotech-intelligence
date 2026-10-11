@@ -26,7 +26,8 @@ function harness({age=1500, active=false, bad=null, http=null, post=204}={}) {
         ({name,status:'completed',conclusion:'success',completed_at:at}))}]};
     else if (url.includes('/workflows/')) {
       const status=new URL(url).searchParams.get('status');
-      const rows=active&&status==='queued'?[{status,head_branch:'main',head_repository:{full_name:repo}}]:[];
+      const wanted=active===true?'queued':active;
+      const rows=active&&status===wanted?[{status,head_branch:'main',head_repository:{full_name:repo}}]:[];
       value={total_count:rows.length,workflow_runs:rows};
     } else value={id:1,head_branch:'main',head_repository:{full_name:repo},name:'lightweight-live-monitor',
       path:'.github/workflows/lightweight-monitor.yml',run_attempt:1,status:'completed',conclusion:'success',
@@ -47,8 +48,11 @@ try {
     const h=harness({age}); assert.equal((await h.heartbeat.check(now)).status,status);
     assert.equal(h.posts.length,dispatches); count++;
   }
-  let h=harness({active:true}); assert.equal((await h.heartbeat.check(now)).status,'ACTIVE_MONITOR');
-  assert.equal(h.posts.length,0); count++;
+  let h;
+  for (const active of ['queued','in_progress','waiting','pending','requested']) {
+    h=harness({active}); assert.equal((await h.heartbeat.check(now)).status,'ACTIVE_MONITOR');
+    assert.equal(h.posts.length,0); count++;
+  }
   h=harness(); await Promise.all(Array.from({length:12},()=>h.heartbeat.check(now)));
   assert.deepEqual(h.posts,[{ref:'main',inputs:{priority_only:'true'}}]); count++;
   // A restart and an ambiguous rejected dispatch retain the durable reservation.
@@ -80,5 +84,9 @@ try {
   await Promise.all([edge.alarm(),edge.alarm()]);
   assert.equal(h.posts.length,0); count++;
   assert.equal(h.memory.get('monitor_heartbeat').status,'THROTTLED');
+  edge.sourceState={}; edge.pollSec=async()=>{edge.sourceFetches=25;};
+  let checks=0; edge.monitorHeartbeat.check=async()=>{checks++;};
+  await edge.alarm();
+  assert.equal(checks,0); assert.equal(h.memory.get('health').monitor_heartbeat_deferred,'source_fetch_budget');count++;
   console.log(`monitor heartbeat: ${count} checks passed`);
 } finally {globalThis.fetch=original;}
