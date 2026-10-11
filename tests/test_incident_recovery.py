@@ -24,7 +24,7 @@ def canonical_events():
         "enrichment_github_run_id": "100" if n < 8 else None,
         "enrichment_alert_ids_json": '["alert"]' if n < 8 else None,
         "enrichment_delivery_json": '[{"status":"sent","channel":"browser"}]' if n < 8 else None,
-        "enrichment_dispatch_at": "2026-10-11T00:55:00Z", "analysis_completed_at": "2026-10-10T12:00:00Z"}
+        "enrichment_queued_at": None, "enrichment_dispatch_at": "2026-10-11T00:55:00Z", "analysis_completed_at": "2026-10-10T12:00:00Z"}
         for n in range(27)]
 
 
@@ -567,3 +567,119 @@ def test_credentials_are_step_scoped_and_absent_during_dependency_installation()
                     assert "EDGE_SYNC_TOKEN:" not in step
                     assert "GH_TOKEN:" not in step
             assert "persist-credentials: false" in steps
+
+
+def retry_events(gate, queued="2026-10-11T00:55:00Z"):
+    events = canonical_events()
+    for event in events:
+        event["enrichment_dispatch_at"] = "2026-10-10T09:59:01.788Z"
+    for event, (event_id, (ticker, source)) in zip(events[-5:], gate.PENDING.items()):
+        event.update(event_id=event_id, ticker=ticker, source=source)
+    events[-1]["enrichment_queued_at"] = queued
+    return events
+
+
+def test_post_reset_retry_with_old_initial_dispatch_proves_capacity(gate):
+    now = gate.START + timedelta(hours=1)
+    rows = retry_events(gate)
+    expected = gate.edge_fingerprints(rows)
+    proof = gate.analytics_evidence(analytics(gate, writes=58), now, rows)
+    assert proof["capacity_demonstrated"]
+    assert proof["latest_automatic_write_at"] == "2026-10-11T00:55:00+00:00"
+    rows[-1]["enrichment_queued_at"] = "2026-10-11T00:56:00Z"
+    assert gate.edge_fingerprints(rows) == expected
+    assert not rows[-1]["enrichment_ack_at"] and not rows[-1]["enrichment_change_id"]
+
+
+@pytest.mark.parametrize("queued,writes,expected", [
+    (None, 58, False),  # rejected dispatch does not persist a successful queue stamp
+    ("2026-10-11T00:55:00Z", 0, False),
+    ("2026-10-11T00:50:00Z", 58, True),
+    ("2026-10-11T00:49:59.999Z", 58, False),
+    ("2026-10-10T23:59:59Z", 58, False),
+    ("2026-10-11T00:55:00+00:00", 58, True),
+])
+def test_retry_requires_fresh_post_reset_stamp_and_independent_writes(gate, queued, writes, expected):
+    proof = gate.analytics_evidence(analytics(gate, writes=writes),
+        gate.START + timedelta(hours=1), retry_events(gate, queued))
+    assert proof["capacity_demonstrated"] is expected
+
+
+@pytest.mark.parametrize("queued", ["", "invalid", "2026-10-11T00:55:00", 42,
+    "2026-10-11T01:00:00.001Z"])
+def test_invalid_or_future_queue_evidence_fails_closed(gate, queued):
+    with pytest.raises(gate.IncidentGateError):
+        gate.analytics_evidence(analytics(gate), gate.START + timedelta(hours=1), retry_events(gate, queued))
+
+
+@pytest.mark.parametrize("change", [{"ticker": "OTHER"}, {"source": "other"},
+    {"event_id": "EDGE-ffffffffffffffffffffffff"}, {"enrichment_ack_at": "done"},
+    {"enrichment_change_id": "CHG-ffffffffffffffffffffffff"},
+    {"enrichment_dispatch_at": "2026-10-11T00:56:00Z"}])
+def test_recent_retry_requires_protected_pending_unacknowledged_identity(gate, change):
+    events = retry_events(gate)
+    events[-1].update(change)
+    with pytest.raises(gate.IncidentGateError):
+        gate.analytics_evidence(analytics(gate), gate.START + timedelta(hours=1), events)
+
+
+def test_missing_queue_projection_or_headroom_cannot_prove_capacity(gate):
+    rows = retry_events(gate)
+    del rows[-1]["enrichment_queued_at"]
+    with pytest.raises(gate.IncidentGateError):
+        gate.analytics_evidence(analytics(gate), gate.START + timedelta(hours=1), rows)
+    with pytest.raises(gate.IncidentGateError):
+        gate.analytics_evidence(analytics(gate, writes=90000), gate.START + timedelta(hours=1), retry_events(gate))
+
+
+def test_15_minute_schedule_and_16_minute_retry_keep_10_minute_window(gate):
+    outcomes = []
+    for minute in range(7, 120, 15):
+        now = gate.START + timedelta(minutes=minute)
+        queued = gate.START + timedelta(minutes=(minute // 16) * 16)
+        rows = retry_events(gate, queued.isoformat())
+        outcomes.append(gate.analytics_evidence(analytics(gate,
+            stamp=now.replace(minute=0).isoformat()), now, rows)["capacity_demonstrated"])
+    assert outcomes == [True, True, True, True, True, True, True, True]
+    now = gate.START + timedelta(minutes=127)
+    queued = gate.START + timedelta(minutes=112)
+    assert not gate.analytics_evidence(analytics(gate, stamp="2026-10-11T02:00:00Z"),
+        now, retry_events(gate, queued.isoformat()))["capacity_demonstrated"]
+    now += timedelta(minutes=15)
+    queued = gate.START + timedelta(minutes=128)
+    assert not gate.analytics_evidence(analytics(gate, stamp="2026-10-11T02:00:00Z"),
+        now, retry_events(gate, queued.isoformat()))["capacity_demonstrated"]
+
+
+def test_complete_provider_gate_accepts_only_validated_retry_evidence(gate, monkeypatch):
+    test_provider_capacity_requires_actual_current_hour_writes(gate, monkeypatch, 58, 625, True)
+    original = gate.cf
+    rows = retry_events(gate)
+    monkeypatch.setattr(gate, "EDGE_FINGERPRINTS", gate.edge_fingerprints(rows))
+    def provider(path, **kwargs):
+        result = original(path, **kwargs)
+        if path.endswith("query"):
+            result[1]["results"] = rows
+        return result
+    monkeypatch.setattr(gate, "cf", provider)
+    proof = gate.provider_gate(gate.START + timedelta(hours=1))
+    assert proof["capacity_demonstrated"] and proof["daily_rows_written"] == 625
+    assert proof["edge_fingerprints"] == gate.EDGE_FINGERPRINTS
+    del rows[-1]["enrichment_queued_at"]
+    with pytest.raises(gate.IncidentGateError):
+        gate.provider_gate(gate.START + timedelta(hours=1))
+
+
+def test_cloudflare_403_7403_does_not_retry_or_authorize_capacity(gate, monkeypatch):
+    import io
+    monkeypatch.setenv("CLOUDFLARE_RECOVERY_READ_TOKEN", "test-only-placeholder")
+    calls = []
+    class Opener:
+        def open(self, request, **kwargs):
+            calls.append(request.full_url)
+            raise gate.urllib.error.HTTPError(request.full_url, 403, "Forbidden", {},
+                io.BytesIO(b'{"success":false,"errors":[{"code":7403}]}'))
+    monkeypatch.setattr(gate.urllib.request, "build_opener", lambda *a: Opener())
+    with pytest.raises(gate.IncidentGateError, match="evidence unavailable; no retry"):
+        gate.provider_gate(gate.START + timedelta(hours=1))
+    assert len(calls) == 1

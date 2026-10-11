@@ -39,7 +39,7 @@ IDENTITY_FIELDS = ("event_id", "source", "ticker", "cik", "form", "accession", "
                    "filing_index_url", "first_seen_at", "accepted_at", "published_at")
 ACK_FIELDS = ("event_id", "enrichment_ack_at", "enrichment_completed_at", "enrichment_change_id",
               "enrichment_github_run_id", "enrichment_alert_ids_json", "enrichment_delivery_json")
-EDGE_FIELDS = tuple(dict.fromkeys(IDENTITY_FIELDS + ACK_FIELDS + ("enrichment_dispatch_at", "analysis_completed_at")))
+EDGE_FIELDS = tuple(dict.fromkeys(IDENTITY_FIELDS + ACK_FIELDS + ("enrichment_dispatch_at", "analysis_completed_at", "enrichment_queued_at")))
 D1_QUERY = ("SELECT name FROM d1_migrations ORDER BY id LIMIT 10; SELECT " + ",".join(EDGE_FIELDS)
             + " FROM edge_events ORDER BY event_id LIMIT 1001;")
 # Deterministic projections of protected audited evidence, never database contents.
@@ -150,7 +150,26 @@ def analytics_evidence(value, now, events):
         # persisted automatic write timestamp too; never manufacture a probe.
         writes = [timestamp(event[field]) for event in events
                   for field in ("enrichment_dispatch_at", "analysis_completed_at") if event[field]]
-        recent = [stamp for stamp in writes if max(START, now - timedelta(minutes=10)) <= stamp <= now]
+        cutoff = max(START, now - timedelta(minutes=10))
+        for event in events:
+            queued = event["enrichment_queued_at"]
+            if queued is None:
+                continue  # Failed/rejected dispatches do not persist this timestamp.
+            stamp = timestamp(queued)
+            if stamp > now:
+                raise IncidentGateError("future successful queue timestamp")
+            if stamp < cutoff:
+                continue
+            expected = PENDING.get(event["event_id"])
+            if (expected != (event["ticker"], event["source"])
+                    or any(event[field] for field in ACK_FIELDS[1:])
+                    or any(timestamp(event[field]) > stamp for field in
+                           ("enrichment_dispatch_at", "analysis_completed_at") if event[field])):
+                raise IncidentGateError("successful queue identity/completion evidence conflicts")
+            # A persisted successful dispatch retry proves a write, never an ACK
+            # or delivery. Immutable identity/ACK fingerprints remain unchanged.
+            writes.append(stamp)
+        recent = [stamp for stamp in writes if cutoff <= stamp <= now]
         return {"capacity_demonstrated": written > 0 and bool(recent),
                 "current_hour_rows_written": written, "daily_rows_written": total,
                 "latest_automatic_write_at": max(recent).isoformat() if recent else None,
