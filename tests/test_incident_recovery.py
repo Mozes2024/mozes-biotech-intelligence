@@ -170,8 +170,11 @@ def test_existing_restore_gate_failure_prevents_claim(gate, monkeypatch, error):
     assert not state["posts"]
 
 
-def test_claim_race_has_one_winner(gate, monkeypatch):
+@pytest.mark.parametrize("route", ["schedule", "manual"])
+def test_claim_race_has_one_winner(gate, monkeypatch, tmp_path, route):
     state, _ = ready(gate, monkeypatch)
+    if route == "manual":
+        manual_route(gate, monkeypatch, tmp_path)
     barrier = threading.Barrier(2)
     original = gate.eligible
     def eligible(now):
@@ -190,8 +193,94 @@ def test_claim_race_has_one_winner(gate, monkeypatch):
     assert state["ref"]
 
 
-def test_crash_after_claim_cannot_be_adopted_by_next_run(gate, monkeypatch):
+def manual_route(gate, monkeypatch, tmp_path, **changes):
+    inputs = {"incident_recovery_authorization": f"20261011:{gate.SOURCE}", "priority_only": "true"}
+    inputs.update(changes)
+    payload = tmp_path / "dispatch.json"
+    payload.write_text(json.dumps({"inputs": inputs}))
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(payload))
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")
+    monkeypatch.setenv("MOZES_INCIDENT_MANUAL_APPROVAL",
+        f"{'a' * 40}:workflow_dispatch:{gate.SOURCE}:{gate.SHA256}")
+
+
+def test_manual_recovery_requires_separate_sha_bound_approval(gate, monkeypatch, tmp_path):
+    state, restores = ready(gate, monkeypatch)
+    manual_route(gate, monkeypatch, tmp_path)
+    gate.claim(gate.START)
+    gate.process(gate.START)
+    assert state["ref"] and sum(not r.get("verify_only") for r in restores) == 1
+    assert __import__("os").environ["GITHUB_EVENT_NAME"] == "workflow_dispatch"
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "schedule")
+    with pytest.raises(RuntimeError, match="claim exists"):
+        gate.claim(gate.START)
+
+
+@pytest.mark.parametrize("changes", [
+    {"incident_recovery_authorization": ""}, {"incident_recovery_authorization": "wrong"},
+    {"priority_only": "false"}, {"source_run_id": "38052910145"},
+    {"recovery_checkpoint_sha256": "other"}, {"edge_event_id": "EDGE-other"},
+    {"hot_ticker": "OTHER"}, {"hot_cik": "123"}, {"hot_accession": "other"},
+    {"hot_source_url": "https://example.com"}])
+def test_manual_input_cannot_expand_bounded_recovery(gate, monkeypatch, tmp_path, changes):
+    state, restores = ready(gate, monkeypatch)
+    manual_route(gate, monkeypatch, tmp_path, **changes)
+    with pytest.raises(RuntimeError, match="unapproved"):
+        gate.claim(gate.START)
+    assert not state["posts"] and not restores
+
+
+@pytest.mark.parametrize("approval", ["", "wrong", "b" * 40 + ":workflow_dispatch:38052910145"])
+def test_manual_approval_missing_or_other_head_fails_closed(gate, monkeypatch, tmp_path, approval):
+    state, _ = ready(gate, monkeypatch)
+    manual_route(gate, monkeypatch, tmp_path)
+    monkeypatch.setenv("MOZES_INCIDENT_MANUAL_APPROVAL", approval)
+    with pytest.raises(RuntimeError, match="unapproved"):
+        gate.claim(gate.START)
+    assert not state["posts"]
+
+
+def test_schedule_claim_cannot_be_consumed_again_by_manual_route(gate, monkeypatch, tmp_path):
+    state, _ = ready(gate, monkeypatch)
+    gate.claim(gate.START)
+    manual_route(gate, monkeypatch, tmp_path)
+    monkeypatch.setenv("GITHUB_RUN_ID", "901")
+    with pytest.raises(RuntimeError, match="claim exists"):
+        gate.claim(gate.START)
+    with pytest.raises(RuntimeError, match="another run"):
+        gate.process(gate.START)
+    assert state["posts"].count("git/refs") == 1
+
+
+def test_manual_newer_checkpoint_never_falls_through_to_processing(gate, monkeypatch, tmp_path):
+    ready(gate, monkeypatch)
+    manual_route(gate, monkeypatch, tmp_path)
+    monkeypatch.setattr(gate.restore, "_list_success_runs", lambda: [{"databaseId": "newer"}])
+    with pytest.raises(RuntimeError, match="newer checkpoint closes"):
+        gate.eligible(gate.START)
+
+
+@pytest.mark.parametrize("mode", ["missing_capacity", "expired", "rerun", "bad_payload", "audit_failure"])
+def test_manual_route_retains_original_fail_closed_gates(gate, monkeypatch, tmp_path, mode):
+    state, restores = ready(gate, monkeypatch, capacity=mode != "missing_capacity")
+    manual_route(gate, monkeypatch, tmp_path)
+    now = gate.END if mode == "expired" else gate.START
+    if mode == "rerun":
+        monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "2")
+    if mode == "bad_payload":
+        Path(__import__("os").environ["GITHUB_EVENT_PATH"]).write_text('{broken')
+    if mode == "audit_failure":
+        monkeypatch.setattr(gate.restore, "restore", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("producer audit failed")))
+    with pytest.raises(RuntimeError):
+        gate.claim(now)
+    assert not state["posts"] and not any(not r.get("verify_only") for r in restores)
+
+
+@pytest.mark.parametrize("route", ["schedule", "manual"])
+def test_crash_after_claim_cannot_be_adopted_by_next_run(gate, monkeypatch, tmp_path, route):
     _, restores = ready(gate, monkeypatch)
+    if route == "manual":
+        manual_route(gate, monkeypatch, tmp_path)
     gate.claim(gate.START)
     monkeypatch.setenv("GITHUB_RUN_ID", "901")
     with pytest.raises(RuntimeError, match="another run"):
@@ -407,6 +496,16 @@ def test_workflow_lock_covers_gate_and_processing_without_downstream_dispatch():
     assert "gh workflow run" not in gate_block
     assert text.index("python scripts/incident_recovery.py process") < text.index("python -m mozes.edge_sync")
     assert "MAX_REWIND = timedelta(minutes=45)" in (Path(__file__).parents[1] / "scripts/restore_monitor_state.py").read_text()
+
+
+def test_explicit_manual_request_cannot_fall_through_disabled_eligibility():
+    text = (Path(__file__).parents[1] / ".github/workflows/lightweight-monitor.yml").read_text()
+    monitor = text.split("  monitor:", 1)[1].split("    runs-on:", 1)[0]
+    assert "needs.incident_eligibility.result == 'skipped' &&" in monitor
+    assert "inputs.incident_recovery_authorization == ''" in monitor
+    assert text.count("group: mozes-hot-monitor") == 1
+    assert text.count("Acquire irreversible incident recovery claim") == 1
+    assert "MOZES_INCIDENT_MANUAL_APPROVAL: ${{ vars.MOZES_INCIDENT_MANUAL_APPROVAL }}" in text
 
 
 def analytics(gate, stamp="2026-10-11T01:00:00Z", writes=1):

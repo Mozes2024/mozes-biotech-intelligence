@@ -7,6 +7,10 @@ on:
     - cron: '20 6 * * 0,2,4,6'
   workflow_dispatch:
     inputs:
+      incident_recovery_authorization:
+        description: 'Emergency recovery ONLY after separate human approval: 20261011:38052910145'
+        required: false
+        type: string
       priority_only:
         description: 'Check the priority issuers and their source feeds only'
         required: false
@@ -52,7 +56,10 @@ jobs:
   incident_eligibility:
     name: incident-eligibility
     # Disabled until separately reviewed activation; no new cron or dispatcher.
-    if: github.event_name == 'schedule' && vars.MOZES_INCIDENT_RECOVERY_ENABLED == '20261011'
+    if: >-
+      vars.MOZES_INCIDENT_RECOVERY_ENABLED == '20261011' &&
+      (github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.incident_recovery_authorization != ''))
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
@@ -63,6 +70,7 @@ jobs:
     env:
       MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
       MOZES_INCIDENT_APPROVED_MAIN: ${{ vars.MOZES_INCIDENT_APPROVED_MAIN }}
+      MOZES_INCIDENT_MANUAL_APPROVAL: ${{ vars.MOZES_INCIDENT_MANUAL_APPROVAL }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -88,7 +96,8 @@ jobs:
   monitor:
     needs: incident_eligibility
     if: >-
-      always() && (needs.incident_eligibility.result == 'skipped' ||
+      always() && ((needs.incident_eligibility.result == 'skipped' &&
+      inputs.incident_recovery_authorization == '') ||
       (needs.incident_eligibility.result == 'success' &&
       (needs.incident_eligibility.outputs.mode == 'recover' ||
       needs.incident_eligibility.outputs.mode == 'ordinary')))
@@ -124,6 +133,7 @@ jobs:
       MOZES_EDGE_EVENT_ID: ${{ inputs.edge_event_id }}
       MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
       MOZES_INCIDENT_APPROVED_MAIN: ${{ vars.MOZES_INCIDENT_APPROVED_MAIN }}
+      MOZES_INCIDENT_MANUAL_APPROVAL: ${{ vars.MOZES_INCIDENT_MANUAL_APPROVAL }}
       INCIDENT_MODE: ${{ needs.incident_eligibility.outputs.mode }}
       RUN_PRIORITY: ${{ inputs.priority_only == true || github.event_name == 'schedule' }}
     steps:

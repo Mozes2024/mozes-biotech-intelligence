@@ -291,11 +291,33 @@ def _provider_gate(now):
     return proof
 
 
+def approved_event(approved):
+    event = os.environ.get("GITHUB_EVENT_NAME")
+    if event == "schedule":
+        return True
+    if event != "workflow_dispatch":
+        return False
+    # The real Actions event payload is read without changing its event identity.
+    # A separate human-set approval binds this alternative route to the main SHA,
+    # incident and immutable checkpoint; dispatch inputs alone cannot authorize it.
+    try:
+        inputs = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())["inputs"]
+        return (os.environ.get("MOZES_INCIDENT_MANUAL_APPROVAL") ==
+                f"{approved}:workflow_dispatch:{SOURCE}:{SHA256}"
+                and inputs.get("incident_recovery_authorization") == f"20261011:{SOURCE}"
+                and inputs.get("priority_only") == "true"
+                and not any(inputs.get(key) for key in (
+                    "source_run_id", "recovery_checkpoint_sha256", "hot_ticker", "hot_cik",
+                    "hot_accession", "hot_source_url", "edge_event_id")))
+    except (KeyError, OSError, ValueError, TypeError, AttributeError):
+        return False
+
+
 def context(now):
     approved = os.environ.get("MOZES_INCIDENT_APPROVED_MAIN", "")
     if (os.environ.get("GITHUB_REPOSITORY") != REPO
             or os.environ.get("GITHUB_REF") != "refs/heads/main"
-            or os.environ.get("GITHUB_EVENT_NAME") != "schedule"
+            or not approved_event(approved)
             or os.environ.get("GITHUB_RUN_ATTEMPT", "1") != "1"
             or not re.fullmatch(r"[a-f0-9]{40}", approved)
             or os.environ.get("GITHUB_SHA") != approved
@@ -365,6 +387,8 @@ def eligible(now):
     if not latest:
         raise IncidentGateError("missing durable checkpoint")
     if str(latest[0]["databaseId"]) != SOURCE:
+        if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+            raise IncidentGateError("newer checkpoint closes manual incident recovery")
         return "ordinary"
     if now < START:
         return "wait"
