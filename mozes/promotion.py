@@ -17,6 +17,8 @@ _GENERIC_IDENTITY_WORDS = frozenset("""
     available chemotherapy placebo oral tablet tablets injection solution saline control
     comparator arm drug intervention results data assessment endpoint endpoints primary
     secondary overall survival tolerability pharmacokinetics and the a an in for with
+    adult adults child children adolescent adolescents infant infants elderly healthy
+    volunteer volunteers participant participants pediatric paediatric male female
 """.split())
 
 
@@ -55,6 +57,7 @@ def _terms(candidate: dict) -> list[str]:
         key = name.casefold()
         words = re.findall(r"[a-z0-9]+", key)
         if (len(name) < 3 or not words
+                or 'placebo' in words
                 or all(word in _GENERIC_IDENTITY_WORDS or word.isdigit() for word in words)
                 or key in seen):
             continue

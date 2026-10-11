@@ -93,6 +93,8 @@ def test_registered_program_intervention_and_alias(identity):
 @pytest.mark.parametrize("name", [
     "Safety", "Efficacy", "Safety efficacy evaluation", "Randomized double blind study",
     "Placebo", "Placebo oral tablet", "Standard of care", "Best available therapy", "Chemotherapy",
+    "ADULTS", "Healthy volunteers", "Pediatric participants", "Adult male patients",
+    "ABC-123 placebo", "Specificmab placebo",
 ])
 def test_generic_registered_fields_are_not_specific_identity(name):
     raw = {"identificationModule": {"acronym": name},
@@ -111,6 +113,31 @@ def test_placebo_alias_is_not_program_identity():
         {"name": "Placebo oral tablet", "otherNames": ["Control-X"]}]}}
     c = registered_candidate(raw_json=json.dumps(raw))
     assert not candidate_matches_statement(c, "Control-X data in December")[0]
+
+
+def test_placebo_alias_of_active_intervention_does_not_verify():
+    raw = {"armsInterventionsModule": {"interventions": [
+        {"name": "ABC-123", "otherNames": ["ABC-123 placebo", "Healthy volunteers"]}]}}
+    c = registered_candidate(raw_json=json.dumps(raw))
+    # An alias carrying the control qualifier cannot itself be identity evidence.
+    assert not candidate_matches_statement(c, "Healthy volunteers data in December")[0]
+    from mozes.promotion import _terms
+    assert _terms(c) == ["ABC-123"]
+
+
+def test_demographic_registry_terms_remain_rejected_without_side_effects(conn):
+    c = registered_candidate(raw_json=json.dumps({"identificationModule": {"acronym": "ADULTS"}}))
+    statement = primary_statement("Healthy adults data in December 2026.")
+    assert promote_candidate(conn, c, statement, "ZZZZ") is None
+    assert promote_candidate(conn, c, statement, "ZZZZ") is None
+    for table in ("events", "event_state", "event_sources", "change_events", "alert_outbox"):
+        assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM v2e2_promotion_decisions").fetchone()[0] == 1
+
+
+def test_exact_nct_still_matches_demographic_only_registry():
+    c = registered_candidate(raw_json=json.dumps({"identificationModule": {"acronym": "ADULTS"}}))
+    assert candidate_matches_statement(c, "NCT12345678 adult data in December")[:2] == (True, 1.0)
 
 
 def test_registered_multiword_identity_normalizes_whitespace():
