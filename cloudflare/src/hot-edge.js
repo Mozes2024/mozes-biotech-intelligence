@@ -6,6 +6,7 @@ import {edgeMetrics} from './edge-metrics.js';
 import {candidateStats,candidates,candidateAck,investigate} from './candidate-contract.js';
 import {acknowledge,eventTrace} from './edge-contract.js';
 import {handleAlertFeed} from './alert-feed.js';
+import {MonitorHeartbeat, DISPATCH_KEY} from './monitor-heartbeat.js';
 const WIRES = [
   ["businesswire", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGFNXXw=="],
   ["globenewswire", "https://rss.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"],
@@ -88,6 +89,7 @@ export class HotEdge {
     this.committed = new Map(); this.candidateCache = new Map();
     this.cacheStats = {issuer_hits:0,issuer_misses:0,item_hits:0,item_misses:0,conditional_hits:0};
     this.ready = this.restore();
+    this.monitorHeartbeat = new MonitorHeartbeat(this.state.storage, this.env);
   }
 
   async restore() {
@@ -218,6 +220,7 @@ export class HotEdge {
     if (path === '/summaries') return Response.json(await this.summaries());
     if (path === "/health") {
       const health = await this.state.storage.get("health") || {};
+      health.monitor_heartbeat = await this.state.storage.get('monitor_heartbeat') || null;
       const source_schedule=Object.fromEntries(Object.entries(this.sourceState || {}).map(([name,s])=>[name,{
         effective_interval_seconds:s.effective_interval_seconds,next_at:s.next_at,last_success_at:s.last_success_at,
         high_water_at:s.high_water_at,gap:s.gap,failures:s.failures,
@@ -274,6 +277,9 @@ export class HotEdge {
       catch (error) { this.failure(health, "downstream", now, error); }
       // Historical candidate/alert records are retained. Only dedup state expires.
       await this.reconcileGaps(health);
+      // Reserve external-fetch headroom for up to 13 bounded GitHub calls.
+      health.monitor_heartbeat_deferred = (this.sourceFetches || 0) > 24 ? 'source_fetch_budget' : null;
+      if (!health.monitor_heartbeat_deferred) await this.monitorHeartbeat.check();
     } finally {
       await this.state.storage.setAlarm(Date.now() + INTERVAL(this.env));
       health.next_alarm_at = await this.state.storage.getAlarm();
@@ -554,6 +560,7 @@ export class HotEdge {
     const last=await this.state.storage.get('reconciliation_requested_at') || 0;
     if (Date.now()-last<900000) return;
     try {
+      await this.state.storage.put(DISPATCH_KEY, Date.now());
       const response=await fetch(`https://api.github.com/repos/${this.env.GITHUB_REPO}/actions/workflows/${this.env.WORKFLOW_FILE || 'lightweight-monitor.yml'}/dispatches`,{
         method:'POST',headers:{Authorization:`Bearer ${this.env.GITHUB_TOKEN}`,Accept:'application/vnd.github+json','User-Agent':'mozes-hot-edge','Content-Type':'application/json'},
         body:JSON.stringify({ref:this.env.GITHUB_REF || 'main',inputs:{priority_only:'true'}}),signal:AbortSignal.timeout(8000),
@@ -687,6 +694,7 @@ export class HotEdge {
         .bind(deadline, event.enrichment_dispatch_at ? "completion ACK timeout; retrying" : "awaiting completion ACK", event.event_id, now, now).run();
       if (!claimed.meta?.changes) return;
       try {
+        if (this.env.GITHUB_TOKEN) await this.state.storage.put(DISPATCH_KEY, Date.now());
         if (await dispatchEnrichment(this.env, event))
           await db.prepare("UPDATE edge_events SET enrichment_dispatch_at=COALESCE(enrichment_dispatch_at,?),enrichment_queued_at=? WHERE event_id=? AND enrichment_ack_at IS NULL")
             .bind(now, now, event.event_id).run();
