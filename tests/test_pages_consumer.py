@@ -1,4 +1,5 @@
 import hashlib
+import importlib.util
 import json
 import sqlite3
 import subprocess
@@ -7,7 +8,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-from scripts import restore_pages_state as pages
+spec = importlib.util.spec_from_file_location('restore_pages', Path(__file__).resolve().parents[1] / 'scripts/restore_pages_state.py')
+pages = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(pages)
 
 NOW = datetime(2026, 10, 11, 16, tzinfo=timezone.utc)
 SHA = 'a' * 40

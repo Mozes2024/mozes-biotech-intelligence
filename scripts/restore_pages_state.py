@@ -7,15 +7,26 @@ import os
 import re
 import shutil
 import sqlite3
+import subprocess
 import tempfile
 from contextlib import closing
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from scripts.restore_monitor_state import gh, _parse_iso
-
 REPO = 'Mozes2024/mozes-biotech-intelligence'
 WORKFLOW = 'lightweight-monitor.yml'
+
+
+def gh(*args, timeout=300):
+    return subprocess.check_output(['gh', *args], text=True, timeout=timeout)
+
+
+def _parse_iso(value):
+    try:
+        result = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+        return result if result.tzinfo is not None else None
+    except ValueError:
+        return None
 
 
 def require(condition, category):
@@ -145,7 +156,7 @@ def restore(*, now=None):
     requested = os.environ.get('SOURCE_RUN_ID')
     require(not requested or requested.isdigit(), 'invalid_advisory_run')
     with tempfile.TemporaryDirectory() as tmp:
-        gh('run', 'download', str(run['id']), '-n', 'mozes-live-monitor', '-D', tmp)
+        gh('run', 'download', str(run['id']), '--repo', REPO, '-n', 'mozes-live-monitor', '-D', tmp)
         source, receipt = validate(Path(tmp), run, artifact, now)
         latest_run, latest_artifact = newest()
         require((latest_run['id'], latest_artifact['id']) == (run['id'], artifact['id']), 'checkpoint_changed')
