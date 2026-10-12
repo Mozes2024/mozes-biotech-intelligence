@@ -1,12 +1,20 @@
 // Alert transport is independent of the large research snapshot.
-function createAlertNotifier({storage, show, system, lock=task=>task(), now=()=>Date.now()}){
+function interruptiveAlertEligible(a){
+  const allowed={fda_decision:['approval','crl','pdufa_extension','refusal_to_file'],material_safety:['clinical_hold','hold_lifted'],
+    clinical_outcome:['primary_endpoint_met','primary_endpoint_failed','primary_not_significant','futility','trial_discontinued'],
+    market_halt:['halt','resumption','volatility_pause']};
+  return a.popup_eligible===true&&a.issuer_verified===true&&a.confirmed_outcome===true&&a.needs_review===false&&
+    a.semantic_version==='alert-evidence-v1'&&['source_text','feed_summary','structured_source'].includes(a.evidence_basis)&&
+    ['P1','P2'].includes(a.priority)&&(allowed[a.event_family]||[]).includes(a.event_outcome);
+}
+function createAlertNotifier({storage, show, system, eligible=()=>true, lock=task=>task(), now=()=>Date.now()}){
   const key='mozes-alerts-seen-v1';let memory={};
   return {async observe(rows,baseline=false){return lock(()=>{
     let seen;try{seen=JSON.parse(storage.getItem(key)||'{}')}catch(_){seen=memory}
     if(!seen||typeof seen!=='object'||Array.isArray(seen))seen={};
     const stamp=now(),cutoff=stamp-7*86400000;
     seen=Object.fromEntries(Object.entries(seen).filter(([,at])=>Number.isFinite(at)&&at>=cutoff));
-    const fresh=rows.filter(a=>a.change_id&&!seen[a.change_id]);
+    const fresh=rows.filter(a=>a.change_id&&!seen[a.change_id]&&eligible(a));
     for(const a of rows)if(a.change_id)seen[a.change_id]=stamp;
     memory=seen;try{storage.setItem(key,JSON.stringify(seen))}catch(_){}
     if(!baseline&&fresh.length){show(fresh);for(const a of fresh)system(a)}
@@ -17,12 +25,13 @@ let alertNotifier=null,lastAlertFeed=null,alertFeedInitialized=false,alertPollBu
 function getAlertNotifier(){
   if(!alertNotifier){
     let storage;try{storage=window.localStorage}catch(_){storage={getItem:()=>null,setItem:()=>{}}}
-    alertNotifier=createAlertNotifier({storage,show:showAlertPopup,system:showSystemAlert,
+    alertNotifier=createAlertNotifier({storage,show:showAlertPopup,system:showSystemAlert,eligible:interruptiveAlertEligible,
       lock:task=>navigator.locks?navigator.locks.request('mozes-alert-notifications',task):task()});
   }
   return alertNotifier;
 }
 function showAlertPopup(rows){
+  rows=rows.filter(interruptiveAlertEligible);if(!rows.length)return;
   const box=$('alertPopups');if(!box)return;
   box.innerHTML=`<div class="alert-popup-head"><b>${rows.length===1?'התראה חדשה':`${rows.length} התראות חדשות`}</b><button class="btn" type="button" aria-label="סגור התראות" data-dismiss>×</button></div>`+
     rows.slice(0,3).map(a=>`<div class="alert-popup-row"><b><span class="ltr">${esc(a.ticker||'—')}</span> · ${esc(a.priority)}</b><p>${esc(a.headline||alertWhyHe(a))}</p></div>`).join('')+
@@ -32,6 +41,7 @@ function showAlertPopup(rows){
   box.querySelector('[data-open-alerts]').onclick=()=>{box.hidden=true;page='alerts';render()};
 }
 function showSystemAlert(a){
+  if(!interruptiveAlertEligible(a))return;
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   try{const n=new Notification(`MOZES ${a.priority||''} ${a.ticker||''}`.trim(),{
     body:a.headline||alertWhyHe(a),lang:'he',dir:'rtl',tag:a.change_id});
@@ -52,9 +62,13 @@ function alertDeliveryHe(a){
 }
 function alertAnalysisHtml(a){
   const x=a.explanation;
-  if(!x)return '<div class="company">הסבר לפי המקור: ממתין לקריאת תוכן ההודעה.</div>';
+  const notice=interruptiveAlertEligible(a)?'זהות המנפיק ותוצאה מהותית מבוססת מקור אומתו.':
+    a.semantic_version==='alert-evidence-v1'?'מוצג ברשימה בלבד: אין תוצאה מהותית מאומתת המתאימה להתראה קוטעת.':
+    'מוצג ברשימה בלבד: נתוני הזכאות להתראה קוטעת חסרים. הסיווג ההיסטורי נשמר.';
+  const policy=`<div class="company">${esc(notice)}</div>`;
+  if(!x)return policy+'<div class="company">הסבר לפי המקור: ממתין לקריאת תוכן ההודעה.</div>';
   const basis={source_text:'תוכן המקור נקרא',feed_summary:'נקרא תקציר ההודעה בלבד',headline_only:'כותרת בלבד',structured_source:'נתונים מובנים מהמקור'};
-  return `<div class="company"><b>בסיס ההסבר:</b> ${esc(basis[x.basis]||'לא ידוע')}${x.ai_status==='used'?' · ניסוח בסיוע מודל שפה':''}</div>`+
+  return policy+`<div class="company"><b>בסיס ההסבר:</b> ${esc(basis[x.basis]||'לא ידוע')}${x.ai_status==='used'?' · ניסוח בסיוע מודל שפה':''}</div>`+
     (x.evidence||[]).map(e=>`<blockquote class="alert-evidence" dir="auto">${esc(e.quote)}</blockquote>`).join('')+
     (x.missing_he||[]).map(text=>`<div class="company">${esc(text)}</div>`).join('');
 }

@@ -88,7 +88,7 @@ def process(conn, event, *, fetch=None, github_run_id=None):
     content = html_to_text(raw)
     if not content.strip():
         raise ValueError("empty primary source document")
-    outcome = classify_outcome(content)
+    outcome = classify_outcome(content, basis='source_text', as_of=event.get('published_at') or event.get('accepted_at'))
     from .clinical_events import classify_clinical
     outcome = classify_clinical(content,outcome)
     digest = hashlib.sha256(raw.encode()).hexdigest()

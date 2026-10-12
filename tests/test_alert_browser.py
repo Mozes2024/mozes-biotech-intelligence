@@ -63,7 +63,9 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const source=fs.readFileSync('web/alerts_ui.js','utf8');let saved=null;
 const storage={getItem:()=>saved,setItem:(_,value)=>{saved=value}};
 const old={change_id:'CHG-old',ticker:'OLD',headline:'Existing',priority:'P2'};
-const fresh={change_id:'CHG-new',ticker:'NEW',headline:'New verified event',priority:'P1'};
+const fresh={change_id:'CHG-new',ticker:'NEW',headline:'FDA approved DrugX.',priority:'P1',
+ event_family:'fda_decision',event_outcome:'approval',confirmed_outcome:true,needs_review:false,
+ issuer_verified:true,popup_eligible:true,evidence_basis:'source_text',semantic_version:'alert-evidence-v1'};
 function browser(){
  const open={},dismiss={},popup={hidden:true,innerHTML:'',querySelector:key=>key==='[data-open-alerts]'?open:dismiss};
  const context={D:{alerts:[],alert_config:{}},apiMode:false,page:'dash',document:{hidden:false},
@@ -78,7 +80,7 @@ function feed(rows,revision){return {schema:1,revision,generated_at:'2026-10-10T
  const first=browser();first.context.feed=feed([old],'baseline');await first.context.checkForAlerts();
  assert.equal(first.popup.hidden,true);
  first.context.feed=feed([fresh,old],'new');await first.context.checkForAlerts();
- assert.equal(first.popup.hidden,false);assert.match(first.popup.innerHTML,/New verified event/);
+ assert.equal(first.popup.hidden,false);assert.match(first.popup.innerHTML,/FDA approved DrugX/);
  assert.equal('Notification' in first.context.window,false,'in-site popup requires no native permission API');
  first.open.onclick();assert.equal(first.context.page,'alerts');assert.equal(first.popup.hidden,true);
  assert.equal(first.context.D.alerts[0].change_id,'CHG-new','new alert is available to Alerts rendering');

@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {execFileSync} from 'node:child_process';
+import {publicFeed} from '../cloudflare/src/alert-feed.js';
 
 // Execute every production script, including startup and the final coverage wrapper.
 // Only the browser DOM, clock, timers and network boundary are doubled.
@@ -136,10 +138,34 @@ test('same revision and newer offset checkpoint refresh the full composed dashbo
 
 test('independent change_id dedup survives repeated alert polls and composed dashboard rerenders',async()=>{
  const h=await harness(),base=clone(fixture.alerts[0]);base.change_id='integration-new-change';
+ Object.assign(base,{headline:'FDA issued a Complete Response Letter for the NDA.',priority:'P1',polarity:'negative',
+   event_family:'fda_decision',event_outcome:'crl',confirmed_outcome:true,needs_review:false,
+   issuer_verified:true,popup_eligible:true,evidence_basis:'source_text',semantic_version:'alert-evidence-v1'});
  const feed={schema:1,revision:'new-feed',generated_at:'2026-10-12T12:50:00Z',alerts:[base],alert_config:{enabled_channels:[]}};
  h.setFeed(feed);await h.run('checkForAlerts()');assert.equal(h.notifications.length,1);
  const popup=h.popup().innerHTML;assert.equal(h.popup().hidden,false);assertComposed(h);
  h.setFeed({...feed,revision:'same-change-other-revision'});await h.run('checkForAlerts()');h.run('render()');
  assert.equal(h.notifications.length,1);assert.equal(h.popup().innerHTML,popup);
  assert.equal((h.html().match(/<h3>התראות אחרונות<\/h3>/g)||[]).length,1);assertComposed(h);
+});
+
+test('Python outbox -> Python feed -> serialized Worker feed -> actual index script chain',async()=>{
+ const generated=JSON.parse(execFileSync(process.env.PYTHON||'python',['-m','tests.a5_pipeline_fixture'],{encoding:'utf8'}));
+ const feed=JSON.parse(JSON.stringify(publicFeed(generated.feed)));
+ const byId=new Map(feed.alerts.map(a=>[a.change_id,a]));
+ for(const name of ['approval','failure'])assert.equal(byId.get(generated.ids[name]).popup_eligible,true,name);
+ for(const name of ['milestone','cvr','mixed'])assert.equal(byId.get(generated.ids[name]).popup_eligible,false,name);
+ assert.equal(byId.get(generated.legacy_id).popup_eligible,false);
+ assert.equal(byId.get(generated.legacy_id).polarity,'positive','immutable legacy display preserved');
+ const cvr=byId.get(generated.ids.cvr).explanation;
+ assert.ok(cvr.evidence[0].quote.startsWith('No '));assert.match(cvr.source_hash,/^[a-f0-9]{64}$/);
+ assert.equal(cvr.evidence[0].source_hash,cvr.source_hash);
+ const h=await harness();h.setFeed({...feed,generated_at:'2026-10-12T13:01:00Z'});await h.run('checkForAlerts()');
+ assert.equal(h.notifications.length,2);assert.equal(h.popup().hidden,false);
+ assert.match(h.popup().innerHTML,/approval/);assert.match(h.popup().innerHTML,/failure/);
+ assert.doesNotMatch(h.popup().innerHTML,/Legacy CVR filing|milestone|mixed/);
+ assert.equal(h.snapshot().alerts.length,6,'suppressed popups remain listed');assertComposed(h);
+ h.setFeed({...feed,revision:'f'.repeat(64),generated_at:'2026-10-12T13:02:00Z'});await h.run('checkForAlerts()');
+ assert.equal(h.notifications.length,2,'no repeat from another revision');
+ h.run("page='alerts';render()");assert.match(h.html(),/Legacy CVR filing/);assert.match(h.html(),/No product/);
 });
