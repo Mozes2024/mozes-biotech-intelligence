@@ -209,9 +209,11 @@ def export_payload(conn, destination, *, today=None, consumer=None):
     from .alert_feed import build_feed
     (path.parent / 'alerts.json').write_text(encode(build_feed(conn, generated_at=payload['generated_at'])),
                                            encoding='utf-8')
-    (path.parent / 'updates.json').write_text(encode({
-        'schema': 1, 'revision': payload['build']['snapshot_revision'], 'generated_at': payload['generated_at']}),
-        encoding='utf-8')
+    update = {'schema': 1, 'revision': payload['build']['snapshot_revision'], 'generated_at': payload['generated_at']}
+    if consumer is not None:
+        update['checkpoint'] = {key: consumer.get(key) for key in
+                                ('checkpoint_at', 'source_run_id', 'artifact_id', 'db_sha256')}
+    (path.parent / 'updates.json').write_text(encode(update), encoding='utf-8')
     receipt = path.parent / 'publish-receipt.json'
     value = {'change_ledger': payload['build']['change_ledger']}
     if consumer is not None:

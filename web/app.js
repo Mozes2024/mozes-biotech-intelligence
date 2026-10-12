@@ -104,7 +104,7 @@ function changes(){
     `<section class="panel"><div class="panel-head"><h3>שינויים נוספים</h3></div><div class="panel-body">${changeRows(other)||'<div class="empty">אין שינויים נוספים בשבעת הימים האחרונים.</div>'}</div></section>`;
 }
 function changedCompact(){let rows=(D.changes||[]).slice(0,3);return `<section class="panel simple-panel"><div class="panel-head"><h3>מה השתנה בשבעת הימים האחרונים</h3><span class="spacer"></span><button class="btn" onclick="page='changes';render()">לכל השינויים</button></div><div class="panel-body">${changeRows(rows)||'<div class="empty">לא זוהו שינויים חדשים בתקופה זו.</div>'}</div></section>`}
-function checkpointBanner(){let h=MozesCheckpointHealth(D);return `<div class="notice ${h.stale?'red-note':'blue-note'}" role="status"><b>${h.stale?'נתונים ישנים — תמונת מצב בלבד':'תמונת הניטור מעודכנת'}</b> · checkpoint: ${esc(h.checkpoint_at||'לא זמין')} · ${h.age_minutes===null?'גיל הנתונים אינו ידוע':`גיל הנתונים: ${h.age_minutes} דקות`}</div>`}
+function checkpointBanner(){let h=MozesCheckpointHealth(D);return `<div id="checkpointFreshness" class="notice ${h.stale?'red-note':'blue-note'}" role="status"><b>${h.stale?'נתונים ישנים — תמונת מצב בלבד':'תמונת הניטור מעודכנת'}</b> · checkpoint: ${esc(h.checkpoint_at||'לא זמין')} · ${h.age_minutes===null?'גיל הנתונים אינו ידוע':`גיל הנתונים: ${h.age_minutes} דקות`}</div>`}
 function render(){renderMenu();sideFoot();let html=page==='dash'?dashboard()+changedCompact():page==='alerts'?alertsPage():page==='radar'?radar():page==='changes'?changes():page==='candidates'?candidates():page==='resolved'?resolved():page==='paper'?paper():page==='validation'?validation():system();$('main').innerHTML=checkpointBanner()+html;bindRows();if(page==='radar'){['fType','fClass','fVerify'].forEach(id=>{let e=$(id);if(e)e.onchange=()=>{radarFilters[id==='fType'?'type':id==='fClass'?'cls':'verify']=e.value;render();};});}}
 function bindRows(){document.querySelectorAll('[data-event]').forEach(x=>x.onclick=()=>openEvent(x.dataset.event));}
 function findEvent(id){return (D.live||[]).find(x=>x.id===id)}
@@ -119,23 +119,59 @@ async function savePaper(id){if(!apiMode)return;setLoading(true);try{let r=await
 async function refreshNow(){if(!apiMode){try{await checkForUpdates(true)}catch(e){toast('בדיקת העדכונים נכשלה: '+e.message)}return}setLoading(true);toast('הרענון נשלח לרקע…');try{let r=await fetch('/api/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({months:6,sec_map:true,sec_verify:true})});let x=await r.json();if(!r.ok)throw Error(x.error||r.status);toast('הרענון התחיל; מזהה: '+x.run_id.slice(0,8));}catch(e){toast('שליחת הרענון נכשלה: '+e.message)}finally{setLoading(false)}}
 async function load(){setLoading(true);let err=null;try{let r=await fetch('/api/radar',{cache:'no-store'});if(!r.ok)throw Error(r.status);D=await r.json();apiMode=true;}catch(e){err=e;try{let r=await fetch('data.json',{cache:'no-store'});if(r.ok){D=await r.json();apiMode=false;}}catch{}}finally{setLoading(false)}if(!D)throw err||Error('No data');$('apiDot').classList.toggle('live',apiMode);updateDataLabel();$('refreshBtn').disabled=false;$('refreshBtn').textContent=apiMode?'רענון נתונים':'בדוק עדכונים';}
 function updateDataLabel(){let stamp=D?.health?.latest_monitor?.finished_at||D?.generated_at;let t=stamp?new Date(stamp):null;$('apiLabel').textContent=apiMode?'נתונים חיים':t&&!isNaN(t)?`ניטור ${t.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}`:'שעת ניטור לא זמינה'}
-let snapshotRevision=null;
-async function checkForUpdates(notify=false){
-  if(!D)return;
-  let r=await fetch(apiMode?'/api/updates':'updates.json',{cache:'no-store'});
-  if(!r.ok)throw Error(String(r.status));
-  const update=await r.json(),previous=snapshotRevision||D.build?.snapshot_revision;
-  if(!previous&&apiMode){snapshotRevision=update.revision;return}
-  if(update.revision===previous){if(notify)toast('אין נתונים חדשים מאז הבדיקה הקודמת');return}
-  r=await fetch(apiMode?'/api/radar':'data.json',{cache:'no-store'});
-  if(!r.ok)throw Error(String(r.status));
-  const next=await r.json();preserveAlertFeed(next);D=next;snapshotRevision=update.revision;
-  updateDataLabel();render();if(notify)toast('האתר עודכן בנתונים החדשים');
+let snapshotRevision=null,updatePollBusy=false;
+function checkpointTime(value){
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\+00:00)$/.test(value))throw Error('Invalid checkpoint time');
+  const time=Date.parse(value);
+  if(!Number.isFinite(time)||time>Date.now()||new Date(time).toISOString().slice(0,19)!==value.slice(0,19))throw Error('Invalid checkpoint time');
+  return time;
 }
+function checkpointIdentity(value){
+  if(!value||typeof value!=='object'||!/^[1-9]\d*$/.test(value.source_run_id)||typeof value.source_run_id!=='string'
+     ||typeof value.db_sha256!=='string'||!Number.isSafeInteger(value.artifact_id)||value.artifact_id<=0||!/^([a-f0-9]{64})$/.test(value.db_sha256))throw Error('Incomplete checkpoint identity');
+  return {time:checkpointTime(value.checkpoint_at),key:JSON.stringify([value.checkpoint_at,value.source_run_id,value.artifact_id,value.db_sha256])};
+}
+function loadedCheckpoint(data){
+  if(!data.consumer_checkpoint)return null;
+  const identity=checkpointIdentity(data.consumer_checkpoint);
+  if(data.checkpoint_at!==data.consumer_checkpoint.checkpoint_at)throw Error('Inconsistent loaded checkpoint');
+  return identity;
+}
+function updateCheckpointFreshness(){const el=$('checkpointFreshness');if(el&&D)el.outerHTML=checkpointBanner();}
+async function checkForUpdates(notify=false){
+  if(!D||updatePollBusy)return;
+  updatePollBusy=true;
+  try{
+    let r=await fetch(apiMode?'/api/updates':'updates.json',{cache:'no-store'});
+    if(!r.ok)throw Error(String(r.status));
+    const update=await r.json(),previous=D.build?.snapshot_revision||snapshotRevision;
+    if(typeof update.revision!=='string'||!update.revision)throw Error('Invalid update revision');
+    const current=loadedCheckpoint(D),hasCheckpoint=Object.hasOwn(update,'checkpoint');
+    const advertised=hasCheckpoint?checkpointIdentity(update.checkpoint):null;
+    if(current&&!advertised)throw Error('Missing checkpoint metadata');
+    const currentTime=current?.time||(D.checkpoint_at?checkpointTime(D.checkpoint_at):null);
+    if(advertised&&currentTime!==null&&(advertised.time<currentTime||(current&&advertised.time===currentTime&&advertised.key!==current.key)))throw Error('Checkpoint downgrade or conflict');
+    if(update.revision===previous&&(!advertised||advertised.key===current?.key)){
+      if(notify)toast('אין נתונים חדשים מאז הבדיקה הקודמת');return;
+    }
+    r=await fetch(apiMode?'/api/radar':'data.json',{cache:'no-store'});
+    if(!r.ok)throw Error(String(r.status));
+    const next=await r.json();
+    if(next.build?.snapshot_revision!==update.revision)throw Error('Snapshot revision mismatch');
+    const downloaded=loadedCheckpoint(next);
+    if(advertised&&downloaded?.key!==advertised.key)throw Error('Snapshot checkpoint mismatch');
+    if(!advertised&&next.checkpoint_at)checkpointTime(next.checkpoint_at);
+    const nextTime=downloaded?.time||(next.checkpoint_at?checkpointTime(next.checkpoint_at):null);
+    if(currentTime!==null&&(nextTime===null||nextTime<currentTime))throw Error('Checkpoint downgrade');
+    preserveAlertFeed(next);D=next;snapshotRevision=update.revision;
+    updateDataLabel();render();if(notify)toast('האתר עודכן בנתונים החדשים');
+  }finally{updatePollBusy=false;updateCheckpointFreshness();}
+}
+
 function updateSourceFreshness(){let el=$('sourceFreshness');if(!el)return;let t=new Date(el.dataset.checked),age=el.dataset.checked&&!isNaN(t)?Math.max(0,Math.floor((Date.now()-t.getTime())/60000)):null;el.classList.toggle('red-note',age===null||age>90);el.classList.toggle('blue-note',age!==null&&age<=90);el.innerHTML=`<b>בדיקת מקורות אחרונה:</b> ${age===null?'שעה לא זמינה':`לפני ${age} דקות`} · התראות חדשות נבדקות בכל 30 שניות כשהאתר פתוח.`}
 function dashboard(){let ranked=[...(D.live||[])].sort((a,b)=>decisionStatus(a).rank-decisionStatus(b).rank),count=s=>ranked.filter(a=>a.recommendation?.status===s).length,primary=ranked.filter(a=>!['NOT_NOW','INSUFFICIENT_INFORMATION'].includes(a.recommendation?.status)).slice(0,6);return pageTitle('מה מעניין עכשיו?','החלטה מהירה, ואז מחקר עומק לפי הצורך',`עודכן ${fmtLocal(D.generated_at)}`)+alertsCompact()+`<div class="decision-banner locked"><div><b>המלצות מחקר ניסיוניות לשימוש פרטי</b><span>“מועמדת להשקעה” הוא סימון ניסיוני ושקוף. שערי האימות האמפיריים נשארים נפרדים ונעולים.</span></div><span class="decision-lock">⚗</span></div><div class="simple-summary"><div class="summary-box green"><strong>${count('INVESTMENT_CANDIDATE')}</strong><span>מועמדות להשקעה</span></div><div class="summary-box green"><strong>${count('APPROACHING_CANDIDATE')}</strong><span>מתקרבות למועמדות</span></div><div class="summary-box blue"><strong>${count('RESEARCH_WORTHY')+count('WATCH')}</strong><span>שווה מחקר / מעקב</span></div><div class="summary-box slate"><strong>${count('NOT_NOW')+count('INSUFFICIENT_INFORMATION')}</strong><span>לא כרגע / חסר מידע</span></div></div><section class="panel simple-panel"><div class="panel-head"><div><h3>על מה להתמקד עכשיו?</h3><p class="panel-sub">לכל מניה: למה היא כאן, ומה חסר כדי להתקדם.</p></div><span class="spacer"></span><button class="btn" onclick="page='radar';render()">לכל המניות</button></div><div class="focus-grid">${primary.map(focusCard).join('')||'<div class="empty">כרגע אין מניות ראויות למחקר.</div>'}</div></section>`}
 $('globalSearch').addEventListener('input',e=>{search=e.target.value;if(page==='dash'&&search)page='radar';render();});$('refreshBtn').onclick=refreshNow;$('mobileMenu').onclick=()=>$('sidebar').classList.toggle('open');$('backdrop').onclick=closeDrawer;document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
 load().then(()=>{if(location.hash==='#alerts')page='alerts';render();checkForAlerts().catch(()=>{})}).catch(e=>{$('main').innerHTML=`<div class="notice red-note"><b>לא ניתן לטעון נתונים.</b><br>${esc(e.message)}<br>הרץ <span class="code">mozes app</span> או <span class="code">mozes export-v3</span>.</div>`});
-setInterval(()=>{if(!document.hidden)checkForUpdates().catch(()=>{}).finally(updateSourceFreshness)},60000);
+setInterval(()=>{if(!document.hidden)checkForUpdates().catch(()=>{}).finally(()=>{updateSourceFreshness();updateCheckpointFreshness()})},60000);
 setInterval(()=>{if(!document.hidden)checkForAlerts().catch(()=>{})},30000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkForAlerts().catch(()=>{});checkForUpdates().catch(()=>{}).finally(updateSourceFreshness)}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkForAlerts().catch(()=>{});checkForUpdates().catch(()=>{}).finally(()=>{updateSourceFreshness();updateCheckpointFreshness()})}});

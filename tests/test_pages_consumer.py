@@ -328,3 +328,28 @@ def test_mandatory_evidence_failure_is_not_retried(monkeypatch, category):
     monkeypatch.setattr(pages, '_restore_once', attempt)
     monkeypatch.setattr(pages.time, 'sleep', lambda seconds: pytest.fail('unsafe retry'))
     with pytest.raises(RuntimeError, match=category): pages.restore()
+
+
+def test_consumer_updates_bind_checkpoint_identity_without_changing_semantic_revision(tmp_path):
+    from mozes import db
+    from mozes.intelligence_store import ensure_schema
+    from mozes.radar import bootstrap_database
+    from mozes.pipeline_v2c import export_payload
+    path=tmp_path/'source.db';conn=db.connect(path);ensure_schema(conn);bootstrap_database(conn)
+    digest=hashlib.sha256(path.read_bytes()).hexdigest()
+    changes=conn.total_changes;conn.execute('PRAGMA query_only=ON')
+    before={'schema':1,'consumer_only':True,'source_run_id':'1','artifact_id':1,'db_sha256':digest,
+            'checkpoint_at':(datetime.now(timezone.utc)-timedelta(minutes=5)).isoformat(),
+            'data_age_seconds':300,'stale':False}
+    first=export_payload(conn,tmp_path/'first/data.json',consumer=before)
+    after={**before,'source_run_id':'2','artifact_id':2,
+           'checkpoint_at':(datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat(),'data_age_seconds':60}
+    second=export_payload(conn,tmp_path/'second/data.json',consumer=after)
+    update=json.loads((tmp_path/'second/updates.json').read_text(encoding='utf-8'))
+    assert first['build']['snapshot_revision']==second['build']['snapshot_revision']==update['revision']
+    assert update['schema']==1
+    assert update['checkpoint']=={key:second['consumer_checkpoint'][key] for key in
+                                 ('checkpoint_at','source_run_id','artifact_id','db_sha256')}
+    assert first['checkpoint_at']!=second['checkpoint_at']
+    assert conn.total_changes==changes
+    conn.close();assert hashlib.sha256(path.read_bytes()).hexdigest()==digest
