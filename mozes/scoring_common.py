@@ -4,12 +4,44 @@ Explanation identifiers are stable English API codes. Presentation layers transl
 """
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
+
 from .versions import VERSIONS
 
 TYPE_POINTS = {"P3_TOPLINE": 30, "P2_TOPLINE": 22, "P12_DATA": 20, "INTERIM": 20, "PDUFA_NME": 26, "PDUFA_GENERIC": 20, "ADCOM": 24, "PDUFA_SUPP": 12, "FILING": 8, "CONFERENCE": 10}
 DEP_POINTS = {"single": 25, "lead": 18, "one_of_few": 12, "one_of_many": 5}
 MCAP_POINTS = {"micro": 20, "small": 20, "mid": 16, "large": 10, "mega": 3, "unknown": 8}
 SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+
+def known_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def observed_features(event):
+    """Normalize observations without interpreting absent/unknown values as failures."""
+    raw = event.get('features') or {}
+    if not isinstance(raw, Mapping):
+        return {}
+    result = {}
+    if isinstance(raw.get('prior'), str) and raw['prior'] in {'strong', 'moderate', 'weak'}:
+        result['prior'] = raw['prior']
+    if isinstance(raw.get('design'), str) and raw['design'] in {'rct_placebo', 'rct_sham', 'rct_active_ni', 'single_arm', 'external_control'}:
+        result['design'] = raw['design']
+    for key in ('endpoint_consistent', 'population_consistent', 'regimen_changed', 'objective',
+                'mechanism_validated', 'safety_concern', 'integrity', 'prior_crl', 'negative_adcom',
+                'fda_requirement_at_risk'):
+        value = raw.get(key)
+        if type(value) is bool or (key == 'endpoint_consistent' and value == 'partial'):
+            result[key] = value
+    value = raw.get('n')
+    if known_number(value) and value > 0 and int(value) == value:
+        result['n'] = value
+    value = raw.get('class_failures')
+    if type(value) is bool or (known_number(value) and value >= 0 and int(value) == value):
+        result['class_failures'] = value
+    return result
 
 
 def catalyst_impact(event: dict) -> dict:
@@ -26,8 +58,8 @@ def catalyst_impact(event: dict) -> dict:
 
 
 def risk_flags(event: dict) -> list[dict]:
-    flags = [dict(flag, origin="source") for flag in event.get("flags", ())]
-    features = event.get("features") or {}
+    flags = [dict(flag, origin="source") for flag in (event.get("flags") or ())]
+    features = observed_features(event)
     def add(severity, code): flags.append({"sev": severity, "code": code, "origin": "computed"})
     if features.get("integrity"): add("critical", "data_integrity_concern")
     if features.get("negative_adcom"): add("critical", "negative_adcom")
@@ -40,7 +72,7 @@ def risk_flags(event: dict) -> list[dict]:
     if features.get("n") is not None and features["n"] < 100: add("medium", "small_sample")
     if features.get("class_failures"): add("medium", "class_failures")
     runway = event.get("runway_months")
-    if runway is not None and runway < 12: add("high", "short_cash_runway")
+    if known_number(runway) and runway >= 0 and runway < 12: add("high", "short_cash_runway")
     if event.get("mcap") == "micro": add("medium", "microcap_liquidity")
     seen, unique = set(), []
     for flag in sorted(flags, key=lambda item: SEV_ORDER.get(item.get("sev"), 9)):

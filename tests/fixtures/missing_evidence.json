@@ -1,0 +1,11 @@
+{
+  "positive_clinical": {"type":"P3_TOPLINE","features":{"prior":"strong","endpoint_consistent":true,"population_consistent":true,"design":"rct_placebo","objective":true,"n":250,"mechanism_validated":true,"safety_concern":false,"integrity":false},"runway_months":24},
+  "negative_clinical": {"type":"P2_TOPLINE","features":{"prior":"weak","endpoint_consistent":false,"population_consistent":false,"integrity":true},"runway_months":null},
+  "unknown_clinical": {"type":"P2_TOPLINE","features":{},"runway_months":null},
+  "positive_regulatory": {"type":"PDUFA_NME","features":{"prior":"strong","prior_crl":false,"negative_adcom":false,"fda_requirement_at_risk":false,"safety_concern":false,"integrity":false},"runway_months":24},
+  "negative_regulatory": {"type":"PDUFA_NME","features":{"negative_adcom":true},"runway_months":null},
+  "unknown_regulatory": {"type":"PDUFA_NME","features":{"prior":"none","safety_concern":"unknown","integrity":null},"runway_months":null},
+  "partial_positive": {"type":"P3_TOPLINE","features":{"prior":"strong"},"runway_months":24},
+  "partial_low_prior": {"type":"P2_TOPLINE","features":{"design":"rct_placebo"},"runway_months":24},
+  "absent_prior": {"type":"P2_TOPLINE","features":{"prior":"none"},"runway_months":null}
+}
