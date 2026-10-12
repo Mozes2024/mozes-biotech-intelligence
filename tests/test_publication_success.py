@@ -8,6 +8,13 @@ from mozes.publication_control import dispatch_decision, verify_receipt
 NOW = datetime(2026, 10, 12, 6, 15, tzinfo=timezone.utc)
 
 
+@pytest.fixture(autouse=True)
+def checkout_scripts_namespace(monkeypatch):
+    # scripts/ is checkout-only, not part of the installed mozes package.
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]))
+
+
+
 def test_failed_request_cannot_hide_aging_unchanged_checkpoint(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(pipeline, 'DB_PATH', tmp_path/'monitor.db')
