@@ -21,7 +21,8 @@ function render(red, amber) {
       severity: {red, amber, info: []}}}, HE: {type: {}},
     decisionStatus: () => ({rank: 0}), focusCard: () => '', market: () => '',
     esc: x => String(x ?? ''), pageTitle: (t,_,m) => t + '|' + m, changedCompact: () => '',
-    alertsCompact: () => 'ALERTS', fmtLocal: x => 'LOCAL:' + x, changeRows: () => ''};
+    alertsCompact: () => 'ALERTS', researchPrioritySection: () => '',
+    fmtLocal: x => 'LOCAL:' + x, changeRows: () => ''};
   vm.createContext(context); vm.runInContext(source, context);
   return context.dashboard();
 }
