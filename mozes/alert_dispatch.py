@@ -230,6 +230,14 @@ def material_story_state(payload):
     value = payload.get("new_value")
     text = " ".join(str(value.get(k) or "") for k in ("headline", "title", "summary")) if isinstance(value, dict) else str(value or "")
     outcome = payload.get("outcome") or classify_outcome(text)
+    if outcome.get('semantic_version') != 'alert-evidence-v1':
+        # Compare like policy versions without changing the earlier stored payload.
+        normalized = classify_outcome(text, basis='feed_summary' if isinstance(value, dict) and value.get('summary') else 'headline_only',
+                                      as_of=payload.get('published_at') or payload.get('accepted_at') or payload.get('detected_at'))
+        normalized.update({k: outcome[k] for k in ('relevant','actionable','catalyst','kind') if k in outcome})
+        if outcome.get('catalyst') and outcome.get('material'):
+            normalized['material'] = True
+        outcome = normalized
     change_type = payload.get("change_type") or ""
     family = "release" if change_type in {"wire_release_signal", "company_release_signal", "news_signal"} else change_type
     if outcome.get('relevant') and change_type in {'sec_material_filing','fda_release_signal','wire_release_signal','company_release_signal','news_signal'}:

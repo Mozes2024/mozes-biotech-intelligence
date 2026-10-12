@@ -12,6 +12,7 @@ Review only. No merge, Worker deployment, production writes, replay, historical 
 - Regulatory submission, acceptance, priority review, Fast Track, orphan designation, IDE/IND authorization and advisory recommendations have separate outcomes. They do not become marketing approvals or urgent clinical/FDA popups.
 - Relevant upcoming catalysts retain the existing list routing. Corporate CVR, incomplete evidence, historical records and ambiguous results do not create interruptive browser notifications.
 - Completed Worker candidates with unchanged source/identity retain their existing classification, history and completion receipt across semantic-only upgrades. ACKed events retain their existing records. There is no policy-version bump, historical scan or migration.
+- Story consolidation compares legacy and current evidence under the same semantics without altering the earlier payload. An additional source for the same announcement cannot create a second delivery merely because the policy version changed.
 
 ## Evidence contract and PR #17 mining
 

@@ -126,3 +126,21 @@ def test_bounded_read_cannot_cut_at_an_abbreviation_before_a_condition():
     outcome=classify_evidence(text,'source_text')
     assert not outcome['confirmed_outcome'] and outcome['needs_review']
     assert outcome['uncertainty_status']=='truncated_source'
+
+
+def test_upgrade_does_not_redeliver_same_story_under_a_new_source_id(tmp_path):
+    from mozes import db
+    from mozes.live_monitor import record_change
+    conn=db.connect(tmp_path/'stories.db')
+    def incoming(source):
+        return record_change(conn,ticker='ZZZZ',change_type='wire_release_signal',severity='high',previous_value=None,
+            new_value={'headline':'Novel Bio announces positive Phase 3 topline results'},source_type='wire',source_url=source,identity=['a5-story',source])
+    first=incoming('https://www.businesswire.com/first')
+    payload=json.loads(conn.execute('SELECT payload_json FROM alert_outbox WHERE change_id=?',(first,)).fetchone()[0])
+    payload['outcome']={'polarity':'positive','material':True,'method':'deterministic_regex_v2'}
+    legacy=json.dumps(payload)
+    conn.execute('UPDATE alert_outbox SET payload_json=?,status=\'sent\' WHERE change_id=?',(legacy,first));conn.commit()
+    second=incoming('https://www.globenewswire.com/second')
+    assert conn.execute('SELECT COUNT(*) FROM alert_outbox').fetchone()[0]==1
+    assert conn.execute('SELECT primary_change_id FROM alert_links WHERE change_id=?',(second,)).fetchone()[0]==first
+    assert conn.execute('SELECT payload_json FROM alert_outbox WHERE change_id=?',(first,)).fetchone()[0]==legacy
