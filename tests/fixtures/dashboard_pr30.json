@@ -1,0 +1,3310 @@
+{
+  "_fixture": {
+    "source_commit": "c9f03f3b8dcf3682d2163bc94b6d03712a584f83",
+    "checkpoint_artifact": 11747838323,
+    "checkpoint_at": "2026-10-12T12:39:50+00:00",
+    "note": "Sparse UI projection of read-only post-PR30 frozen payload: six research events and all nine WATCH events. No scoring or financial inputs are synthesized."
+  },
+  "today": "2026-10-12",
+  "generated_at": "2026-10-12T15:05:22+00:00",
+  "live": [
+    {
+      "id": "AUTO-HROW-NCT07832552",
+      "ticker": "HROW",
+      "company": "Harrow Inc",
+      "program": "A Phase 3 Study Evaluating the Safety and Efficacy of TRIESENCE® (Injectable Suspension) for the Treatment of Ocular Inflammation and Pain After Ophthalmic Surgery",
+      "indication": null,
+      "type": "P3_TOPLINE",
+      "date": {
+        "window": {
+          "original": "and pain following cataract surgery is on track to fully enroll in 2026, with topline data",
+          "precision": "year",
+          "start": "2026-01-01",
+          "end": "2026-12-31",
+          "confidence": 20,
+          "inferred_year": false
+        },
+        "precision": "year"
+      },
+      "days_to": -284,
+      "state": {
+        "event_id": "AUTO-HROW-NCT07832552",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 97,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-03T16:04:34+00:00",
+        "note": "auto-promoted only after primary-source match: program/intervention match: Pain, Surgery"
+      },
+      "impact": {
+        "score": 56,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 30
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [
+            "design",
+            "endpoint_consistent",
+            "n",
+            "objective",
+            "population_consistent",
+            "prior"
+          ],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        },
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "INSUFFICIENT_INFORMATION",
+        "actionable": false,
+        "reasons": [
+          "missing clinical, regulatory, financial or score inputs; absence is not negative evidence"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "חסרות ראיות קליניות, רגולטוריות או פיננסיות; חסר אינו תוצאה שלילית.",
+        "missing_he": "השלמת נתונים ממקורות ידועים לפני הסקת המלצה."
+      },
+      "security": {
+        "ticker": "HROW",
+        "company": "Harrow Inc",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-HROW-NCT07832552",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1360214/000149315226036865/ex99-1.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1360214/000149315226036865/ex99-1.htm",
+          "published_at": "2026-08-10",
+          "statement": "and pain following cataract surgery is on track to fully enroll in 2026, with topline data",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-03T16:04:34+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": 0.0032808524596976696,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 1.1305855161787366,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.20653868195976854,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": -0.07613289022914227,
+        "recent_return_30d": -0.25323566901171957,
+        "relative_return_7d_vs_xbi": -0.07703003465022884,
+        "relative_return_30d_vs_xbi": -0.19567220112980033,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-HROW-NCT07832552",
+          "ticker": "HROW",
+          "type": "P3_TOPLINE",
+          "program": "A Phase 3 Study Evaluating the Safety and Efficacy of TRIESENCE® (Injectable Suspension) for the Treatment of Ocular Inflammation and Pain After Ophthalmic Surgery",
+          "start": "2026-01-01",
+          "end": "2026-12-31",
+          "days_to": -284,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 23.193037210388976,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_beyond_window",
+        "estimated_date": "2028-09-16",
+        "is_forecast": false,
+        "liquidity_basis": "cash_only"
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1360214/000149315226036865/ex99-1.htm",
+        "published_at": "2026-08-10",
+        "retrieved_at": "2026-10-03T16:04:33+00:00",
+        "quote": "and pain following cataract surgery is on track to fully enroll in 2026, with topline data",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000149315226036865",
+        "nct_id": "NCT07832552",
+        "date_precision": "year",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-08-10T20:10:55.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": "lead_sponsor"
+    },
+    {
+      "id": "AUTO-MRNA-NCT06033261",
+      "ticker": "MRNA",
+      "company": "ModernaTX, Inc.",
+      "program": "A Study of mRNA-1608, a Herpes Simplex Virus -2 (HSV-2) Therapeutic Candidate Vaccine, in Healthy Adults 18 to 55 Years of Age With Recurrent HSV-2 Genital Herpes",
+      "indication": null,
+      "type": "P3_TOPLINE",
+      "date": {
+        "window": {
+          "original": "Announces Norovirus Phase 3 trial fully enrolled with a data readout expected in 2026",
+          "precision": "year",
+          "start": "2026-01-01",
+          "end": "2026-12-31",
+          "confidence": 20,
+          "inferred_year": false
+        },
+        "precision": "year"
+      },
+      "days_to": -284,
+      "state": {
+        "event_id": "AUTO-MRNA-NCT06033261",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 97,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-03T15:41:52+00:00",
+        "note": "auto-promoted only after primary-source match: program/intervention match: Virus, With"
+      },
+      "impact": {
+        "score": 56,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 30
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [
+            "design",
+            "endpoint_consistent",
+            "n",
+            "objective",
+            "population_consistent",
+            "prior"
+          ],
+          "regulatory": [],
+          "financial": [
+            "financial_reconciliation",
+            "source_verified_current_runway"
+          ]
+        },
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "INSUFFICIENT_INFORMATION",
+        "actionable": false,
+        "reasons": [
+          "missing clinical, regulatory, financial or score inputs; absence is not negative evidence"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "חסרות ראיות קליניות, רגולטוריות או פיננסיות; חסר אינו תוצאה שלילית.",
+        "missing_he": "השלמת נתונים ממקורות ידועים לפני הסקת המלצה."
+      },
+      "security": {
+        "ticker": "MRNA",
+        "company": "ModernaTX, Inc.",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-MRNA-NCT06033261",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1682852/000168285226000015/exhibit9912025q4pressrelea.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1682852/000168285226000015/exhibit9912025q4pressrelea.htm",
+          "published_at": "2026-02-13",
+          "statement": "Announces Norovirus Phase 3 trial fully enrolled with a data readout expected in 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-03T15:41:52+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": 0.06947009414579175,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 1.3333586980959133,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.0012287427098711667,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": 0.043065388944811156,
+        "recent_return_30d": 0.4001929296285238,
+        "relative_return_7d_vs_xbi": 0.042168244523724585,
+        "relative_return_30d_vs_xbi": 0.45775639751044306,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-MRNA-NCT06033261",
+          "ticker": "MRNA",
+          "type": "P3_TOPLINE",
+          "program": "A Study of mRNA-1608, a Herpes Simplex Virus -2 (HSV-2) Therapeutic Candidate Vaccine, in Healthy Adults 18 to 55 Years of Age With Recurrent HSV-2 Genital Herpes",
+          "start": "2026-01-01",
+          "end": "2026-12-31",
+          "days_to": -284,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-MRNA-NCT06097299",
+          "ticker": "MRNA",
+          "type": "P2_TOPLINE",
+          "program": "A Study of mRNA-1345, an mRNA Vaccine Targeting Respiratory Syncytial Virus, in Children 2 to <18 Years of Age at High Risk of Respiratory Syncytial Virus",
+          "start": "2026-01-01",
+          "end": "2026-01-31",
+          "days_to": -284,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-MRNA-NCT06602024",
+          "ticker": "MRNA",
+          "type": "PDUFA",
+          "program": "A Study of mRNA-1010 Compared With a Licensed Influenza Vaccine in Adults ≥50 Years of Age",
+          "start": "2026-08-05",
+          "end": "2026-08-05",
+          "days_to": -68,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 5.44649467469075,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_beyond_window",
+        "estimated_date": "2027-03-26",
+        "is_forecast": false,
+        "liquidity_basis": "cash_only"
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1682852/000168285226000015/exhibit9912025q4pressrelea.htm",
+        "published_at": "2026-02-13",
+        "retrieved_at": "2026-10-03T15:41:52+00:00",
+        "quote": "Announces Norovirus Phase 3 trial fully enrolled with a data readout expected in 2026",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000168285226000015",
+        "nct_id": "NCT06033261",
+        "date_precision": "year",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-02-13T12:02:14.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": "lead_sponsor"
+    },
+    {
+      "id": "AUTO-BLTE-NCT05244304",
+      "ticker": "BLTE",
+      "company": "Belite Bio, Inc",
+      "program": "Phase 3, Randomized, Placebo-Controlled Study of Tinlarebant to Explore Safety and Efficacy in Adolescent Stargardt Disease",
+      "indication": null,
+      "type": "FILING",
+      "date": {
+        "window": {
+          "original": "from our Phase 3 DRAGON trial, and look forward to completing the NDA submission in the second quarter of this year.”",
+          "precision": "relative",
+          "start": "2026-04-21",
+          "end": "2026-12-31",
+          "confidence": 10,
+          "inferred_year": false
+        },
+        "precision": "relative"
+      },
+      "days_to": -174,
+      "state": {
+        "event_id": "AUTO-BLTE-NCT05244304",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 99,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-02T13:36:04+00:00",
+        "note": "auto-promoted only after primary-source match: exact registered program/intervention: DRAGON"
+      },
+      "impact": {
+        "score": 34,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 8
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        }
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
+      "security": {
+        "ticker": "BLTE",
+        "company": "Belite Bio, Inc",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-BLTE-NCT05244304",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1889109/000110465926045989/tm2611999d1_ex99-1.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1889109/000110465926045989/tm2611999d1_ex99-1.htm",
+          "published_at": "2026-04-21",
+          "statement": "from our Phase 3 DRAGON trial, and look forward to completing the NDA submission in the second quarter of this year.”",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T13:36:04+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": -0.0023815798986394077,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 0.7855038302887448,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.17783176398962042,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": -0.06055246469423892,
+        "recent_return_30d": -0.011672699064387837,
+        "relative_return_7d_vs_xbi": -0.06144960911532549,
+        "relative_return_30d_vs_xbi": 0.0458907688175314,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-BLTE-NCT05949593",
+          "ticker": "BLTE",
+          "type": "FILING",
+          "program": "Phase 3, Randomized, Placebo-Controlled Study of Tinlarebant to Explore Safety and Efficacy in Geographic Atrophy",
+          "start": "2026-04-01",
+          "end": "2026-04-30",
+          "days_to": -194,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-BLTE-NCT05244304",
+          "ticker": "BLTE",
+          "type": "FILING",
+          "program": "Phase 3, Randomized, Placebo-Controlled Study of Tinlarebant to Explore Safety and Efficacy in Adolescent Stargardt Disease",
+          "start": "2026-04-21",
+          "end": "2026-12-31",
+          "days_to": -174,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "stale",
+        "estimated_remaining_months": null,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "unknown",
+        "is_forecast": false
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1889109/000110465926045989/tm2611999d1_ex99-1.htm",
+        "published_at": "2026-04-21",
+        "retrieved_at": "2026-10-02T13:36:04+00:00",
+        "quote": "from our Phase 3 DRAGON trial, and look forward to completing the NDA submission in the second quarter of this year.”",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000110465926045989",
+        "nct_id": "NCT05244304",
+        "date_precision": "relative",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-04-22T00:00:16.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": "lead_sponsor"
+    },
+    {
+      "id": "AUTO-ALKS-NCT06843590",
+      "ticker": "ALKS",
+      "company": "Alkermes, Inc.",
+      "program": "A Study to Evaluate the Safety and Effectiveness of ALKS 2680 in Subjects With Idiopathic Hypersomnia",
+      "indication": null,
+      "type": "P3_TOPLINE",
+      "date": {
+        "window": {
+          "confidence": 10,
+          "end": "2026-12-31",
+          "inferred_year": false,
+          "original": "We look forward to continuing our momentum in the alixorexton development program as we enroll the phase 3 Brilliance Studies and work to complete the Vibrance-3 phase 2 study in IH this year.”",
+          "precision": "relative",
+          "start": "2026-06-15"
+        },
+        "precision": "relative"
+      },
+      "days_to": -119,
+      "state": {
+        "event_id": "AUTO-ALKS-NCT06843590",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 99,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-02T12:57:55+00:00",
+        "note": "auto-promoted only after primary-source match: exact registered program/intervention: Vibrance-3"
+      },
+      "impact": {
+        "score": 56,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 30
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [
+            "design",
+            "endpoint_consistent",
+            "n",
+            "objective",
+            "population_consistent",
+            "prior"
+          ],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        },
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "INSUFFICIENT_INFORMATION",
+        "actionable": false,
+        "reasons": [
+          "missing clinical, regulatory, financial or score inputs; absence is not negative evidence"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "חסרות ראיות קליניות, רגולטוריות או פיננסיות; חסר אינו תוצאה שלילית.",
+        "missing_he": "השלמת נתונים ממקורות ידועים לפני הסקת המלצה."
+      },
+      "security": {
+        "ticker": "ALKS",
+        "company": "Alkermes, Inc.",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-ALKS-NCT06843590",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1520262/000119312526270280/alks-ex99_1.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1520262/000119312526270280/alks-ex99_1.htm",
+          "published_at": "2026-06-15",
+          "statement": "We look forward to continuing our momentum in the alixorexton development program as we enroll the phase 3 Brilliance Studies and work to complete the Vibrance-3 phase 2 study in IH this year.”",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T08:34:23+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": 0.024191576563669548,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 1.3393044633482611,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.08456435111026395,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": 0.048296086339530975,
+        "recent_return_30d": -0.1152493957892311,
+        "relative_return_7d_vs_xbi": 0.047398941918444404,
+        "relative_return_30d_vs_xbi": -0.05768592790731186,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-ALKS-NCT07755410",
+          "ticker": "ALKS",
+          "type": "P2_TOPLINE",
+          "program": "A Study to Evaluate Safety and Efficacy of ALKS 7290 Compared With Placebo in Adult Participants With Attention Deficit Hyperactivity Disorder (ALKS 7290-201)",
+          "start": "2026-01-01",
+          "end": "2026-12-31",
+          "days_to": -284,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-ALKS-NCT06843590",
+          "ticker": "ALKS",
+          "type": "P3_TOPLINE",
+          "program": "A Study to Evaluate the Safety and Effectiveness of ALKS 2680 in Subjects With Idiopathic Hypersomnia",
+          "start": "2026-06-15",
+          "end": "2026-12-31",
+          "days_to": -119,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-ALKS-NCT07540897",
+          "ticker": "ALKS",
+          "type": "P3_TOPLINE",
+          "program": "A Study to Evaluate the Efficacy, Safety and Tolerability of ALKS 2680 in Adults With Narcolepsy Type 1 (Brilliance NT1 - 304)",
+          "start": "2026-06-30",
+          "end": "2026-06-30",
+          "days_to": -104,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 144.5337674478064,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_beyond_window",
+        "estimated_date": "2038-10-28",
+        "is_forecast": false,
+        "liquidity_basis": "cash_only"
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1520262/000119312526270280/alks-ex99_1.htm",
+        "published_at": "2026-06-15",
+        "retrieved_at": "2026-10-02T12:37:35+00:00",
+        "quote": "We look forward to continuing our momentum in the alixorexton development program as we enroll the phase 3 Brilliance Studies and work to complete the Vibrance-3 phase 2 study in IH this year.”",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000119312526270280",
+        "nct_id": "NCT06843590",
+        "date_precision": "relative",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-06-15T11:09:44.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": "lead_sponsor"
+    },
+    {
+      "id": "AUTO-BHVN-NCT06309966",
+      "ticker": "BHVN",
+      "company": "Biohaven Therapeutics Ltd.",
+      "program": "Study to Determine if BHV-7000 is Effective and Safe in Adults With Refractory Focal Onset Epilepsy",
+      "indication": null,
+      "type": "P3_TOPLINE",
+      "date": {
+        "window": {
+          "original": "We expect to report topline results from RISE 3 in the second half of 2026.",
+          "precision": "half",
+          "start": "2026-07-01",
+          "end": "2026-12-31",
+          "confidence": 35,
+          "inferred_year": false
+        },
+        "precision": "half"
+      },
+      "days_to": -103,
+      "state": {
+        "event_id": "AUTO-BHVN-NCT06309966",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 99,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-02T13:35:14+00:00",
+        "note": "auto-promoted only after primary-source match: exact registered program/intervention: RISE 3"
+      },
+      "impact": {
+        "score": 56,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 30
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [
+            "design",
+            "endpoint_consistent",
+            "n",
+            "objective",
+            "population_consistent",
+            "prior"
+          ],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        },
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "INSUFFICIENT_INFORMATION",
+        "actionable": false,
+        "reasons": [
+          "missing clinical, regulatory, financial or score inputs; absence is not negative evidence"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "חסרות ראיות קליניות, רגולטוריות או פיננסיות; חסר אינו תוצאה שלילית.",
+        "missing_he": "השלמת נתונים ממקורות ידועים לפני הסקת המלצה."
+      },
+      "security": {
+        "ticker": "BHVN",
+        "company": "Biohaven Therapeutics Ltd.",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-BHVN-NCT06309966",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1935979/000193597926000066/bhvn-20260630.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1935979/000193597926000066/bhvn-20260630.htm",
+          "published_at": "2026-08-10",
+          "statement": "We expect to report topline results from RISE 3 in the second half of 2026.",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T13:35:14+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": 0.007770037479326808,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 0.646317417359366,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.17335878815160832,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": -0.01667925097447953,
+        "recent_return_30d": -0.06353791265004538,
+        "relative_return_7d_vs_xbi": -0.017576395395566102,
+        "relative_return_30d_vs_xbi": -0.0059744447681261414,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-BHVN-NCT07281495",
+          "ticker": "BHVN",
+          "type": "P2_TOPLINE",
+          "program": "Taldefgrobep Alfa in Adults With Overweight and Obesity",
+          "start": "2025-10-01",
+          "end": "2025-12-31",
+          "days_to": -376,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-BHVN-NCT06309966",
+          "ticker": "BHVN",
+          "type": "P3_TOPLINE",
+          "program": "Study to Determine if BHV-7000 is Effective and Safe in Adults With Refractory Focal Onset Epilepsy",
+          "start": "2026-07-01",
+          "end": "2026-12-31",
+          "days_to": -103,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 3.3609491258000563,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_beyond_window",
+        "estimated_date": "2027-01-22",
+        "is_forecast": false,
+        "liquidity_basis": "cash_plus_current_investments"
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1935979/000193597926000066/bhvn-20260630.htm",
+        "published_at": "2026-08-10",
+        "retrieved_at": "2026-10-02T13:35:14+00:00",
+        "quote": "We expect to report topline results from RISE 3 in the second half of 2026.",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000193597926000066",
+        "nct_id": "NCT06309966",
+        "date_precision": "half",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-08-10T20:20:51.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": "lead_sponsor"
+    },
+    {
+      "id": "AUTO-CERS-NCT03037164",
+      "ticker": "CERS",
+      "company": "Cerus Corporation",
+      "program": "INTERCEPT Blood System for RBCs Study in Regions at Potential Risk for Zika Virus Transfusion-Transmitted Infections",
+      "indication": null,
+      "type": "P3_TOPLINE",
+      "date": {
+        "window": {
+          "original": "While we previously anticipated that the completion of the RedeS study and the planned final PMA module submission would occur in the second half of 2026, we anticipate that additional clinical trial data will be required to supplement our two Phase 3 clinical trials, ReCePI and RedeS.",
+          "precision": "half",
+          "start": "2026-07-01",
+          "end": "2026-12-31",
+          "confidence": 35,
+          "inferred_year": false
+        },
+        "precision": "half"
+      },
+      "days_to": -103,
+      "state": {
+        "event_id": "AUTO-CERS-NCT03037164",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 99,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-03T14:49:41+00:00",
+        "note": "auto-promoted only after primary-source match: exact registered program/intervention: RedeS"
+      },
+      "impact": {
+        "score": 56,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 30
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [
+            "design",
+            "endpoint_consistent",
+            "n",
+            "objective",
+            "population_consistent",
+            "prior"
+          ],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        },
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "INSUFFICIENT_INFORMATION",
+        "actionable": false,
+        "reasons": [
+          "missing clinical, regulatory, financial or score inputs; absence is not negative evidence"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "חסרות ראיות קליניות, רגולטוריות או פיננסיות; חסר אינו תוצאה שלילית.",
+        "missing_he": "השלמת נתונים ממקורות ידועים לפני הסקת המלצה."
+      },
+      "security": {
+        "ticker": "CERS",
+        "company": "Cerus Corporation",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-CERS-NCT03037164",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1020214/000119312526326295/cers-20260630.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1020214/000119312526326295/cers-20260630.htm",
+          "published_at": "2026-07-30",
+          "statement": "In 2017, we initiated a Phase 3 clinical, double-blind study in the U.S., known as the RedeS study, to assess the safety and efficacy of INTERCEPT-treated red blood cells when compared to conventional, red blood cells.",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-01T18:41:13+00:00"
+        },
+        {
+          "event_id": "AUTO-CERS-NCT03037164",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1020214/000119312526326093/cers-ex99_1.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1020214/000119312526326093/cers-ex99_1.htm",
+          "published_at": "2026-07-30",
+          "statement": "approximately 40% to 50%; Cerus continuing to have access to $14.9 million under its revolving line of credit; Cerus’ anticipated catalyst path in 2026 and the timing of catalyst events, including ongoing INTERCEPT RBC regulatory review in Europe, the Phase 3 RedeS readout in the U.S., and the U.S.",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-01T18:41:14+00:00"
+        },
+        {
+          "event_id": "AUTO-CERS-NCT03037164",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1020214/000119312526326295/cers-20260630.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1020214/000119312526326295/cers-20260630.htm",
+          "published_at": "2026-07-30",
+          "statement": "While we previously anticipated that the completion of the RedeS clinical trial and the planned final PMA module submission would occur in the second half of 2026, we anticipate that additional clinical trial data will be required to supplement our two Phase 3 clinical trials, ReCePI and RedeS.",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-03T14:49:41+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": 0.026315764707210976,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 1.1317777095486645,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.12359556280713135,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": -0.10344827271213386,
+        "recent_return_30d": -0.16725980006438146,
+        "relative_return_7d_vs_xbi": -0.10434541713322043,
+        "relative_return_30d_vs_xbi": -0.10969633218246222,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-CERS-NCT03037164",
+          "ticker": "CERS",
+          "type": "P3_TOPLINE",
+          "program": "INTERCEPT Blood System for RBCs Study in Regions at Potential Risk for Zika Virus Transfusion-Transmitted Infections",
+          "start": "2026-07-01",
+          "end": "2026-12-31",
+          "days_to": -103,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 15.308220385001277,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_beyond_window",
+        "estimated_date": "2028-01-20",
+        "is_forecast": false,
+        "liquidity_basis": "cash_only"
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1020214/000119312526326295/cers-20260630.htm",
+        "published_at": "2026-07-30",
+        "retrieved_at": "2026-10-03T14:49:41+00:00",
+        "quote": "While we previously anticipated that the completion of the RedeS study and the planned final PMA module submission would occur in the second half of 2026, we anticipate that additional clinical trial data will be required to supplement our two Phase 3 clinical trials, ReCePI and RedeS.",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000119312526326295",
+        "nct_id": "NCT03037164",
+        "date_precision": "half",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-07-30T20:44:09.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": "lead_sponsor"
+    },
+    {
+      "id": "AUTO-ABVX-NCT05507203",
+      "ticker": "ABVX",
+      "company": "Abivax S.A.",
+      "program": "ABTECT-1 - ABX464 Treatment Evaluation for Ulcerative Colitis Therapy -1",
+      "indication": null,
+      "type": "FILING",
+      "date": {
+        "window": {
+          "original": "We look forward to sharing additional results from this trial at upcoming medical congresses and remain on track for NDA filing for obefazimod in ulcerative colitis by year end.”",
+          "precision": "early_late_year",
+          "start": "2026-09-01",
+          "end": "2026-12-31",
+          "confidence": 35,
+          "inferred_year": false
+        },
+        "precision": "early_late_year"
+      },
+      "days_to": -41,
+      "state": {
+        "event_id": "AUTO-ABVX-NCT05507203",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 97,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-01T18:38:19+00:00",
+        "note": "auto-promoted only after primary-source match: program/intervention match: Ulcerative, Colitis"
+      },
+      "impact": {
+        "score": 34,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 8
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        }
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
+      "security": {
+        "ticker": "ABVX",
+        "company": "Abivax S.A.",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-ABVX-NCT05507203",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1956827/000119312526252360/d98688dex991.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1956827/000119312526252360/d98688dex991.htm",
+          "published_at": "2026-06-02",
+          "statement": "We look forward to sharing additional results from this trial at upcoming medical congresses and remain on track for NDA filing for obefazimod in ulcerative colitis by year end.”",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-01T18:38:19+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": -0.012381502266270328,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 0.6638223907719049,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.23212787493770703,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": -0.03309791608245283,
+        "recent_return_30d": -0.20200081955429472,
+        "relative_return_7d_vs_xbi": -0.0339950605035394,
+        "relative_return_30d_vs_xbi": -0.14443735167237548,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-ABVX-NCT05535946",
+          "ticker": "ABVX",
+          "type": "P3_TOPLINE",
+          "program": "ABTECT - Maintenance",
+          "start": "2026-04-01",
+          "end": "2026-06-30",
+          "days_to": -194,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-ABVX-NCT05507203",
+          "ticker": "ABVX",
+          "type": "FILING",
+          "program": "ABTECT-1 - ABX464 Treatment Evaluation for Ulcerative Colitis Therapy -1",
+          "start": "2026-09-01",
+          "end": "2026-12-31",
+          "days_to": -41,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-ABVX-NCT06456593",
+          "ticker": "ABVX",
+          "type": "FILING",
+          "program": "Efficacy and Safety of Obefazimod in Subjects With Moderately to Severely Active Crohn's Disease",
+          "start": "2026-10-01",
+          "end": "2026-12-31",
+          "days_to": -11,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "missing",
+        "estimated_remaining_months": null,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "unknown",
+        "is_forecast": false
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1956827/000119312526252360/d98688dex991.htm",
+        "published_at": "2026-06-02",
+        "retrieved_at": "2026-10-01T18:38:19+00:00",
+        "quote": "We look forward to sharing additional results from this trial at upcoming medical congresses and remain on track for NDA filing for obefazimod in ulcerative colitis by year end.”",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000119312526252360",
+        "nct_id": "NCT05507203",
+        "date_precision": "early_late_year",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-06-02T10:01:03.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": null
+    },
+    {
+      "id": "KOD-BLA",
+      "ticker": "KOD",
+      "company": "Kodiak Sciences",
+      "program": "Zenkuda — הגשת BLA רב-התוויות",
+      "indication": "DR / RVO / wet AMD",
+      "type": "FILING",
+      "date": {
+        "window": {
+          "start": "2026-10-01",
+          "end": "2026-12-31"
+        },
+        "precision": "quarter"
+      },
+      "days_to": -11,
+      "state": {
+        "event_id": "KOD-BLA",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 95,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-01T09:20:43+00:00",
+        "note": "primary source: company_press_release"
+      },
+      "impact": {
+        "score": 46,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 8
+          },
+          {
+            "code": "program_dependency",
+            "points": 18
+          },
+          {
+            "code": "market_cap_band",
+            "points": 10
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        }
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
+      "security": {
+        "ticker": "KOD",
+        "company": "Kodiak Sciences",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "KOD-BLA",
+          "source_id": "kod-daybreak-result-primary",
+          "source_type": "company_press_release",
+          "url": "https://ir.kodiak.com/news-releases/news-release-details/zenkuda-and-tabirafusp-ted-meet-primary-endpoints-pivotal",
+          "published_at": "2026-09-28",
+          "statement": "החברה מתכננת להגיש BLA ברבעון 4 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-01T09:20:43+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": -0.0067760657525394175,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 3.4700423751542133,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.04722731636316069,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": 1.8239010870394,
+        "recent_return_30d": 1.4474300307126406,
+        "relative_return_7d_vs_xbi": 1.8230039426183133,
+        "relative_return_30d_vs_xbi": 1.5049934985945599,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "KOD-BLA",
+          "ticker": "KOD",
+          "type": "FILING",
+          "program": "Zenkuda — הגשת BLA רב-התוויות",
+          "start": "2026-10-01",
+          "end": "2026-12-31",
+          "days_to": -11,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "KOD-PEAK-PA1",
+          "ticker": "KOD",
+          "type": "P3_TOPLINE",
+          "program": "KSI-101 — PEAK, Pivotal Analysis 1",
+          "start": "2026-12-01",
+          "end": "2026-12-31",
+          "days_to": 50,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": {
+        "case_id": "PIT-KOD-DAYBREAK-20260928",
+        "ticker": "KOD",
+        "catalyst_type": "P3_TOPLINE",
+        "event_at": "2026-09-28T10:30:00Z",
+        "announcement_session": "premarket",
+        "days_since": 14,
+        "return_since_event": 1.899845501805466,
+        "clean_case": true
+      },
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 5.264000731007779,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_beyond_window",
+        "estimated_date": "2027-03-21",
+        "is_forecast": false,
+        "liquidity_basis": "cash_only"
+      },
+      "provenance": null,
+      "timing_mode": "CALENDAR",
+      "mapping_basis": null
+    },
+    {
+      "id": "AUTO-ABVX-NCT06456593",
+      "ticker": "ABVX",
+      "company": "Abivax S.A.",
+      "program": "Efficacy and Safety of Obefazimod in Subjects With Moderately to Severely Active Crohn's Disease",
+      "indication": null,
+      "type": "FILING",
+      "date": {
+        "window": {
+          "original": "induction topline results in mid-2027, the planned submission of an NDA for obefazimod in UC in the fourth quarter of 2026, and the",
+          "precision": "quarter",
+          "start": "2026-10-01",
+          "end": "2026-12-31",
+          "confidence": 55,
+          "inferred_year": false
+        },
+        "precision": "quarter"
+      },
+      "days_to": -11,
+      "state": {
+        "event_id": "AUTO-ABVX-NCT06456593",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 99,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-02T12:36:50+00:00",
+        "note": "auto-promoted only after primary-source match: exact registered program/intervention: Obefazimod"
+      },
+      "impact": {
+        "score": 34,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 8
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        }
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
+      "security": {
+        "ticker": "ABVX",
+        "company": "Abivax S.A.",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-ABVX-NCT06456593",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1956827/000195682726000027/abvx-20260630.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1956827/000195682726000027/abvx-20260630.htm",
+          "published_at": "2026-09-21",
+          "statement": "results in mid-2027, the planned submission of an NDA for obefazimod in UC   in the fourth quarter of 2026, and the",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T11:24:36+00:00"
+        },
+        {
+          "event_id": "AUTO-ABVX-NCT06456593",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1956827/000195682726000027/abvx-20260630.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1956827/000195682726000027/abvx-20260630.htm",
+          "published_at": "2026-09-21",
+          "statement": "induction topline results in mid-2027, the planned submission of an NDA for obefazimod in UC in the fourth quarter of 2026, and the",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T12:36:50+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": -0.012381502266270328,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 0.6638223907719049,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.23212787493770703,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": -0.03309791608245283,
+        "recent_return_30d": -0.20200081955429472,
+        "relative_return_7d_vs_xbi": -0.0339950605035394,
+        "relative_return_30d_vs_xbi": -0.14443735167237548,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-ABVX-NCT05535946",
+          "ticker": "ABVX",
+          "type": "P3_TOPLINE",
+          "program": "ABTECT - Maintenance",
+          "start": "2026-04-01",
+          "end": "2026-06-30",
+          "days_to": -194,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-ABVX-NCT05507203",
+          "ticker": "ABVX",
+          "type": "FILING",
+          "program": "ABTECT-1 - ABX464 Treatment Evaluation for Ulcerative Colitis Therapy -1",
+          "start": "2026-09-01",
+          "end": "2026-12-31",
+          "days_to": -41,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-ABVX-NCT06456593",
+          "ticker": "ABVX",
+          "type": "FILING",
+          "program": "Efficacy and Safety of Obefazimod in Subjects With Moderately to Severely Active Crohn's Disease",
+          "start": "2026-10-01",
+          "end": "2026-12-31",
+          "days_to": -11,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "missing",
+        "estimated_remaining_months": null,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "unknown",
+        "is_forecast": false
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1956827/000195682726000027/abvx-20260630.htm",
+        "published_at": "2026-09-21",
+        "retrieved_at": "2026-10-02T11:24:35+00:00",
+        "quote": "induction topline results in mid-2027, the planned submission of an NDA for obefazimod in UC in the fourth quarter of 2026, and the",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000195682726000027",
+        "nct_id": "NCT06456593",
+        "date_precision": "quarter",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-09-21T20:12:39.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": null
+    },
+    {
+      "id": "KOD-PEAK-PA1",
+      "ticker": "KOD",
+      "company": "Kodiak Sciences",
+      "program": "KSI-101 — PEAK, Pivotal Analysis 1",
+      "indication": "בצקת מקולרית משנית לדלקת (MESI)",
+      "type": "P3_TOPLINE",
+      "date": {
+        "window": {
+          "start": "2026-12-01",
+          "end": "2026-12-31"
+        },
+        "precision": "month"
+      },
+      "days_to": 50,
+      "state": {
+        "event_id": "KOD-PEAK-PA1",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 98,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-01T09:20:43+00:00",
+        "note": "primary source: company_ir"
+      },
+      "impact": {
+        "score": 62,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 30
+          },
+          {
+            "code": "program_dependency",
+            "points": 12
+          },
+          {
+            "code": "market_cap_band",
+            "points": 10
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": 69,
+        "missing_requirements": {
+          "clinical": [
+            "design",
+            "population_consistent"
+          ],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        },
+        "probability_label": "UNCALIBRATED; do not interpret score as probability"
+      },
+      "risk_flags": [
+        {
+          "sev": "medium",
+          "code": "financing",
+          "known_from": "2026-09-28",
+          "src": "kod-context",
+          "text": "מזומן ~$126M לסוף Q2 2026, 'לתוך 2027' לפי החברה; גיוס הון לאחר זינוק DAYBREAK הוא תרחיש סביר",
+          "origin": "source"
+        },
+        {
+          "sev": "medium",
+          "code": "uncontrolled_prior",
+          "known_from": "2026-02-07",
+          "src": "kod-q1-26",
+          "text": "הראיות הקודמות (APEX שלב 1b) ללא זרוע ביקורת",
+          "origin": "source"
+        },
+        {
+          "sev": "medium",
+          "code": "partial_pivotal",
+          "known_from": "2026-08",
+          "src": "kod-q2-26",
+          "text": "ניתוח פיבוטלי 1 מתוך 2 — הגשת BLA תלויה גם בניתוח 2 (צפוי 2Q 2027)",
+          "origin": "source"
+        }
+      ],
+      "classification": {
+        "class": "INSUFFICIENT_INFORMATION",
+        "actionable": false,
+        "reasons": [
+          "missing clinical, regulatory, financial or score inputs; absence is not negative evidence"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "INSUFFICIENT_INFORMATION",
+        "label_he": "חסר מידע",
+        "why_he": "חסרות ראיות קליניות, רגולטוריות או פיננסיות; חסר אינו תוצאה שלילית.",
+        "missing_he": "השלמת נתונים ממקורות ידועים לפני הסקת המלצה."
+      },
+      "security": {
+        "ticker": "KOD",
+        "company": "Kodiak Sciences",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "KOD-PEAK-PA1",
+          "source_id": "kod-q3-25",
+          "source_type": "company_ir",
+          "url": "https://ir.kodiak.com/node/12296/html",
+          "published_at": "2025-11",
+          "statement": "PEAK — topline צפוי ברבעון 4 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-01T09:20:43+00:00"
+        },
+        {
+          "event_id": "KOD-PEAK-PA1",
+          "source_id": "kod-q1-26",
+          "source_type": "company_ir",
+          "url": "https://ir.kodiak.com/node/12596/pdf",
+          "published_at": "2026-05",
+          "statement": "ההנחיה חוזרת: רבעון 4 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-01T09:20:43+00:00"
+        },
+        {
+          "event_id": "KOD-PEAK-PA1",
+          "source_id": "kod-q2-26",
+          "source_type": "company_ir",
+          "url": "https://kodiak.gcs-web.com/node/12746/html",
+          "published_at": "2026-08",
+          "statement": "Pivotal Analysis 1 (עוקבה ראשונה, 300 מטופלים) — topline צפוי בדצמבר 2026",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-01T09:20:43+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": -0.0067760657525394175,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 3.4700423751542133,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.04722731636316069,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": 1.8239010870394,
+        "recent_return_30d": 1.4474300307126406,
+        "relative_return_7d_vs_xbi": 1.8230039426183133,
+        "relative_return_30d_vs_xbi": 1.5049934985945599,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "KOD-BLA",
+          "ticker": "KOD",
+          "type": "FILING",
+          "program": "Zenkuda — הגשת BLA רב-התוויות",
+          "start": "2026-10-01",
+          "end": "2026-12-31",
+          "days_to": -11,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "KOD-PEAK-PA1",
+          "ticker": "KOD",
+          "type": "P3_TOPLINE",
+          "program": "KSI-101 — PEAK, Pivotal Analysis 1",
+          "start": "2026-12-01",
+          "end": "2026-12-31",
+          "days_to": 50,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": {
+        "case_id": "PIT-KOD-DAYBREAK-20260928",
+        "ticker": "KOD",
+        "catalyst_type": "P3_TOPLINE",
+        "event_at": "2026-09-28T10:30:00Z",
+        "announcement_session": "premarket",
+        "days_since": 14,
+        "return_since_event": 1.899845501805466,
+        "clean_case": true
+      },
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 5.264000731007779,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_beyond_window",
+        "estimated_date": "2027-03-21",
+        "is_forecast": false,
+        "liquidity_basis": "cash_only"
+      },
+      "provenance": null,
+      "timing_mode": "CALENDAR",
+      "mapping_basis": null
+    },
+    {
+      "id": "AUTO-DNLI-NCT06075537",
+      "ticker": "DNLI",
+      "company": "Denali Therapeutics Inc.",
+      "program": "An Extension Study of the Long-Term Safety, Tolerability, and Efficacy of Tividenofusp Alfa (DNL310) in Participants With Mucopolysaccharidosis Type II (MPS II) From Study DNLI-E-0002 or Study DNLI-E-0007",
+      "indication": null,
+      "type": "FILING",
+      "date": {
+        "window": {
+          "original": "Denali expects a Biologics License Application (BLA) submission and potential accelerated approval for zafinofusp alfa for Sanfilippo syndrome type A in 2027.",
+          "precision": "year",
+          "start": "2027-01-01",
+          "end": "2027-12-31",
+          "confidence": 20,
+          "inferred_year": false
+        },
+        "precision": "year"
+      },
+      "days_to": 81,
+      "state": {
+        "event_id": "AUTO-DNLI-NCT06075537",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 97,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-03T15:42:22+00:00",
+        "note": "auto-promoted only after primary-source match: program/intervention match: Alfa, Type"
+      },
+      "impact": {
+        "score": 34,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 8
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        }
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
+      "security": {
+        "ticker": "DNLI",
+        "company": "Denali Therapeutics Inc.",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-DNLI-NCT06075537",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1714899/000171489926000096/ex991pressreleaseq22026.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1714899/000171489926000096/ex991pressreleaseq22026.htm",
+          "published_at": "2026-08-06",
+          "statement": "Denali expects a Biologics License Application (BLA) submission and potential accelerated approval for zafinofusp alfa for Sanfilippo syndrome type A in 2027.",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-03T15:42:22+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": -0.004500007629394509,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 0.9302716022638036,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.10637346347363275,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": -0.027357082790766984,
+        "recent_return_30d": -0.20104334725294726,
+        "relative_return_7d_vs_xbi": -0.028254227211853555,
+        "relative_return_30d_vs_xbi": -0.14347987937102802,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-DNLI-NCT06602193",
+          "ticker": "DNLI",
+          "type": "INTERIM",
+          "program": "Safety and Pharmacodynamic Effects of BIIB122 in Participants With LRRK2-Associated Parkinson's Disease (LRRK2-PD)",
+          "start": "2026-02-26",
+          "end": "2026-02-26",
+          "days_to": -228,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-DNLI-NCT05262023",
+          "ticker": "DNLI",
+          "type": "P2_TOPLINE",
+          "program": "A Study to Evaluate the Safety, Tolerability, Pharmacokinetics, and Pharmacodynamics of DNL593 in Healthy Participants and Participants With Frontotemporal Dementia (FTD-GRN)",
+          "start": "2027-01-01",
+          "end": "2027-12-31",
+          "days_to": 81,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-DNLI-NCT06075537",
+          "ticker": "DNLI",
+          "type": "FILING",
+          "program": "An Extension Study of the Long-Term Safety, Tolerability, and Efficacy of Tividenofusp Alfa (DNL310) in Participants With Mucopolysaccharidosis Type II (MPS II) From Study DNLI-E-0002 or Study DNLI-E-0007",
+          "start": "2027-01-01",
+          "end": "2027-12-31",
+          "days_to": 81,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 15.096677682027305,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_beyond_window",
+        "estimated_date": "2028-01-14",
+        "is_forecast": false,
+        "liquidity_basis": "cash_plus_current_investments"
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1714899/000171489926000096/ex991pressreleaseq22026.htm",
+        "published_at": "2026-08-06",
+        "retrieved_at": "2026-10-03T15:42:22+00:00",
+        "quote": "Denali expects a Biologics License Application (BLA) submission and potential accelerated approval for zafinofusp alfa for Sanfilippo syndrome type A in 2027.",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000171489926000096",
+        "nct_id": "NCT06075537",
+        "date_precision": "year",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-08-06T20:03:19.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": "lead_sponsor"
+    },
+    {
+      "id": "AUTO-MIRM-NCT04663308",
+      "ticker": "MIRM",
+      "company": "Mirum Pharmaceuticals, Inc.",
+      "program": "A Study to Evaluate Efficacy and Safety of an Investigational Drug Named Volixibat in Patients With Itching Caused by Primary Sclerosing Cholangitis (PSC)",
+      "indication": null,
+      "type": "FILING",
+      "date": {
+        "window": {
+          "original": "We intend to hold further discussions with the FDA before a potential NDA submission in the first half of 2027 based on VISTAS.”",
+          "precision": "half",
+          "start": "2027-01-01",
+          "end": "2027-06-30",
+          "confidence": 35,
+          "inferred_year": false
+        },
+        "precision": "half"
+      },
+      "days_to": 81,
+      "state": {
+        "event_id": "AUTO-MIRM-NCT04663308",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 99,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-02T12:38:24+00:00",
+        "note": "auto-promoted only after primary-source match: exact registered program/intervention: VISTAS"
+      },
+      "impact": {
+        "score": 34,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 8
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        }
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
+      "security": {
+        "ticker": "MIRM",
+        "company": "Mirum Pharmaceuticals, Inc.",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-MIRM-NCT04663308",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1759425/000175942526000045/mirm-20260630.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1759425/000175942526000045/mirm-20260630.htm",
+          "published_at": "2026-08-05",
+          "statement": "We announced topline results for the VISTAS Phase 2b clinical trial in PSC in May 2026.",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T12:38:23+00:00"
+        },
+        {
+          "event_id": "AUTO-MIRM-NCT04663308",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1759425/000175942526000044/mirm-20260805xexx991.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1759425/000175942526000044/mirm-20260805xexx991.htm",
+          "published_at": "2026-08-05",
+          "statement": "We intend to hold further discussions with the FDA before a potential NDA submission in the first half of 2027 based on VISTAS.”",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T12:38:24+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": -0.0180875436450032,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 1.376351636006179,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.1929633392097565,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": -0.08874216932645318,
+        "recent_return_30d": -0.15450106562784582,
+        "relative_return_7d_vs_xbi": -0.08963931374753975,
+        "relative_return_30d_vs_xbi": -0.09693759774592658,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-MIRM-NCT06553768",
+          "ticker": "MIRM",
+          "type": "P3_TOPLINE",
+          "program": "Evaluation of Maralixibat in Pruritus Associated With General Cholestatic Liver Disease (EXPAND)",
+          "start": "2026-10-01",
+          "end": "2026-12-31",
+          "days_to": -11,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-MIRM-NCT04663308",
+          "ticker": "MIRM",
+          "type": "FILING",
+          "program": "A Study to Evaluate Efficacy and Safety of an Investigational Drug Named Volixibat in Patients With Itching Caused by Primary Sclerosing Cholangitis (PSC)",
+          "start": "2027-01-01",
+          "end": "2027-06-30",
+          "days_to": 81,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-MIRM-NCT05050136",
+          "ticker": "MIRM",
+          "type": "P2_TOPLINE",
+          "program": "A Study to Evaluate Efficacy and Safety of an Investigational Drug Named Volixibat in Patients With Itching Caused by Primary Biliary Cholangitis",
+          "start": "2027-01-01",
+          "end": "2027-03-31",
+          "days_to": 81,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-MIRM-NCT07298330",
+          "ticker": "MIRM",
+          "type": "FILING",
+          "program": "A Trial Evaluating Brelovitug vs Delayed Treatment for the Treatment of Chronic Hepatitis Delta Infection (AZURE-4)",
+          "start": "2027-01-01",
+          "end": "2027-06-30",
+          "days_to": 81,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 6.129694388026382,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_overlaps_window",
+        "estimated_date": "2027-04-16",
+        "is_forecast": false,
+        "liquidity_basis": "cash_plus_current_investments"
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1759425/000175942526000044/mirm-20260805xexx991.htm",
+        "published_at": "2026-08-05",
+        "retrieved_at": "2026-10-02T12:38:24+00:00",
+        "quote": "We intend to hold further discussions with the FDA before a potential NDA submission in the first half of 2027 based on VISTAS.”",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000175942526000044",
+        "nct_id": "NCT04663308",
+        "date_precision": "half",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-08-05T20:02:41.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": null
+    },
+    {
+      "id": "AUTO-MIRM-NCT07298330",
+      "ticker": "MIRM",
+      "company": "Mirum Pharmaceuticals, Inc.",
+      "program": "A Trial Evaluating Brelovitug vs Delayed Treatment for the Treatment of Chronic Hepatitis Delta Infection (AZURE-4)",
+      "indication": null,
+      "type": "FILING",
+      "date": {
+        "window": {
+          "original": "We believe that the results from the AZURE-1 and AZURE-4 trials may support a potential biologics license application (“BLA”) submission to the FDA for brelovitug in HDV in the first half of 2027 followed by a potential approval and subsequent commercial launch, if approved, in the second half of 2027 in the U.S.",
+          "precision": "half",
+          "start": "2027-01-01",
+          "end": "2027-06-30",
+          "confidence": 35,
+          "inferred_year": false
+        },
+        "precision": "half"
+      },
+      "days_to": 81,
+      "state": {
+        "event_id": "AUTO-MIRM-NCT07298330",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 97,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-02T12:38:23+00:00",
+        "note": "auto-promoted only after primary-source match: program/intervention match: Brelovitug, AZURE-4"
+      },
+      "impact": {
+        "score": 34,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 8
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        }
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
+      "security": {
+        "ticker": "MIRM",
+        "company": "Mirum Pharmaceuticals, Inc.",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-MIRM-NCT07298330",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1759425/000175942526000045/mirm-20260630.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1759425/000175942526000045/mirm-20260630.htm",
+          "published_at": "2026-08-05",
+          "statement": "We believe that the results from the AZURE-1 and AZURE-4 trials may support a potential biologics license application (“BLA”) submission to the FDA for brelovitug in HDV in the first half of 2027 followed by a potential approval and subsequent commercial launch, if approved, in the second half of 2027 in the U.S.",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T12:38:23+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": -0.0180875436450032,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 1.376351636006179,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.1929633392097565,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": -0.08874216932645318,
+        "recent_return_30d": -0.15450106562784582,
+        "relative_return_7d_vs_xbi": -0.08963931374753975,
+        "relative_return_30d_vs_xbi": -0.09693759774592658,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-MIRM-NCT06553768",
+          "ticker": "MIRM",
+          "type": "P3_TOPLINE",
+          "program": "Evaluation of Maralixibat in Pruritus Associated With General Cholestatic Liver Disease (EXPAND)",
+          "start": "2026-10-01",
+          "end": "2026-12-31",
+          "days_to": -11,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-MIRM-NCT04663308",
+          "ticker": "MIRM",
+          "type": "FILING",
+          "program": "A Study to Evaluate Efficacy and Safety of an Investigational Drug Named Volixibat in Patients With Itching Caused by Primary Sclerosing Cholangitis (PSC)",
+          "start": "2027-01-01",
+          "end": "2027-06-30",
+          "days_to": 81,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-MIRM-NCT05050136",
+          "ticker": "MIRM",
+          "type": "P2_TOPLINE",
+          "program": "A Study to Evaluate Efficacy and Safety of an Investigational Drug Named Volixibat in Patients With Itching Caused by Primary Biliary Cholangitis",
+          "start": "2027-01-01",
+          "end": "2027-03-31",
+          "days_to": 81,
+          "recommendation": "INSUFFICIENT_INFORMATION",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        },
+        {
+          "id": "AUTO-MIRM-NCT07298330",
+          "ticker": "MIRM",
+          "type": "FILING",
+          "program": "A Trial Evaluating Brelovitug vs Delayed Treatment for the Treatment of Chronic Hepatitis Delta Infection (AZURE-4)",
+          "start": "2027-01-01",
+          "end": "2027-06-30",
+          "days_to": 81,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 6.129694388026382,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_overlaps_window",
+        "estimated_date": "2027-04-16",
+        "is_forecast": false,
+        "liquidity_basis": "cash_plus_current_investments"
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1759425/000175942526000045/mirm-20260630.htm",
+        "published_at": "2026-08-05",
+        "retrieved_at": "2026-10-02T12:38:23+00:00",
+        "quote": "We believe that the results from the AZURE-1 and AZURE-4 trials may support a potential biologics license application (“BLA”) submission to the FDA for brelovitug in HDV in the first half of 2027 followed by a potential approval and subsequent commercial launch, if approved, in the second half of 2027 in the U.S.",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000175942526000045",
+        "nct_id": "NCT07298330",
+        "date_precision": "half",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-08-05T20:06:56.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": null
+    },
+    {
+      "id": "AUTO-ALGS-NCT06963710",
+      "ticker": "ALGS",
+      "company": "Aligos Therapeutics",
+      "program": "A Study Evaluating the Efficacy and Safety of ALG-000184 Compared With Tenofovir Disoproxil Fumarate in Untreated HBeAg-Positive and HBeAg- Negative Adult Subjects With Chronic Hepatitis B (B-SUPREME)",
+      "indication": null,
+      "type": "CONFERENCE",
+      "date": {
+        "window": {
+          "original": "Any statements in this press release that are not historical facts may be considered “forward-looking statements,” including without limitation, statements with respect to the expected data releases and data presentations for the Company’s ASO program in HBV, and timing of data readouts for the pevifoscorvir sodium B-SUPREME study; potential success of the Company’s development programs, including timing of the Company’s anticipated ASO clinical trials; the potential for ALG-170675 to reduce ASO toxicity and improve ASO liver to kidney ratios; the potential additive to synergistic effects of ALG-170675 when combined with a CAM-E; statements about the Company’s plans to conduct a Phase 2 study on ALG-170675 in 2028, and whether it may include combination therapy (e.g.",
+          "precision": "year",
+          "start": "2028-01-01",
+          "end": "2028-12-31",
+          "confidence": 20,
+          "inferred_year": false
+        },
+        "precision": "year"
+      },
+      "days_to": 446,
+      "state": {
+        "event_id": "AUTO-ALGS-NCT06963710",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 99,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-02T12:37:23+00:00",
+        "note": "auto-promoted only after primary-source match: exact registered program/intervention: B-SUPREME"
+      },
+      "impact": {
+        "score": 36,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 10
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        }
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
+      "security": {
+        "ticker": "ALGS",
+        "company": "Aligos Therapeutics",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-ALGS-NCT06963710",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1799448/000119312526336851/algs-20260630.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1799448/000119312526336851/algs-20260630.htm",
+          "published_at": "2026-08-06",
+          "statement": "Compared to Phase 3 studies with the current standard of care nucleos(t)ide analogs (NAs), tenofovir disoproxil fumarate (TDF) and tenofovir alafenamide (TAF) (Buti et al., Lancet Gastro, 2016; Chen et al., Lancet Gastro 2016), the Company’s Phase 1 data to date suggest, subject to confirmation via further study, that pevifoscorvir sodium treatment may be superior to NAs in HBeAg+/- subjects in achieving HBV DNA levels < LLOQ (10 IU/mL) after 48 weeks on treatment.",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T08:34:11+00:00"
+        },
+        {
+          "event_id": "AUTO-ALGS-NCT06963710",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1799448/000117184326005294/exh_991.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1799448/000117184326005294/exh_991.htm",
+          "published_at": "2026-08-06",
+          "statement": "As we look ahead to topline data from the B-SUPREME study which is expected in late Q3 next year, we remain confident that our differentiated pipeline has the potential to meaningfully reduce the burden of end-stage liver disease and liver cancer, the main goal of chronic HBV infection treatment.”",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T08:34:12+00:00"
+        },
+        {
+          "event_id": "AUTO-ALGS-NCT06963710",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1799448/000117184326005294/exh_991.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1799448/000117184326005294/exh_991.htm",
+          "published_at": "2026-08-06",
+          "statement": "Any statements in this press release that are not historical facts may be considered “forward-looking statements,” including without limitation, statements with respect to the expected data releases and data presentations for the Company’s ASO program in HBV, and timing of data readouts for the pevifoscorvir sodium B-SUPREME study; potential success of the Company’s development programs, including timing of the Company’s anticipated ASO clinical trials; the potential for ALG-170675 to reduce ASO toxicity and improve ASO liver to kidney ratios; the potential additive to synergistic effects of ALG-170675 when combined with a CAM-E; statements about the Company’s plans to conduct a Phase 2 study on ALG-170675 in 2028, and whether it may include combination therapy (e.g.",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-02T12:37:23+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": -0.025270734196678246,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 1.3806818181818181,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.13043477259321246,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": -0.02702704328151928,
+        "recent_return_30d": -0.19040479256368525,
+        "relative_return_7d_vs_xbi": -0.02792418770260585,
+        "relative_return_30d_vs_xbi": -0.13284132468176602,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-ALGS-NCT06963710",
+          "ticker": "ALGS",
+          "type": "CONFERENCE",
+          "program": "A Study Evaluating the Efficacy and Safety of ALG-000184 Compared With Tenofovir Disoproxil Fumarate in Untreated HBeAg-Positive and HBeAg- Negative Adult Subjects With Chronic Hepatitis B (B-SUPREME)",
+          "start": "2028-01-01",
+          "end": "2028-12-31",
+          "days_to": 446,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 0.3408895862498591,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_before_window",
+        "estimated_date": "2026-10-22",
+        "is_forecast": false,
+        "liquidity_basis": "cash_plus_current_investments"
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1799448/000117184326005294/exh_991.htm",
+        "published_at": "2026-08-06",
+        "retrieved_at": "2026-10-02T12:37:23+00:00",
+        "quote": "Any statements in this press release that are not historical facts may be considered “forward-looking statements,” including without limitation, statements with respect to the expected data releases and data presentations for the Company’s ASO program in HBV, and timing of data readouts for the pevifoscorvir sodium B-SUPREME study; potential success of the Company’s development programs, including timing of the Company’s anticipated ASO clinical trials; the potential for ALG-170675 to reduce ASO toxicity and improve ASO liver to kidney ratios; the potential additive to synergistic effects of ALG-170675 when combined with a CAM-E; statements about the Company’s plans to conduct a Phase 2 study on ALG-170675 in 2028, and whether it may include combination therapy (e.g.",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000117184326005294",
+        "nct_id": "NCT06963710",
+        "date_precision": "year",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-08-06T12:00:37.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": null
+    },
+    {
+      "id": "AUTO-JSPR-NCT06162728",
+      "ticker": "JSPR",
+      "company": "Jasper Therapeutics, Inc.",
+      "program": "Dose Escalation Trial Of Safety, Pharmacokinetic/Pharmacodynamic And Preliminary Clinical Activity of Briquilimab In Adult Patients With Chronic Spontaneous Urticaria (CSU)",
+      "indication": null,
+      "type": "FILING",
+      "date": {
+        "window": {
+          "original": "30 2028E 2027E 2026E Q1 – Potential Phase 3 initiation  (PNH) Q2 – Phase 2, Stage 1 updated data  Q2 - Phase 2, Stage 2 interim data  (rare renal) 1H – EOP2 meeting (PNH) Q4 – New indication interim data Q4 – Phase 2, Stage 1 interim data  (rare renal) Q4 – New indication Phase 2 plans KP-104 EOY – Potential US BLA approval &  PRV issuance* Q1 – Regulatory guidance on SCID EOY – Potential BLA submission* 2H – Update on next steps for non- transplant indication YE – Statistical analysis for SCID Briquilimab Q2 – Phase 1b data Mid-Year – Phase 2 initiation Q1 – File Phase 1 CTA/IND Q3 – Phase 1a HV data Q4 – Phase 1b initiation KP-701 Mid-Year – DC Selection Early-Stage  Programs Multiple anticipated Phase 2 data readouts, two Phase 1 updates and potential Phase 3 start planned $132M PIPE Expected to Fund the Combined Company Through Multiple  Anticipated Clinical Catalysts, Well Capitalized into 2H 2028 *Subject to FDA alignment, additional funding",
+          "precision": "half",
+          "start": "2028-07-01",
+          "end": "2028-12-31",
+          "confidence": 35,
+          "inferred_year": false
+        },
+        "precision": "half"
+      },
+      "days_to": 628,
+      "state": {
+        "event_id": "AUTO-JSPR-NCT06162728",
+        "status": "VERIFIED",
+        "verification_state": "VERIFIED",
+        "verification_confidence": 99,
+        "event_timestamp": null,
+        "event_session": "unknown",
+        "resolved_at": null,
+        "updated_at": "2026-10-05T14:42:50+00:00",
+        "note": "auto-promoted only after primary-source match: exact registered program/intervention: Briquilimab"
+      },
+      "impact": {
+        "score": 34,
+        "contributions": [
+          {
+            "code": "event_type",
+            "points": 8
+          },
+          {
+            "code": "program_dependency",
+            "points": 8
+          },
+          {
+            "code": "market_cap_band",
+            "points": 8
+          },
+          {
+            "code": "commercial_stage",
+            "points": 10
+          }
+        ],
+        "version": "2.0.0"
+      },
+      "evidence": {
+        "score": null,
+        "missing_requirements": {
+          "clinical": [],
+          "regulatory": [],
+          "financial": [
+            "source_verified_current_runway"
+          ]
+        }
+      },
+      "risk_flags": [],
+      "classification": {
+        "class": "WATCH",
+        "actionable": true,
+        "reasons": [
+          "informational catalyst, not modeled as primary binary"
+        ]
+      },
+      "recommendation": {
+        "experimental": true,
+        "validation_gates_separate": true,
+        "status": "WATCH",
+        "label_he": "מעקב",
+        "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.",
+        "missing_he": "טריגר מהותי יותר או נתונים חדשים."
+      },
+      "security": {
+        "ticker": "JSPR",
+        "company": "Jasper Therapeutics, Inc.",
+        "status": "ACTIVE",
+        "effective_from": null,
+        "effective_to": null,
+        "successor_ticker": null,
+        "acquirer_ticker": null,
+        "reason": "present in current official listing directory",
+        "source_url": "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt",
+        "source_type": "nasdaq_security_master",
+        "published_at": null,
+        "verified_at": "2026-10-05T16:05:07+00:00",
+        "tradable": true,
+        "verified": true
+      },
+      "sources": [
+        {
+          "event_id": "AUTO-JSPR-NCT06162728",
+          "source_id": "https://www.sec.gov/Archives/edgar/data/1788028/000121390026078887/ea029822901ex99-1.htm",
+          "source_type": "sec",
+          "url": "https://www.sec.gov/Archives/edgar/data/1788028/000121390026078887/ea029822901ex99-1.htm",
+          "published_at": "2026-07-17",
+          "statement": "30 2028E 2027E 2026E Q1 – Potential Phase 3 initiation  (PNH) Q2 – Phase 2, Stage 1 updated data  Q2 - Phase 2, Stage 2 interim data  (rare renal) 1H – EOP2 meeting (PNH) Q4 – New indication interim data Q4 – Phase 2, Stage 1 interim data  (rare renal) Q4 – New indication Phase 2 plans KP-104 EOY – Potential US BLA approval &  PRV issuance* Q1 – Regulatory guidance on SCID EOY – Potential BLA submission* 2H – Update on next steps for non- transplant indication YE – Statistical analysis for SCID Briquilimab Q2 – Phase 1b data Mid-Year – Phase 2 initiation Q1 – File Phase 1 CTA/IND Q3 – Phase 1a HV data Q4 – Phase 1b initiation KP-701 Mid-Year – DC Selection Early-Stage  Programs Multiple anticipated Phase 2 data readouts, two Phase 1 updates and potential Phase 3 start planned $132M PIPE Expected to Fund the Combined Company Through Multiple  Anticipated Clinical Catalysts, Well Capitalized into 2H 2028 *Subject to FDA alignment, additional funding",
+          "supports_date": 1,
+          "retrieved_at": "2026-10-05T14:42:50+00:00"
+        }
+      ],
+      "market_intelligence": {
+        "available": true,
+        "price_date": "2026-10-05",
+        "price_age_days": 7,
+        "price_fresh": false,
+        "session_in_progress": false,
+        "volume_partial_suppressed": false,
+        "attention_score": null,
+        "attention_label_he": "נתונים ישנים",
+        "last_session_return": 0.049557517269259055,
+        "benchmark_last_session_return": 0.011396813113370152,
+        "relative_volume_20d": 1.2571046472751588,
+        "breakout_20d": false,
+        "distance_from_20d_high": -0.16361071659579962,
+        "context": "unknown",
+        "context_label_he": "אין מספיק נתונים",
+        "breadth_sample_n": 0,
+        "same_direction_big_move_share": null,
+        "recent_shock": null,
+        "post_event_chase_risk": null,
+        "recent_return_7d": 0.013675241890431122,
+        "recent_return_30d": -0.17178774054032275,
+        "relative_return_7d_vs_xbi": 0.012778097469344551,
+        "relative_return_30d_vs_xbi": -0.11422427265840351,
+        "heuristic_only": true,
+        "note_he": "מדד תשומת לב תיאורי בלבד; אינו משנה את ציון הראיות או את שערי האימות."
+      },
+      "catalyst_chain": [
+        {
+          "id": "AUTO-JSPR-NCT06162728",
+          "ticker": "JSPR",
+          "type": "FILING",
+          "program": "Dose Escalation Trial Of Safety, Pharmacokinetic/Pharmacodynamic And Preliminary Clinical Activity of Briquilimab In Adult Patients With Chronic Spontaneous Urticaria (CSU)",
+          "start": "2028-07-01",
+          "end": "2028-12-31",
+          "days_to": 628,
+          "recommendation": "WATCH",
+          "verification_state": "VERIFIED",
+          "timing_mode": "CALENDAR",
+          "trigger_current": null,
+          "trigger_target": null,
+          "monitoring_state": null
+        }
+      ],
+      "recent_completed_catalyst": null,
+      "financial_context": {
+        "status": "available",
+        "estimated_remaining_months": 0,
+        "note_he": "אומדן לפי קצב התזרים בתקופת הדוח; לא תחזית חברה ולא הסתברות גיוס."
+      },
+      "financing_events": [],
+      "funding_window": {
+        "status": "estimate_before_window",
+        "estimated_date": "2026-10-12",
+        "is_forecast": false,
+        "liquidity_basis": "cash_only"
+      },
+      "provenance": {
+        "source_type": "sec",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/1788028/000121390026078887/ea029822901ex99-1.htm",
+        "published_at": "2026-07-17",
+        "retrieved_at": "2026-10-05T14:42:50+00:00",
+        "quote": "30 2028E 2027E 2026E Q1 – Potential Phase 3 initiation  (PNH) Q2 – Phase 2, Stage 1 updated data  Q2 - Phase 2, Stage 2 interim data  (rare renal) 1H – EOP2 meeting (PNH) Q4 – New indication interim data Q4 – Phase 2, Stage 1 interim data  (rare renal) Q4 – New indication Phase 2 plans KP-104 EOY – Potential US BLA approval &  PRV issuance* Q1 – Regulatory guidance on SCID EOY – Potential BLA submission* 2H – Update on next steps for non- transplant indication YE – Statistical analysis for SCID Briquilimab Q2 – Phase 1b data Mid-Year – Phase 2 initiation Q1 – File Phase 1 CTA/IND Q3 – Phase 1a HV data Q4 – Phase 1b initiation KP-701 Mid-Year – DC Selection Early-Stage  Programs Multiple anticipated Phase 2 data readouts, two Phase 1 updates and potential Phase 3 start planned $132M PIPE Expected to Fund the Combined Company Through Multiple  Anticipated Clinical Catalysts, Well Capitalized into 2H 2028 *Subject to FDA alignment, additional funding",
+        "verification_method": "deterministic_program_match",
+        "primary": true,
+        "accession": "000121390026078887",
+        "nct_id": "NCT06162728",
+        "date_precision": "half",
+        "trigger_precision": null,
+        "sec_accepted_at": "2026-07-17T01:50:00.000Z"
+      },
+      "timing_mode": "CALENDAR",
+      "mapping_basis": "lead_sponsor"
+    }
+  ],
+  "validation": {
+    "runup": {
+      "enabled": false,
+      "satisfied": false,
+      "n": 0,
+      "min_n": 150,
+      "note": "locked until stable positive out-of-sample evidence"
+    },
+    "hold_through": {
+      "enabled": false,
+      "satisfied": false,
+      "n": 0,
+      "min_n": 200,
+      "note": "locked until calibrated out-of-sample binary model"
+    }
+  },
+  "health": {
+    "latest_monitor": {
+      "finished_at": "2026-10-12T12:39:45.093753+00:00",
+      "status": "OK"
+    },
+    "primary_catalyst_monitoring": {
+      "healthy": true,
+      "label_he": "ניטור אירועי הליבה תקין"
+    },
+    "sec_monitoring_enabled": false,
+    "severity": {
+      "red": [],
+      "amber": [],
+      "info": []
+    },
+    "source_freshness": [
+      {
+        "source": "fda_feed:fda_biologics",
+        "status": "OK",
+        "last_checked_at": "2026-10-12T12:38:57.043503+00:00",
+        "last_success_at": "2026-10-12T12:38:57.043503+00:00",
+        "last_error_at": "2026-10-12T05:09:36.233707+00:00",
+        "consecutive_failures": 0
+      }
+    ]
+  },
+  "coverage": {
+    "scanned_candidates": 7195,
+    "total_evidence": 5108,
+    "review_required_count": 3066
+  },
+  "clinical_intelligence": {
+    "catalysts": [
+      {
+        "catalyst_id": "CAT-d04347bd19fec270ee21b315",
+        "ticker": "RGNX",
+        "cik": "1590877",
+        "program": null,
+        "event_type": "READOUT",
+        "headline": "REGENXBIO to Host Investor Event Highlighting Surabgene Lomparvovec (Sura-vec) in Wet AMD on October 20",
+        "first_seen_at": "2026-10-12T11:14:24+00:00",
+        "updated_at": "2026-10-12T11:14:24+00:00",
+        "window": {
+          "original": "<p>Event to include clinical program overview and perspectives from leading retina specialists ahead of topline pivotal data readout anticipated in 4Q 2026 ROCKVILLE, Md",
+          "precision": "quarter",
+          "start": "2026-10-01",
+          "end": "2026-12-31",
+          "confidence": 55,
+          "inferred_year": false
+        },
+        "sources": [
+          {
+            "source_url": "https://www.prnewswire.com/news-releases/regenxbio-to-host-investor-event-highlighting-surabgene-lomparvovec-sura-vec-in-wet-amd-on-october-20-302905229.html",
+            "published_at": "2026-10-12T11:05:00+00:00",
+            "source_hash": "878e1b59ee912ee77a3bea9d2e1ec3c44ac68e5b41aa60ab13e9aafb33fc38a2"
+          }
+        ]
+      }
+    ]
+  },
+  "alerts": [
+    {
+      "change_id": "CHG-d370967f49460e2c98e73e47",
+      "edge_event_ids": [],
+      "created_at": "2026-10-12T11:14:24+00:00",
+      "priority": "P2",
+      "ticker": "RGNX",
+      "watched": false,
+      "change_type": "clinical_catalyst_signal",
+      "source_type": "wire",
+      "source_url": "https://www.prnewswire.com/news-releases/regenxbio-to-host-investor-event-highlighting-surabgene-lomparvovec-sura-vec-in-wet-amd-on-october-20-302905229.html",
+      "published_at": "2026-10-12T11:05:00+00:00",
+      "detected_at": "2026-10-12T11:14:24.995178+00:00",
+      "headline": "REGENXBIO to Host Investor Event Highlighting Surabgene Lomparvovec (Sura-vec) in Wet AMD on October 20",
+      "polarity": "unknown",
+      "verification_state": "investigation_only",
+      "summary": "<p>Event to include clinical program overview and perspectives from leading retina specialists ahead of topline pivotal data readout anticipated in 4Q 2026 ROCKVILLE, Md., Oct. 12, 2026 /PRNewswire/ -- REGENXBIO Inc. (Nasdaq: RGNX) today announced it will host an investor event at 1:00 p.m....</p>",
+      "corroborated_by": [],
+      "delivered": false,
+      "delivery": {
+        "log": {
+          "status": "sent",
+          "attempts": 1,
+          "sent_at": "2026-10-12T11:14:29.575997+00:00"
+        }
+      },
+      "explanation": {
+        "basis": "source_text",
+        "method": "source-rules-v1",
+        "summary_he": "המקור עוסק בנתוני ניסוי קליני. יש לבדוק את המדד הראשי, גודל המדגם והבטיחות לפני הסקת מסקנה.",
+        "why_he": "ההתראה עברה את סף המהותיות של הסורק לפי סוג האירוע והטקסט שנקלט.",
+        "source_url": "https://www.prnewswire.com/news-releases/regenxbio-to-host-investor-event-highlighting-surabgene-lomparvovec-sura-vec-in-wet-amd-on-october-20-302905229.html",
+        "source_hash": "ec3390a31b589e74a3003777961743741e4b2def9099c2efc00026cb390bd6ac",
+        "evidence": [
+          {
+            "id": "source-1",
+            "topic": "clinical",
+            "quote": "leading retina specialists ahead of topline pivotal data readout anticipated in 4Q 2026\nROCKVILLE, Md., Oct. 12, 2026 /PRNewswire/ -- REGENXBIO Inc. (Nasdaq: RGNX)",
+            "url": "https://www.prnewswire.com/news-releases/regenxbio-to-host-investor-event-highlighting-surabgene-lomparvovec-sura-vec-in-wet-amd-on-october-20-302905229.html"
+          }
+        ],
+        "missing_he": [
+          "קריאת ההודעה אינה משנה את מצב האימות של האירוע."
+        ],
+        "verification_state": "investigation_only",
+        "ai_status": "disabled",
+        "source_polarity": "unknown",
+        "analyzed_at": "2026-10-12T11:15:15.444650+00:00",
+        "status": "complete"
+      }
+    }
+  ],
+  "alert_config": {
+    "enabled_channels": []
+  },
+  "changes": [
+    {
+      "change_id": "CHG-7b9815496296bc80afabc82a",
+      "detected_at": "2026-10-12T12:34:43.923919+00:00",
+      "ticker": "CTXR",
+      "event_id": null,
+      "candidate_id": null,
+      "nct_id": null,
+      "asset": null,
+      "change_type": "wire_release_signal",
+      "previous_value": null,
+      "new_value": {
+        "headline": "Citius Pharmaceuticals to Participate in October 2026 Investor Conferences",
+        "outcome": {
+          "actionable": false,
+          "catalyst": false,
+          "kind": "routine_conference",
+          "material": false,
+          "method": "clinical-v2",
+          "polarity": "unknown",
+          "relevant": false,
+          "suppression_reason": "routine_conference"
+        },
+        "published_at": "2026-10-12T12:30:00+00:00",
+        "summary": "<p>Chairman and CEO Leonard Mazur to present and host one-on-one investor meetings at the 2026 Maxim Growth Summit and the ThinkEquity Conference CRANFORD, N.J., Oct. 12, 2026 /PRNewswire/ -- Citius Pharmaceuticals, Inc. (\"Citius Pharma\" or the \"Company\") (Nasdaq: CTXR), a biopharmaceutical...</p>"
+      },
+      "severity": "medium",
+      "source_url": "https://www.prnewswire.com/news-releases/citius-pharmaceuticals-to-participate-in-october-2026-investor-conferences-302905224.html",
+      "source_type": "wire",
+      "verification_state": "investigation_only",
+      "source_hash": null,
+      "metadata_json": "{\"feed\":\"prnewswire_biotech\",\"identity_source\":\"SEC-v2C-equity\",\"source_published_at\":\"2026-10-12T12:30:00+00:00\"}",
+      "metadata": {
+        "feed": "prnewswire_biotech",
+        "identity_source": "SEC-v2C-equity",
+        "source_published_at": "2026-10-12T12:30:00+00:00"
+      }
+    }
+  ]
+}
