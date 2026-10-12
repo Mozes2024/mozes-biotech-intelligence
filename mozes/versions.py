@@ -3,7 +3,8 @@ VERSIONS = {
     "catalyst_impact": "2.0.0",
     "clinical_evidence": "2.1.0",
     "market_setup": "2.0.0",
-    "classifier": "2.1.0",
+    "classifier": "2.1.1",
+    "financial_availability": "1.0.0",
     "dataset": "2026-09-30-v02",
 }
 DATASET_AS_OF = "2026-09-30"

@@ -19,6 +19,7 @@ from .lifecycle import is_resolved
 from .versions import VERSIONS
 from .market import join_on_dates
 from .scoring_common import catalyst_impact, risk_flags, observed_features, known_number
+from .financial_availability import financial_availability
 
 READOUT_TYPES = {"P3_TOPLINE", "P2_TOPLINE", "P12_DATA", "INTERIM"}
 REG_TYPES = {"PDUFA_NME", "PDUFA_SUPP", "PDUFA_GENERIC", "ADCOM"}
@@ -194,7 +195,7 @@ def classify_v2(event, state, impact, evidence, flags, market, date_conf, gates,
     score = evidence.get('score')
     incomplete = (not known_number(score)
                   or evidence.get('information_status') in {'MISSING', 'PARTIAL'}
-                  or evidence.get('financial_information_status') == 'MISSING')
+                  or evidence.get('financial_information_status') in {'MISSING', 'PARTIAL'})
     negative = (known_number(score) and score < 45
                 and (not incomplete or evidence.get('negative_evidence') is True))
     status = state.get("status") or "CANDIDATE"
@@ -217,7 +218,7 @@ def classify_v2(event, state, impact, evidence, flags, market, date_conf, gates,
         return {"class": "WATCH", "actionable": True, "reasons": ["informational catalyst, not modeled as primary binary"]}
     if incomplete or not known_number(impact.get('score')) or not known_number(date_conf):
         return {'class': 'INSUFFICIENT_INFORMATION', 'actionable': False,
-                'reasons': ['missing clinical, regulatory or score inputs; absence is not negative evidence']}
+                'reasons': ['missing clinical, regulatory, financial or score inputs; absence is not negative evidence']}
     if (gates.get("hold_through") or {}).get("satisfied") is True and score >= 75 and market.get("available") and date_conf >= 80:
         return {"class": "HOLD_THROUGH_CANDIDATE", "actionable": True, "reasons": ["empirical hold gate satisfied"]}
     if (gates.get("runup") or {}).get("satisfied") is True and impact["score"] >= 70 and date_conf >= 55:
@@ -246,7 +247,7 @@ def recommendation_status(state, impact, evidence, flags, market, classification
         return {**base, "status": "NOT_NOW", "label_he": "לא כרגע", "why_he": "דגל סיכון מהותי או ראיות חלשות מגבילים את ההתקדמות.", "missing_he": "שינוי מהותי בפרופיל הסיכון או ראיות חדשות."}
     if (cls == 'INSUFFICIENT_INFORMATION' or not known_number(score)
             or evidence.get('information_status') in {'MISSING', 'PARTIAL'}
-            or evidence.get('financial_information_status') == 'MISSING'
+            or evidence.get('financial_information_status') in {'MISSING', 'PARTIAL'}
             or not known_number(impact.get('score'))):
         if cls == 'WATCH':
             return {**base, 'status': 'WATCH', 'label_he': 'מעקב', 'why_he': 'האירוע אינו אירוע בינארי מרכזי במודל.', 'missing_he': 'טריגר מהותי יותר או נתונים חדשים.'}
@@ -274,9 +275,16 @@ def score_event(conn, event: dict, today: str) -> dict:
     security = __import__('mozes.security', fromlist=['tradability']).tradability(conn, event.get("ticker"))
     impact = catalyst_impact(event)
     evidence = evidence_for(event)
-    runway = event.get('runway_months')
-    evidence['financial_information_status'] = ('KNOWN' if known_number(runway) and runway >= 0 else 'MISSING')
-    flags = risk_flags(event)
+    financial = financial_availability(conn, event, today)
+    evidence['financial_information_status'] = financial['information_status']
+    evidence['missing_requirements'] = {
+        'clinical': evidence.get('missing_features', []) if event.get('type') in READOUT_TYPES else [],
+        'regulatory': (evidence.get('missing_features', []) if event.get('type') in REG_TYPES
+                       else ['event_specific_regulatory_observations'] if event.get('type') == 'PDUFA' else []),
+        'financial': financial['missing_requirements'],
+    }
+    # Only the adapter's source-verified current runway can create a computed risk.
+    flags = risk_flags({**event, 'runway_months': financial['verified_runway_months']})
     market = market_setup_from_db(conn, event.get("ticker"), (date.fromisoformat(today) + timedelta(days=1)).isoformat()) if event.get("ticker") else {"available": False}
     gates = __import__('mozes.radar', fromlist=['validation_status']).validation_status(conn)
     classification = classify_v2(event, state, impact, evidence, flags, market, state.get("verification_confidence", di.get("confidence", 0)), gates, today, di.get("window"))
@@ -300,6 +308,7 @@ def score_event(conn, event: dict, today: str) -> dict:
         "commercial": bool(event.get("commercial")), "pivotal": bool(event.get("pivotal")),
         "today": today, "as_of": today, "versions": dict(VERSIONS), "state": state, "date": di, "days_to": days_to,
         "impact": impact, "evidence": evidence, "market": market, "risk_flags": flags,
+        "financial_availability": financial,
         "classification": classification, "recommendation": recommendation, "gates": gates, "sources": db.load_event_sources(conn, event["id"]),
         "features": event.get("features") or {}, "security": security,
         "timing_mode": event.get("timing_mode", "CALENDAR"), "provenance": event.get("provenance"),

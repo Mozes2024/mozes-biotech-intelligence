@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import math
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from . import db
 from .intelligence_store import (digest, encode, ensure_schema, operation_finish,
@@ -183,14 +183,33 @@ def store_financials(conn, ticker, payload, *, as_of, expected_cik, recorder=Non
     return result
 
 
-def financial_context(conn, ticker, *, as_of):
-    ensure_schema(conn)
+def financial_context(conn, ticker, *, as_of, pit=False):
+    if pit:
+        if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2c_financial_snapshots'").fetchone():
+            return {'status': 'missing', 'runway_band': 'unknown', 'warnings': ['no_financial_snapshot']}
+    else:
+        ensure_schema(conn)
     as_of = date.fromisoformat(as_of) if isinstance(as_of, str) else as_of
-    row = conn.execute('SELECT payload FROM v2c_financial_snapshots WHERE ticker=? AND as_of<=? '
-                       'ORDER BY as_of DESC,captured_at DESC LIMIT 1', (ticker.upper(), as_of.isoformat())).fetchone()
+    rows = conn.execute('SELECT * FROM v2c_financial_snapshots WHERE ticker=? AND as_of<=? '
+                        'ORDER BY as_of DESC,captured_at DESC', (ticker.upper(), as_of.isoformat()))
+    row = None
+    for candidate in rows:
+        if pit:
+            try:
+                captured = datetime.fromisoformat(candidate['captured_at'].replace('Z', '+00:00'))
+                cutoff = datetime(as_of.year, as_of.month, as_of.day, tzinfo=timezone.utc)
+                if captured.tzinfo is None or captured >= cutoff:
+                    continue
+            except (ValueError, TypeError, AttributeError):
+                continue
+        row = candidate
+        break
     if not row:
         return {'status': 'missing', 'runway_band': 'unknown', 'warnings': ['no_financial_snapshot']}
-    result = json.loads(row[0])
+    result = json.loads(row['payload'])
+    if pit:
+        result['snapshot_provenance'] = {key: row[key] for key in
+                                       ('snapshot_id', 'cik', 'as_of', 'captured_at', 'source_url', 'source_hash')}
     # Re-age estimates for presentation; never mutate the stored evidence snapshot.
     if result.get('period_end'):
         age = (as_of - date.fromisoformat(result['period_end'])).days
