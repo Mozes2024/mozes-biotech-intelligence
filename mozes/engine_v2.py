@@ -16,8 +16,10 @@ from . import db
 from .data_loader import load_sources
 from .dates import date_info, days_between
 from .lifecycle import is_resolved
+from .versions import VERSIONS
 from .market import join_on_dates
-from .scoring_common import catalyst_impact, risk_flags
+from .scoring_common import catalyst_impact, risk_flags, observed_features, known_number
+from .financial_availability import financial_availability
 
 READOUT_TYPES = {"P3_TOPLINE", "P2_TOPLINE", "P12_DATA", "INTERIM"}
 REG_TYPES = {"PDUFA_NME", "PDUFA_SUPP", "PDUFA_GENERIC", "ADCOM"}
@@ -49,8 +51,15 @@ def _cat(score):
     return "Weak"
 
 
+def evidence_information(features, required, reasons):
+    missing = sorted(set(required) - features.keys())
+    return {'information_status': 'MISSING' if not features else 'PARTIAL' if missing else 'COMPLETE',
+            'observed_features': sorted(features), 'missing_features': missing,
+            'negative_evidence': any(reason['delta'] < 0 for reason in reasons)}
+
+
 def readout_evidence(event: dict) -> dict:
-    f = event.get("features") or {}
+    f = observed_features(event)
     prior = BIO_PRIORS.get(event.get("type"), 0.50)
     if event.get("ta") == "oncology" and event.get("type") == "P3_TOPLINE":
         prior = 0.477
@@ -61,7 +70,6 @@ def readout_evidence(event: dict) -> dict:
         "strong": 14,
         "moderate": 5,
         "weak": -10,
-        "none": -15,
     }
     if f.get("prior") in adj:
         d = adj[f["prior"]]
@@ -102,13 +110,16 @@ def readout_evidence(event: dict) -> dict:
         score -= 35; reasons.append({"code": "integrity", "delta": -35, "text": "data-integrity concern"})
     if f.get("n") is not None and f["n"] < 100:
         score -= 5; reasons.append({"code": "sample", "delta": -5, "text": "small sample"})
-    s = _clamp(score)
-    return {"engine": "clinical_readout_v2", "score": s, "category": _cat(s), "context_prior": prior, "reasons": reasons,
+    information = evidence_information(f, ('prior', 'endpoint_consistent', 'population_consistent',
+                                          'design', 'objective', 'n'), reasons)
+    s = _clamp(score) if f else None
+    return {"engine": "clinical_readout_v2", "score": s, "category": _cat(s) if s is not None else 'Insufficient Information',
+            **information, "version": VERSIONS["clinical_evidence"], "context_prior": prior, "reasons": reasons,
             "probability_label": "UNCALIBRATED; do not interpret score as probability"}
 
 
 def regulatory_evidence(event: dict) -> dict:
-    f = event.get("features") or {}
+    f = observed_features(event)
     base = BIO_PRIORS.get(event.get("type"), 0.70 if event.get("type") == "ADCOM" else 0.906)
     score = base * 100
     reasons = [{"code": "base_rate", "delta": 0, "text": f"historical application-transition context {base:.1%}"}]
@@ -126,8 +137,11 @@ def regulatory_evidence(event: dict) -> dict:
         score -= 10; reasons.append({"code": "safety", "delta": -10, "text": "known safety issue"})
     if f.get("integrity"):
         score -= 30; reasons.append({"code": "integrity", "delta": -30, "text": "data-integrity concern"})
-    s = _clamp(score)
-    return {"engine": "regulatory_v2", "score": s, "category": _cat(s), "context_prior": base, "reasons": reasons,
+    information = evidence_information(f, ('prior', 'prior_crl', 'negative_adcom',
+                                          'fda_requirement_at_risk', 'safety_concern', 'integrity'), reasons)
+    s = _clamp(score) if f else None
+    return {"engine": "regulatory_v2", "score": s, "category": _cat(s) if s is not None else 'Insufficient Information',
+            **information, "version": VERSIONS["clinical_evidence"], "context_prior": base, "reasons": reasons,
             "probability_label": "UNCALIBRATED; do not interpret score as probability"}
 
 
@@ -173,6 +187,17 @@ def market_setup_from_db(conn, ticker: str, as_of: str, benchmark="XBI") -> dict
 
 
 def classify_v2(event, state, impact, evidence, flags, market, date_conf, gates, today, window):
+    evidence = evidence or {}
+    gates = gates or {}
+    flags = flags or []
+    impact = impact or {}
+    market = market or {}
+    score = evidence.get('score')
+    incomplete = (not known_number(score)
+                  or evidence.get('information_status') in {'MISSING', 'PARTIAL'}
+                  or evidence.get('financial_information_status') in {'MISSING', 'PARTIAL'})
+    negative = (known_number(score) and score < 45
+                and (not incomplete or evidence.get('negative_evidence') is True))
     status = state.get("status") or "CANDIDATE"
     if is_resolved(status):
         return {"class": "RESOLVED", "actionable": False, "reasons": [f"event status is {status}"]}
@@ -182,24 +207,32 @@ def classify_v2(event, state, impact, evidence, flags, market, date_conf, gates,
     if stale:
         return {"class": "STALE_UNRESOLVED", "actionable": False, "reasons": ["expected window passed without a resolved lifecycle update"]}
     if event.get("timing_mode") == "EVENT_DRIVEN":
-        risky = any(f.get("sev") == "critical" for f in flags) or (evidence.get("score") is not None and evidence["score"] < 45)
-        return {"class": "AVOID_BINARY" if risky else "REVIEW", "actionable": False,
+        risky = any(f.get("sev") == "critical" for f in flags) or negative
+        return {"class": "AVOID_BINARY" if risky else "INSUFFICIENT_INFORMATION" if incomplete else "REVIEW", "actionable": False,
                 "reasons": ["event_driven_calendar_unknown"] + (["critical risk flag or weak evidence"] if risky else [])}
     if any(f.get("sev") == "critical" for f in flags):
         return {"class": "AVOID_BINARY", "actionable": True, "reasons": ["critical risk flag"]}
-    if evidence.get("score") is not None and evidence["score"] < 45:
+    if negative:
         return {"class": "AVOID_BINARY", "actionable": True, "reasons": ["weak evidence/regulatory setup"]}
     if event.get("type") in INFO_TYPES:
         return {"class": "WATCH", "actionable": True, "reasons": ["informational catalyst, not modeled as primary binary"]}
-    if gates["hold_through"]["satisfied"] and evidence.get("score", 0) >= 75 and market.get("available") and date_conf >= 80:
+    if incomplete or not known_number(impact.get('score')) or not known_number(date_conf):
+        return {'class': 'INSUFFICIENT_INFORMATION', 'actionable': False,
+                'reasons': ['missing clinical, regulatory, financial or score inputs; absence is not negative evidence']}
+    if (gates.get("hold_through") or {}).get("satisfied") is True and score >= 75 and market.get("available") and date_conf >= 80:
         return {"class": "HOLD_THROUGH_CANDIDATE", "actionable": True, "reasons": ["empirical hold gate satisfied"]}
-    if gates["runup"]["satisfied"] and impact["score"] >= 70 and date_conf >= 55:
+    if (gates.get("runup") or {}).get("satisfied") is True and impact["score"] >= 70 and date_conf >= 55:
         return {"class": "RUNUP_CANDIDATE", "actionable": True, "reasons": ["empirical run-up gate satisfied"]}
     return {"class": "REVIEW", "actionable": True, "reasons": ["research-worthy; trading gates remain locked"]}
 
 
 def recommendation_status(state, impact, evidence, flags, market, classification, gates, security=None) -> dict:
     """Human-readable research recommendation; never a calibrated probability or gate override."""
+    evidence = evidence or {}
+    impact = impact or {}
+    flags = flags or []
+    market = market or {}
+    score = evidence.get('score')
     blocked = {"RESOLVED", "QUARANTINED", "STALE_UNRESOLVED"}
     cls = classification["class"]
     verified = state.get("verification_state") == "VERIFIED"
@@ -212,9 +245,18 @@ def recommendation_status(state, impact, evidence, flags, market, classification
         return {**base, "status": "INSUFFICIENT_INFORMATION", "label_he": "חסר מידע", "why_he": "האירוע אינו מאומת מספיק מול מקור ראשוני.", "missing_he": "אימות מועד ואירוע מול מקור ראשוני."}
     if cls == "AVOID_BINARY" or severe:
         return {**base, "status": "NOT_NOW", "label_he": "לא כרגע", "why_he": "דגל סיכון מהותי או ראיות חלשות מגבילים את ההתקדמות.", "missing_he": "שינוי מהותי בפרופיל הסיכון או ראיות חדשות."}
-    if evidence.get("score") is not None and impact["score"] >= 70 and evidence["score"] >= 75 and market.get("available"):
+    if (cls == 'INSUFFICIENT_INFORMATION' or not known_number(score)
+            or evidence.get('information_status') in {'MISSING', 'PARTIAL'}
+            or evidence.get('financial_information_status') in {'MISSING', 'PARTIAL'}
+            or not known_number(impact.get('score'))):
+        if cls == 'WATCH':
+            return {**base, 'status': 'WATCH', 'label_he': 'מעקב', 'why_he': 'האירוע אינו אירוע בינארי מרכזי במודל.', 'missing_he': 'טריגר מהותי יותר או נתונים חדשים.'}
+        return {**base, 'status': 'INSUFFICIENT_INFORMATION', 'label_he': 'חסר מידע',
+                'why_he': 'חסרות ראיות קליניות, רגולטוריות או פיננסיות; חסר אינו תוצאה שלילית.',
+                'missing_he': 'השלמת נתונים ממקורות ידועים לפני הסקת המלצה.'}
+    if known_number(score) and impact["score"] >= 70 and evidence["score"] >= 75 and market.get("available"):
         return {**base, "status": "INVESTMENT_CANDIDATE", "label_he": "מועמדת להשקעה", "why_he": "אירוע משמעותי, ראיות חזקות, אימות ראשוני ותמונת שוק זמינה.", "missing_he": "אימות אמפירי מתקדם עדיין נדרש לפני החלטת run-up או החזקה דרך אירוע."}
-    if evidence.get("score") is not None and impact["score"] >= 65 and evidence["score"] >= 65:
+    if known_number(score) and impact["score"] >= 65 and evidence["score"] >= 65:
         return {**base, "status": "APPROACHING_CANDIDATE", "label_he": "מתקרבת למועמדות", "why_he": "השילוב של חשיבות, ראיות ואימות נראה מבטיח.", "missing_he": "תמונת שוק מלאה או חיזוק נוסף של הראיות."}
     if cls == "WATCH":
         return {**base, "status": "WATCH", "label_he": "מעקב", "why_he": "האירוע אינו אירוע בינארי מרכזי במודל.", "missing_he": "טריגר מהותי יותר או נתונים חדשים."}
@@ -233,7 +275,16 @@ def score_event(conn, event: dict, today: str) -> dict:
     security = __import__('mozes.security', fromlist=['tradability']).tradability(conn, event.get("ticker"))
     impact = catalyst_impact(event)
     evidence = evidence_for(event)
-    flags = risk_flags(event)
+    financial = financial_availability(conn, event, today)
+    evidence['financial_information_status'] = financial['information_status']
+    evidence['missing_requirements'] = {
+        'clinical': evidence.get('missing_features', []) if event.get('type') in READOUT_TYPES else [],
+        'regulatory': (evidence.get('missing_features', []) if event.get('type') in REG_TYPES
+                       else ['event_specific_regulatory_observations'] if event.get('type') == 'PDUFA' else []),
+        'financial': financial['missing_requirements'],
+    }
+    # Only the adapter's source-verified current runway can create a computed risk.
+    flags = risk_flags({**event, 'runway_months': financial['verified_runway_months']})
     market = market_setup_from_db(conn, event.get("ticker"), (date.fromisoformat(today) + timedelta(days=1)).isoformat()) if event.get("ticker") else {"available": False}
     gates = __import__('mozes.radar', fromlist=['validation_status']).validation_status(conn)
     classification = classify_v2(event, state, impact, evidence, flags, market, state.get("verification_confidence", di.get("confidence", 0)), gates, today, di.get("window"))
@@ -255,8 +306,9 @@ def score_event(conn, event: dict, today: str) -> dict:
         "program": event.get("program"), "indication": event.get("indication"), "ta": event.get("ta"),
         "type": event.get("type"), "phase": event.get("phase"), "dependency": event.get("dependency"),
         "commercial": bool(event.get("commercial")), "pivotal": bool(event.get("pivotal")),
-        "today": today, "as_of": today, "state": state, "date": di, "days_to": days_to,
+        "today": today, "as_of": today, "versions": dict(VERSIONS), "state": state, "date": di, "days_to": days_to,
         "impact": impact, "evidence": evidence, "market": market, "risk_flags": flags,
+        "financial_availability": financial,
         "classification": classification, "recommendation": recommendation, "gates": gates, "sources": db.load_event_sources(conn, event["id"]),
         "features": event.get("features") or {}, "security": security,
         "timing_mode": event.get("timing_mode", "CALENDAR"), "provenance": event.get("provenance"),

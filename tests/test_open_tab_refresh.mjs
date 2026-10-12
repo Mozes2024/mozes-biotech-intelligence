@@ -173,3 +173,57 @@ test('API initial unknown revision fetches and validates data rather than acknow
 test('overlapping polls coalesce to a single bounded download sequence',async()=>{
  const h=harness();h.responses.push(update(advance()),data(advance()));await Promise.all([h.poll(),h.poll()]);assert.equal(h.requests.length,2);
 });
+
+const researchEvent=(overrides={})=>({id:'VERIFY-1',ticker:'AAA',company:'Example',program:'Upcoming catalyst',type:'P3_TOPLINE',
+ state:{verification_state:'VERIFIED'},security:{status:'ACTIVE',tradable:true},impact:{score:72},
+ classification:{class:'INSUFFICIENT_INFORMATION',actionable:false},recommendation:{status:'INSUFFICIENT_INFORMATION',label_he:'חסר מידע'},
+ evidence:{score:91,information_status:'PARTIAL',missing_requirements:{clinical:['design'],regulatory:[],financial:['source_verified_current_runway']}},
+ date:{window:{start:'2026-12-01',end:'2026-12-31'}},risk_flags:[],
+ sources:[{source_type:'company_ir',url:'https://example.test/catalyst',supports_date:true,published_at:'2026-09-30',retrieved_at:'2026-10-01T10:00:00Z'}],...overrides});
+const researchHarness=(rows=[researchEvent()])=>harness({...data(),today:'2026-10-12',live:rows,validation:{runup:{satisfied:false},hold_through:{satisfied:false}}});
+
+test('missing evidence remains visible in a separate research section without an investment badge or score',()=>{
+ const h=researchHarness(),before=JSON.stringify(h.snapshot());const html=h.run('dashboard()');
+ assert.match(html,/עדיפות למחקר \/ אימות/);assert.match(html,/זו אינה המלצת השקעה/);
+ const section=html.slice(html.indexOf('<section class="panel simple-panel research-priority">'));
+ assert.match(section,/data-event="VERIFY-1"/);assert.match(section,/חסר מידע/);assert.match(section,/ראיות קליניות/);
+ assert.doesNotMatch(section,/מועמדת להשקעה|חוזק הראיות|91|focus-card advanced|focus-card strong/);
+ assert.equal(JSON.stringify(h.snapshot()),before);assert.equal(h.requests.length,0);
+});
+
+for(const [name,override] of [
+ ['unverified',{state:{verification_state:'QUARANTINED'}}],['untradable',{security:{status:'DELISTED',tradable:false}}],
+ ['resolved',{classification:{class:'RESOLVED'}}],['stale',{date:{window:{start:'2026-09-01',end:'2026-09-30'}}}],
+ ['unscheduled',{date:{window:null}}],['no-impact',{impact:{score:0}}],['nonfinite-impact',{impact:{score:Infinity}}],
+ ['informational',{type:'FILING'}],['observed-risk',{risk_flags:[{sev:'high',code:'short_cash_runway'}]}],
+ ['explicit-negative',{classification:{class:'AVOID_BINARY'},recommendation:{status:'NOT_NOW'}}],
+ ['impossible-calendar',{date:{window:{start:'2026-11-01',end:'2026-11-31'}}}],
+ ['reversed-window',{date:{window:{start:'2026-12-31',end:'2026-12-01'}}}],
+])test(`research priority excludes ${name} events`,()=>{
+ const h=researchHarness([researchEvent(override)]);assert.equal(h.run('researchPriorityRows(D.live).length'),0);
+ assert.doesNotMatch(h.run('dashboard()'),/research-priority/);
+});
+
+for(const [name,override] of [
+ ['secondary',{source_type:'aggregator'}],['no-date-support',{supports_date:false}],['missing-url',{url:null}],
+ ['future-publication',{published_at:'2026-10-13'}],['same-day-publication',{published_at:'2026-10-12'}],
+ ['future-capture',{retrieved_at:'2026-10-13T10:00:00Z'}],['missing-capture',{retrieved_at:null}],
+])test(`research priority requires source-known date verification: ${name}`,()=>{
+ const event=researchEvent();event.sources=[{...event.sources[0],...override}];
+ assert.equal(researchHarness([event]).run('researchPriorityRows(D.live).length'),0);
+});
+
+test('priority ordering uses existing impact and dates, is capped at six, and preserves the main WATCH shortlist',()=>{
+ const rows=Array.from({length:8},(_,i)=>researchEvent({id:`VERIFY-${i}`,impact:{score:70+i}}));
+ rows.push(researchEvent({id:'WATCH-keep',type:'CONFERENCE',classification:{class:'WATCH'},recommendation:{status:'WATCH'}}));
+ const h=researchHarness(rows),before=JSON.stringify(h.snapshot());
+ assert.deepEqual(Array.from(h.run('researchPriorityRows(D.live).map(x=>x.id)')),['VERIFY-7','VERIFY-6','VERIFY-5','VERIFY-4','VERIFY-3','VERIFY-2']);
+ const html=h.run('dashboard()'),split=html.indexOf('<section class="panel simple-panel research-priority">');
+ assert.match(html.slice(0,split),/data-event="WATCH-keep"/);assert.doesNotMatch(html.slice(0,split),/data-event="VERIFY-/);
+ assert.equal(JSON.stringify(h.snapshot()),before);
+});
+
+for(const [published_at,expected] of [['2026-08',1],['2025',1],['2026-10',0],['2026',0],['2026-13',0]])test(`coarse source publication ${published_at} uses conservative period end`,()=>{
+ const event=researchEvent();event.sources[0].published_at=published_at;
+ assert.equal(researchHarness([event]).run('researchPriorityRows(D.live).length'),expected);
+});

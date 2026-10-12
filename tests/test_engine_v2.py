@@ -10,6 +10,6 @@ def test_readout_and_pdufa_use_different_engines():
 
 
 def test_negative_adcom_hits_regulatory_score_hard():
-    clean = evidence_for({"type":"PDUFA_NME","features":{}})
+    clean = evidence_for({"type":"PDUFA_NME","features":{"negative_adcom":False}})
     bad = evidence_for({"type":"PDUFA_NME","features":{"negative_adcom":True}})
     assert clean["score"] - bad["score"] >= 30
