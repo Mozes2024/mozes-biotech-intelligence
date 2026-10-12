@@ -16,7 +16,8 @@ permissions:
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # Serialize the whole build/deploy/ack boundary; pending requests coalesce.
+  cancel-in-progress: false
 jobs:
   build:
     if: >-
@@ -83,13 +84,24 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - uses: actions/download-artifact@v4
         with:
           name: mozes-publish-request
           path: /tmp/mozes-published
+      - name: Verify source and publication ordering before deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m mozes.publication_control preflight
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
       - name: Acknowledge ledger only after successful deployment
         uses: actions/upload-artifact@v4
         with:

@@ -19,9 +19,14 @@ WORKFLOW = 'lightweight-monitor.yml'
 ACTIVE = ('queued', 'in_progress', 'waiting', 'pending', 'requested')
 RESTORE_ATTEMPTS = 3
 RESELECT_WAIT_SECONDS = 20
+RESTORE_DEADLINE = None
 
 
 def gh(*args, timeout=300):
+    if RESTORE_DEADLINE is not None:
+        remaining = RESTORE_DEADLINE - time.monotonic()
+        require(remaining > 0, 'restore_time_budget')
+        timeout = min(timeout, remaining)
     return subprocess.check_output(['gh', *args], text=True, timeout=timeout)
 
 
@@ -50,30 +55,8 @@ def collection(value, key, *, partial=False):
 
 
 def inventory(path, key, bound=None):
-    rows = []
-    expected = None
-    deadline = time.monotonic() + 90
-    page = 1
-    while bound is None or page <= bound:
-        require(time.monotonic() < deadline, 'inventory_time_budget')
-        result = api(f'{path}&per_page=100&page={page}')
-        require(time.monotonic() < deadline, 'inventory_time_budget')
-        batch = collection(result, key, partial=True)
-        if expected is None:
-            expected = result['total_count']
-        require(result['total_count'] == expected, 'inventory_changed')
-        require(len(batch) <= 100 and all(type(r.get('id')) is int and r['id'] > 0 for r in batch),
-                'incomplete_inventory')
-        rows.extend(batch)
-        if len(rows) == expected:
-            require(len({r['id'] for r in rows}) == len(rows), 'duplicate_inventory')
-            return rows
-        # A fixed advertised count bounds this complete scan. Never stop at a
-        # recent creation date: an old queued run/rerun can become a new writer.
-        require(batch and len(rows) < expected and page < (expected + 99) // 100,
-                'incomplete_inventory')
-        page += 1
-    raise RuntimeError('producer_inventory_bound')
+    from mozes.github_inventory import inventory as scan
+    return scan(path, key, api=api, collection=collection, bound=bound)
 
 
 def newest():
@@ -179,7 +162,7 @@ def _restore_once(*, now=None):
     requested = os.environ.get('SOURCE_RUN_ID')
     require(not requested or requested.isdigit(), 'invalid_advisory_run')
     with tempfile.TemporaryDirectory() as tmp:
-        gh('run', 'download', str(run['id']), '--repo', REPO, '-n', 'mozes-live-monitor', '-D', tmp)
+        gh('run', 'download', str(run['id']), '--repo', REPO, '-n', 'mozes-live-monitor', '-D', tmp, timeout=60)
         source, receipt = validate(Path(tmp), run, artifact, now)
         latest_run, latest_artifact = newest()
         require((latest_run['id'], latest_artifact['id']) == (run['id'], artifact['id']), 'checkpoint_changed')
@@ -195,16 +178,23 @@ def _restore_once(*, now=None):
 
 
 def restore(*, now=None):
-    for attempt in range(RESTORE_ATTEMPTS):
-        try:
-            return _restore_once(now=now)
-        except RuntimeError as exc:
-            if str(exc) not in ('producer_busy', 'checkpoint_changed', 'inventory_changed'):
-                raise
-            if attempt == RESTORE_ATTEMPTS - 1:
-                raise
-            print(f'pages_consumer_restore WAIT {exc} attempt={attempt + 1}')
-            time.sleep(RESELECT_WAIT_SECONDS)
+    global RESTORE_DEADLINE
+    RESTORE_DEADLINE = time.monotonic() + 300
+    try:
+        for attempt in range(RESTORE_ATTEMPTS):
+            try:
+                return _restore_once(now=now)
+            except RuntimeError as exc:
+                if str(exc) not in ('producer_busy', 'checkpoint_changed', 'inventory_changed'):
+                    raise
+                if attempt == RESTORE_ATTEMPTS - 1:
+                    print(f'publication_blocked category={exc} attempts={RESTORE_ATTEMPTS}', flush=True)
+                    raise
+                require(time.monotonic() + RESELECT_WAIT_SECONDS < RESTORE_DEADLINE, 'restore_time_budget')
+                print(f'pages_consumer_restore WAIT {exc} attempt={attempt + 1}', flush=True)
+                time.sleep(RESELECT_WAIT_SECONDS)
+    finally:
+        RESTORE_DEADLINE = None
 
 
 if __name__ == '__main__':

@@ -228,15 +228,9 @@ jobs:
         env:
           MOZES_ALERT_FEED_TOKEN: ${{ secrets.MOZES_ALERT_FEED_TOKEN }}
         run: python -m mozes.alert_feed
-      - name: Publish only changed data or the daily heartbeat
-        if: steps.data.outputs.should_publish == 'true' || steps.explanation.outputs.changed == 'true'
+      - name: Publish changed data or an unacknowledged freshness checkpoint
+        if: steps.checkpoint_upload.outcome == 'success' && steps.data.outputs.should_publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Pages is a consumer: rebuild at most every 2 minutes so the site keeps pace with the clock.
-          last=$(gh run list --workflow pages.yml --limit 1 --json createdAt --jq '.[0].createdAt // ""')
-          if [ -n "$last" ] && [ $(( $(date +%s) - $(date -d "$last" +%s) )) -lt 120 ]; then
-            echo "Pages rebuilt <2 min ago; this change ships with the next publish."
-          else
-            gh workflow run pages.yml --ref main -f source_run_id="$GITHUB_RUN_ID"
-          fi
+          python -m mozes.publication_control dispatch
