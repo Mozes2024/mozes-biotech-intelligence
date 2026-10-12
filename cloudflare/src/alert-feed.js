@@ -10,6 +10,14 @@ const STATES = new Set(["pending", "sending", "sent", "failed", "dead"]);
 const TEXT_FIELDS = { change_id: 64, created_at: 50, ticker: 12, change_type: 80,
   source_type: 40, source_url: 4000, published_at: 50, detected_at: 50, headline: 1200,
   summary: 1200, verification_state: 80 };
+const SEMANTIC_FIELDS = { event_family: 80, event_outcome: 80, evidence_basis: 40,
+  uncertainty_status: 80, semantic_version: 40 };
+const INTERRUPTIVE_OUTCOMES = {
+  fda_decision: ['approval', 'crl', 'pdufa_extension', 'refusal_to_file'],
+  material_safety: ['clinical_hold', 'hold_lifted'],
+  clinical_outcome: ['primary_endpoint_met', 'primary_endpoint_failed', 'primary_not_significant', 'futility', 'trial_discontinued'],
+  market_halt: ['halt', 'resumption', 'volatility_pause']
+};
 
 function headers(env, extra = {}) {
   return { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store",
@@ -44,6 +52,18 @@ export function publicFeed(value) {
       out[key] = row[key] ?? null;
     }
     if (out.source_url && !httpUrl(out.source_url)) throw Error("invalid source URL");
+    for (const [key, maximum] of Object.entries(SEMANTIC_FIELDS)) {
+      out[key] = typeof row[key] === 'string' && row[key].length <= maximum ? row[key] : null;
+    }
+    out.issuer_verified = row.issuer_verified === true;
+    out.confirmed_outcome = row.confirmed_outcome === true;
+    out.needs_review = row.needs_review !== false;
+    // Legacy/incomplete metadata stays visible, but cannot manufacture an interrupt.
+    out.popup_eligible = row.popup_eligible === true && out.issuer_verified && out.confirmed_outcome &&
+      !out.needs_review && out.semantic_version === 'alert-evidence-v1' &&
+      INTERRUPTIVE_OUTCOMES[out.event_family]?.includes(out.event_outcome) === true &&
+      ['source_text', 'feed_summary', 'structured_source'].includes(out.evidence_basis) &&
+      ['P1', 'P2'].includes(out.priority);
     out.corroborated_by = Array.isArray(row.corroborated_by)
       ? row.corroborated_by.slice(0, 20).map(x => String(x).slice(0, 40)) : [];
     out.delivery = {};
@@ -59,7 +79,7 @@ export function publicFeed(value) {
       const fields = { summary_he: 500, why_he: 500, source_url: 4000, source_hash: 64,
         analyzed_at: 50, verification_state: 80, ai_model: 120 };
       if (!["source_text", "feed_summary", "headline_only", "structured_source"].includes(analysis.basis) ||
-          !["source-rules-v1", "source-ai-v1"].includes(analysis.method) ||
+          !["source-rules-v1", "source-rules-v2", "source-ai-v1"].includes(analysis.method) ||
           !["complete", "retry", "unavailable"].includes(analysis.status)) throw Error("invalid explanation");
       out.explanation = { basis: analysis.basis, method: analysis.method, status: analysis.status,
         ai_status: ["disabled", "unconfigured", "used", "fallback"].includes(analysis.ai_status) ? analysis.ai_status : "disabled" };
@@ -71,9 +91,18 @@ export function publicFeed(value) {
       }
       out.explanation.missing_he = (Array.isArray(analysis.missing_he) ? analysis.missing_he : [])
         .slice(0, 4).map(x => String(x).slice(0, 400));
-      out.explanation.evidence = (Array.isArray(analysis.evidence) ? analysis.evidence : []).slice(0, 1).map(item => {
+      out.explanation.evidence = (Array.isArray(analysis.evidence) ? analysis.evidence : []).slice(0, 3).flatMap(item => {
         if (!httpUrl(item.url) || typeof item.quote !== "string") throw Error("invalid evidence");
-        return { id: "source-1", quote: item.quote.slice(0, 600), url: item.url, topic: String(item.topic || "").slice(0, 40) };
+        if (item.quote.length > 600) {
+          out.explanation.missing_he = [...out.explanation.missing_he.slice(0, 3),
+            'קטע המקור ארוך מדי להצגה בטוחה; הציטוט הושמט ולא נחתך.'];
+          return [];
+        }
+        return [{ id: typeof item.id === 'string' ? item.id.slice(0, 40) : 'source-1',
+          quote: item.quote, url: item.url, topic: String(item.topic || '').slice(0, 40),
+          source_hash: /^[a-f0-9]{64}$/.test(item.source_hash || '') ? item.source_hash : null,
+          start: Number.isSafeInteger(item.start) && item.start >= 0 ? item.start : null,
+          end: Number.isSafeInteger(item.end) && item.end >= 0 ? item.end : null }];
       });
     }
     return out;
