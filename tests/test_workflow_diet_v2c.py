@@ -85,8 +85,10 @@ def test_export_mode_is_offline():
 
 def test_dispatch_checks_current_head_and_restore_is_not_executable():
     source = (ROOT / '.github/workflows/lightweight-monitor.yml').read_text()
-    assert 'source_run_id="$GITHUB_RUN_ID"' in source
-    assert 'gh workflow run pages.yml' in source
+    assert 'python -m mozes.publication_control dispatch' in source
+    control = (ROOT / 'mozes/publication_control.py').read_text()
+    assert "source_run_id={os.environ['GITHUB_RUN_ID']}" in control
+    assert "'workflow', 'run', 'pages.yml'" in control
     # Pages workflow owns the HEAD-currency guard; hot producer only hands off the artifact.
     pages = (ROOT / '.github/workflows/pages.yml').read_text()
     assert "git rev-parse HEAD" in pages

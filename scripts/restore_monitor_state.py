@@ -38,8 +38,9 @@ def _parse_iso(value):
         return None
 
 
-def restore_published_receipt(repo):
+def restore_published_receipt(repo, *, runner=None):
     """A producer's request is not proof of a deployment; trust successful Pages only."""
+    gh = runner or globals()['gh']
     destination = Path(".monitor/published-ledger.json")
     destination.unlink(missing_ok=True)
     try:
@@ -64,13 +65,20 @@ def restore_published_receipt(repo):
                 gh("run", "download", run_id, "-n", "mozes-published-ledger", "-D", tmp)
                 value = json.loads((Path(tmp) / "publish-receipt.json").read_text(encoding="utf-8"))
                 ledger = value.get("change_ledger") if isinstance(value, dict) else None
-                if not isinstance(ledger, str) or len(ledger) != 64:
-                    continue
+                if not isinstance(ledger, str) or not re.fullmatch("[a-f0-9]{64}", ledger):
+                    return None
                 destination.parent.mkdir(parents=True, exist_ok=True)
-                destination.write_text(json.dumps({"change_ledger": ledger}), encoding="utf-8")
-                return
-        except (subprocess.CalledProcessError, OSError, ValueError, subprocess.TimeoutExpired):
-            continue
+                if value.get('schema') == 2:
+                    from mozes.publication_control import verify_receipt
+                    verify_receipt(repo, meta, value, gh)
+                else:
+                    # Legacy receipts acknowledge content only, never freshness.
+                    value = {'change_ledger': ledger}
+                destination.write_text(json.dumps(value), encoding="utf-8")
+                return value
+        except (subprocess.CalledProcessError, OSError, ValueError, subprocess.TimeoutExpired, RuntimeError):
+            return None
+    return {} if not runs else None
 
 
 def _find_db(root: Path) -> Path | None:

@@ -148,7 +148,7 @@ def test_old_requested_run_is_advisory_and_no_producer_state(tmp_path, monkeypat
     monkeypatch.setenv('SOURCE_RUN_ID','1')
     monkeypatch.setenv('MOZES_DB_PATH',str(tmp_path/'consumer.db'))
     mock_api(monkeypatch, run, artifact)
-    def download(*args):
+    def download(*args, **kwargs):
         import shutil
         root = Path(args[-1])
         for p in incoming.iterdir(): shutil.copyfile(p,root/p.name)
@@ -279,7 +279,7 @@ def test_changed_checkpoint_download_is_discarded_before_reselection(tmp_path, m
     selections = iter([(run_a, artifact_a), (run_b, artifact_b), (run_b, artifact_b), (run_b, artifact_b)])
     monkeypatch.setattr(pages, 'newest', lambda: next(selections))
     downloads = []
-    def download(*args):
+    def download(*args, **kwargs):
         directory = first if args[2] == '2' else second
         downloads.append(args[2])
         assert not (tmp_path/'consumer.db').exists()

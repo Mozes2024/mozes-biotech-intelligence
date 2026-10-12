@@ -213,7 +213,12 @@ def export_payload(conn, destination, *, today=None, consumer=None):
         'schema': 1, 'revision': payload['build']['snapshot_revision'], 'generated_at': payload['generated_at']}),
         encoding='utf-8')
     receipt = path.parent / 'publish-receipt.json'
-    receipt.write_text(encode({'change_ledger': payload['build']['change_ledger']}), encoding='utf-8')
+    value = {'change_ledger': payload['build']['change_ledger']}
+    if consumer is not None:
+        value.update(schema=2, pages_run_id=os.environ.get('GITHUB_RUN_ID'),
+                     code_sha=os.environ.get('GITHUB_SHA'),
+                     fingerprint=payload['build']['snapshot_revision'], checkpoint=consumer)
+    receipt.write_text(encode(value), encoding='utf-8')
     return payload
 
 
@@ -340,6 +345,19 @@ def unpublished_changes(payload, receipt_path='.monitor/published-ledger.json'):
     return ledger is not None and ledger != (receipt.get('change_ledger') if isinstance(receipt, dict) else None)
 
 
+def publication_due(payload, *, now, receipt_path='.monitor/published-ledger.json'):
+    try:
+        receipt = json.loads(Path(receipt_path).read_text(encoding='utf-8'))
+        checkpoint = datetime.fromisoformat(receipt['checkpoint']['checkpoint_at'])
+        if checkpoint.tzinfo is None or checkpoint > now:
+            return True
+        return (receipt.get('schema') != 2 or unpublished_changes(payload, receipt_path)
+                or semantic_fingerprint(payload) != receipt.get('fingerprint')
+                or (now - checkpoint).total_seconds() >= 1500)
+    except (OSError, ValueError, KeyError, TypeError):
+        return True
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='v2C single-owner monitor and offline publication')
     parser.add_argument('mode', choices=['monitor', 'export'])
@@ -379,16 +397,21 @@ def main(argv=None):
     result = run_priority_pipeline(conn) if args.priority_only else run_pipeline(conn, deep=args.deep)
     payload = export_payload(conn, args.output)
     fingerprint = semantic_fingerprint(payload)
-    previous = state_get(conn, 'publish_request', {})
     now = datetime.now(timezone.utc)
+    # Requests are diagnostic state only; deployment acknowledgements own cadence.
+    should_publish = publication_due(payload, now=now)
+    previous = state_get(conn, 'publish_request', {})
     try:
-        age = (now - datetime.fromisoformat(previous['at'])).total_seconds()
-    except (KeyError, ValueError):
-        age = 1e9
-    should_publish = (unpublished_changes(payload) or fingerprint != previous.get('fingerprint')
-                      or age >= (3600 if args.priority_only else 86400))
+        requested_at = datetime.fromisoformat(previous['at'])
+        request_age = (now - requested_at).total_seconds()
+    except (KeyError, ValueError, TypeError):
+        request_age = 1e9
+    # Serialized authoritative DB + durable checkpoint reserve a two-minute lease.
+    # An unsuccessful handoff expires the lease; it never advances success time.
+    should_publish = should_publish and not (0 <= request_age < 120)
     if should_publish:
-        state_put(conn, 'publish_request', {'fingerprint': fingerprint, 'at': now.isoformat()})
+        state_put(conn, 'publish_request', {'fingerprint': fingerprint, 'at': now.isoformat(),
+                  'state': 'publish_requested', 'run_id': os.environ.get('GITHUB_RUN_ID')})
     manifest = {'schema': 1, 'pipeline_complete': result['status'] == 'OK',
                 'runtime_status': result['status'], 'data_publishable': True,
                 'should_publish': should_publish,
