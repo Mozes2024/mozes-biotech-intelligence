@@ -44,14 +44,26 @@ def restore_published_receipt(repo, *, runner=None):
     destination = Path(".monitor/published-ledger.json")
     destination.unlink(missing_ok=True)
     try:
-        runs = json.loads(gh(
-            "run", "list", "--workflow", "pages.yml", "--branch", "main",
-            "--status", "success", "--limit", "5", "--json", "databaseId",
-        ))
-    except (subprocess.CalledProcessError, OSError, ValueError, subprocess.TimeoutExpired):
-        return
+        from mozes.github_inventory import inventory
+        def api(path):
+            return json.loads(gh('api', f'repos/{repo}/actions/{path}', timeout=30))
+        def collection(value, key, *, partial=False):
+            rows = value.get(key)
+            if (not isinstance(rows, list) or type(value.get('total_count')) is not int
+                    or value['total_count'] < len(rows)):
+                raise RuntimeError('publication_inventory')
+            return rows
+        rows = inventory('workflows/pages.yml/runs?exclude_pull_requests=true', 'workflow_runs',
+                         api=api, collection=collection)
+        if any(_parse_iso(r.get('updated_at')) is None for r in rows):
+            return None
+        runs = sorted((r for r in rows if r.get('head_branch') == 'main'
+                       and r.get('status') == 'completed' and r.get('conclusion') == 'success'),
+                      key=lambda r: _parse_iso(r['updated_at']), reverse=True)
+    except (subprocess.CalledProcessError, OSError, ValueError, subprocess.TimeoutExpired, RuntimeError):
+        return None
     for run in runs:
-        run_id = str(run["databaseId"])
+        run_id = str(run["id"])
         try:
             meta = json.loads(gh("api", f"repos/{repo}/actions/runs/{run_id}"))
         except (subprocess.CalledProcessError, OSError, ValueError, subprocess.TimeoutExpired):
@@ -61,6 +73,16 @@ def restore_published_receipt(repo, *, runner=None):
                 or meta.get("conclusion") != "success"):
             continue
         try:
+            jobs = api(f'runs/{run_id}/jobs?filter=all&per_page=100')
+            if jobs.get('total_count') != len(jobs.get('jobs', [])):
+                return None
+            deployed = [j for j in jobs['jobs'] if j.get('name') == 'deploy']
+            if (len(deployed) == 1 and deployed[0].get('status') == 'completed'
+                    and deployed[0].get('conclusion') == 'skipped'):
+                # A superseded-code guard is a proven non-publication, not a lost receipt.
+                continue
+            if len(deployed) != 1 or deployed[0].get('conclusion') != 'success':
+                return None
             with tempfile.TemporaryDirectory() as tmp:
                 gh("run", "download", run_id, "-n", "mozes-published-ledger", "-D", tmp)
                 value = json.loads((Path(tmp) / "publish-receipt.json").read_text(encoding="utf-8"))

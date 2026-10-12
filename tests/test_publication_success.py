@@ -138,7 +138,7 @@ def test_full_verified_receipt_roundtrip_preserves_checkpoint(tmp_path, monkeypa
     run['name']='deploy-pages'
     monkeypatch.chdir(tmp_path)
     def gh(*args, **kwargs):
-        if args[:2]==('run','list'): return json.dumps([{'databaseId':10}])
+        if args[0]=='api' and '/workflows/' in args[1]: return json.dumps({'total_count':1,'workflow_runs':[run]})
         if args[0]=='api':
             if '/jobs?' in args[1]:return json.dumps(jobs)
             if '/artifacts?' in args[1]:return json.dumps(artifacts)
