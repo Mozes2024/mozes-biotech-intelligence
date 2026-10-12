@@ -31,6 +31,8 @@ jobs:
       - run: npm ci --prefix cloudflare
       - name: Complete offline regression suite
         run: pytest -q
+      - name: Open-tab checkpoint and alert preservation regressions
+        run: node --test tests/test_open_tab_refresh.mjs
       - name: Syntax checks
         run: |
           python -m compileall -q mozes scripts
