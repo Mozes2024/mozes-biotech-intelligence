@@ -1,6 +1,6 @@
 # A1+A4 — missing evidence versus observed negative evidence
 
-Base main: `51a5535f66a5b016d487c69186bd36ab07acb7a3`. This branch is independent of Pages #29 and of the already merged clinical identity #21.
+Base main: `d9c3be954ddee6b55b8fc0b08f9fa03f0b6fe9bb`. Rebasing preserves the merged #29 publication acknowledgements, #31 refresh and #32 timezone-safe validator/tests. This branch retains the independent A1+A4 correction and both Hebrew labels; it does not deploy any change.
 
 ## Reproduced defects
 
@@ -23,6 +23,12 @@ Frozen positive/negative/unknown fixtures and adversarial tests cover partial po
 A read-only active-engine test uses `PRAGMA query_only=ON`, checks total changes and compares the database SHA256 before/after. EDGE/CHG/CAT/ALT event rows, original source timestamps, old score rows/versions and locked validation gates remain unchanged. No migration, historical evaluation rewrite, backfill, identity edit, notification, receipt/ACK change or OOS gate activation is included.
 
 The unknown-evidence test fails against exact baseline code; the baseline null-gate crash is independently reproduced. Focused engine/recommendation/PIT/historical suites pass. All three Worker JavaScript suites, JavaScript syntax and Python compile checks pass. The complete local Python run and exact-head Linux CI are reported in the PR; Docker and offline smoke belong to existing CI. No LLM provider calls or paid services are introduced.
+
+## Frozen current-checkpoint comparison
+
+Read-only comparison against current main uses artifact `11747838323`, source run `38250157628`, checkpoint `2026-10-12T12:39:50+00:00`, with the same as-of date `2026-10-12` for both engines. Across 198 live events, 41 REVIEW and 37 AVOID_BINARY classifications become INSUFFICIENT_INFORMATION because observations are incomplete or absent, rather than evidence of failure. Recommendations change for 37 NOT_NOW and 40 RESEARCH_WORTHY rows. The remaining 120 classifications are unchanged: 107 STALE_UNRESOLVED, 9 WATCH, 2 observed-negative AVOID_BINARY, 1 RESOLVED and 1 QUARANTINED.
+
+For example, AUTO-ABOS-NCT06335173 has missing observations and score=None, so prior-only avoidance becomes an information gap. ACLX-ANITO retains its contextual score but partial observations cannot justify REVIEW. CAPR-PDUFA and SMMT-PDUFA retain AVOID_BINARY/NOT_NOW with explicit negative findings. Neither comparison writes: SQLite mode=ro plus query_only, total_changes=0, and identical database SHA256 before/after. Both OOS gates stay disabled/unsatisfied with n=0. This predicts current output changes; it does not rewrite historical evaluations or establish clinical calibration.
 
 `docs/BIO_IMPLEMENTATION_TRACKER.md` is the existing tracker from held #25, reconciled to current main and #29. R0a remains HOLD; R1/R2/A5/A3/B/C/D/E remain explicit pending work, and #17/#18 are not blindly merged.
 

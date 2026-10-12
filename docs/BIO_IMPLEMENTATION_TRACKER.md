@@ -1,9 +1,12 @@
 # BIO implementation tracker
 
-Baseline: `51a5535f66a5b016d487c69186bd36ab07acb7a3`, reconciled 2026-10-12.
+Baseline: `d9c3be954ddee6b55b8fc0b08f9fa03f0b6fe9bb`, reconciled 2026-10-12.
 This updates the same tracker path prepared in #25; it does not merge its held code.
-Pages reliability #29 has green exact-head CI at `5da8cd478ad1aeae722de36f12458e4bc9eb590c`
-(run 38215330661: 868 Python tests, JavaScript, D1, smoke and Docker). Neither PR is deployed.
+Pages reliability #29 and frontend #31/#32 are merged and deployed. Natural
+monitor artifacts 11747555283 and 11747838323 match successful schema-2 Pages
+receipts (runs 38248656538 and 38250452488). The isolated HTTP 502 was followed
+by successful lineage restores; producer_busy remains a separate fail-closed
+publication condition. PR #30 is rebased for review only and remains undeployed.
 This is the single implementation tracker, not another audit. The four requested
 roadmap/audit documents were not found in the searched Desktop, repository,
 attachments and protected evidence locations. Rows below use the supplied master
@@ -17,7 +20,8 @@ PR21's conservative registry identity work, called A2 in the master mission.
 | R0b safe Pages consumer / P0 | Verified | Merged, published | #26 | Producer provenance, no older fallback | Retain checks |
 | Conflicting deep schedule / P0 | Verified | Merged, cron suspended | #27 | Temporarily loses deep research; manual deep runs prohibited | R2 ownership before resumption |
 | Pages producer races / P0 | Verified | #28 merged; later failure is inventory_changed after two producer_busy conflicts | #28 | Complete inventories remain mandatory | Retain fail-closed checks |
-| Pages success cadence / P0 | Artifact + logs verified | Review-ready, exact-head CI green | #29 | Failed requests cannot acknowledge freshness; source ages remain truthful | Approve #29 first; no deployment proof claimed |
+| Pages success cadence / P0 | Source hashes, SQLite integrity and schema-2 acknowledgements verified | Merged, published | #29 | Failed requests cannot acknowledge freshness; producer_busy can still delay publication | Retain checks; no recovery in this slice |
+| Open-tab checkpoint refresh / P0 | Current frontend regressions preserved | Merged, published | #31/#32 | UTC-normalized identity, truthful aging and independent alert dedup remain | Preserve code and tests; no reopening |
 | R0a quiet heartbeat / P0 | Partially verified | HOLD, not deployed | #25 | GET probe failed; 204 is not completion | Complete correlated start/owner/failure reconciliation before POST-only dispatch |
 | R0a checkpoint feedback / P0 | Offline implementation | Disabled-by-default trusted relay + monotonic DO receipt | #25 | Existing shared control secret trusts relay; receipt is not ACK or restore authority | Review/CI; no activation yet |
 | R0c safe producer resumption / P0 | Pending design | Blocked high-risk task | — | Completed incident claim must never be reused; MAX_REWIND unchanged | Separately reviewed side-effect audit |
@@ -25,7 +29,7 @@ PR21's conservative registry identity work, called A2 in the master mission.
 | Queue fairness / P1 | Merged code; deployment coverage unverified here | Merged | #16 | Merge does not prove deployed Worker coverage | Separate read-only deployment comparison |
 | R1 ALMS 403 + SGMT/VIR/GKOS backlog / P1 | Mission + prior source failures; current state not reaudited here | Pending | — | Independent liveness first; no synthetic ACK/proxy bypass | Read-only reconciliation after R0a |
 | META-M2 / A2 clinical identity / P1 | Verified | Merged in current main | #21 | Preserve exact NCT, registered aliases and canonical IDs | Completed; do not repeat |
-| A1/A4 missing evidence / P1 | Baseline regressions reproduced: prior-only negative inference + score=None gate crash | Independent implementation, offline fixtures and read-only/PIT checks | #30 | Missing clinical/financial inputs suppress positive candidates; observed negatives retained | Complete exact-head CI and review after #29 |
+| A1/A4 missing evidence / P1 | Frozen 198-event before/after comparison, offline regressions and read-only/PIT checks | Rebased on current main; review only | #30 | Missing clinical/financial inputs suppress positive candidates; observed negatives retained; OOS gates closed | Full exact-head CI and separate merge approval |
 | A5 negation/conditional FDA/excerpts / P1 | Existing work, review still needed | Open | #17 | Shared Python/Worker adversarial fixtures | Adapt valid work after identity PR |
 | A3 atomic promotion / P1 | Helper commits cross boundaries; repeated promotion timestamp changed across a clock second in local suite | Pending | — | Interrupted/repeated writes must remain consistent | Frozen-clock replay + rollback/interruption regression before patch |
 | B1 financing / P1 | Mission priority, not independently reverified here | Pending | — | Shelf/ATM capacity cannot be cash received | Verify fixtures and focused correction |
@@ -66,7 +70,7 @@ Remaining blocker for a GET-independent R0a: durable dispatch challenge/run
 correlation, queued/processing/failed/overdue transitions and safe reconciliation
 of missing completion feedback. Releasing an ambiguous owner on a timer admits
 duplicate queued dispatches; retaining it forever blocks unattended resumption.
-No finite lease or blind timer was added. Identity #21 is merged. Work proceeds separately on A1/A4 after Pages #29;
+No finite lease or blind timer was added by the held R0a slice. Identity #21 is merged. A1/A4 remains separate and preserves merged #29/#31/#32;
 R0a remains HOLD. This is a staged implementation, not rollout approval.
 
 Rollback after a future separately authorized rollout: disable both feedback
