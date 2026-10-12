@@ -27,8 +27,88 @@ function harness(old=data(),{api=false}={}){
   run:code=>vm.runInContext(code,c),snapshot:()=>vm.runInContext('D',c),poll:()=>vm.runInContext('checkForUpdates()',c)};
 }
 const update=(checkpoint=cp(),revision='same')=>({schema:1,revision,checkpoint});
-const advance=()=>cp('2026-10-12T11:55:00+00:00',2);
+const advance=()=>cp('2026-10-12T14:55:00+03:00',2);
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
+
+const production=()=>({...cp('2026-10-12T12:58:40+03:00'),source_run_id:'38233197326',artifact_id:11739482359});
+test('exact production offset checkpoint refreshes and displays its real age',async()=>{
+ const old=production();old.checkpoint_at='2026-10-12T12:57:40+03:00';const h=harness(data(old));
+ h.now(Date.parse('2026-10-12T10:00:40Z'));h.responses.push(update(production()),data(production()));await h.poll();
+ assert.equal(h.snapshot().checkpoint_at,production().checkpoint_at);
+ assert.match(h.elements.get('checkpointFreshness').outerHTML,/2 דקות/);
+ assert.match(h.elements.get('checkpointFreshness').outerHTML,/12:58:40\+03:00/);
+});
+
+for(const at of ['2026-10-12T09:58:40Z','2026-10-12T09:58:40+00:00','2026-10-12T12:58:40+03:00','2026-10-12T05:58:40-04:00','2026-10-12T04:58:40-05:00'])test(`equivalent instant ${at} avoids downloads and false identity conflicts`,async()=>{
+ const h=harness(data(production()));h.responses.push(update({...production(),checkpoint_at:at}));await h.poll();
+ assert.deepEqual(h.requests,['updates.json']);assert.equal(h.snapshot().checkpoint_at,production().checkpoint_at);
+ h.c.at=at;assert.equal(h.run('checkpointTime(at)'),Date.parse('2026-10-12T09:58:40Z'));
+ assert.equal(h.run('MozesCheckpointHealth({checkpoint_at:at}).age_minutes'),121);
+});
+
+for(const [at,utc] of [
+ ['2025-01-01T00:30:00+03:00','2024-12-31T21:30:00Z'],
+ ['2024-12-31T23:30:00-05:00','2025-01-01T04:30:00Z'],
+ ['2024-02-29T00:15:00+03:00','2024-02-28T21:15:00Z'],
+ ['2000-02-29T23:59:59.123456-04:00','2000-03-01T03:59:59.123Z'],
+ ['0099-01-01T00:00:00Z','0099-01-01T00:00:00Z'],
+ ['2026-01-01T00:00:00+23:59','2025-12-31T00:01:00Z']
+])test(`calendar and boundary conversion ${at}`,()=>{
+ const h=harness();h.c.at=at;assert.equal(h.run('checkpointTime(at)'),Date.parse(utc));
+});
+
+for(const at of [
+ '2026-02-29T10:00:00+03:00','1900-02-29T10:00:00Z','2024-02-30T10:00:00Z',
+ '2026-04-31T10:00:00Z','2026-00-01T10:00:00Z','2026-13-01T10:00:00Z','2026-01-00T10:00:00Z',
+ '2026-01-01T24:00:00Z','2026-01-01T10:60:00Z','2026-01-01T10:00:60Z',
+ '2026-01-01T10:00:00+24:00','2026-01-01T10:00:00-04:60','2026-01-01T10:00:00+0300',
+ '2026-01-01T10:00:00','2026-01-01','2026-01-01T10:00:00Zjunk',
+ '2026-10-12T15:00:01+03:00','2026-10-12T08:00:01-04:00'
+])test(`both consumers reject invalid or future ${at}`,async()=>{
+ const h=harness();h.c.at=at;assert.throws(()=>h.run('checkpointTime(at)'),/Invalid checkpoint time/);
+ const health=h.run('MozesCheckpointHealth({checkpoint_at:at})');assert.equal(health.age_minutes,null);assert.equal(health.stale,true);
+ h.responses.push(update(cp(at,2)));await assert.rejects(h.poll(),/Invalid checkpoint time/);assert.equal(h.requests.length,1);
+});
+
+test('matching normalized update and data times permit an in-place refresh',async()=>{
+ const h=harness(data(cp('2026-10-12T12:57:40+03:00')));
+ const advertised=production(),downloaded={...advertised,checkpoint_at:'2026-10-12T09:58:40Z'};
+ const next=data(downloaded);next.checkpoint_at=advertised.checkpoint_at;
+ h.responses.push(update(advertised),next);await h.poll();assert.equal(h.snapshot(),next);
+ assert.equal(h.run('page'),'alerts');assert.equal(h.run('search'),'keep');assert.equal(h.run('radarFilters.type'),'P3');
+});
+
+for(const field of ['source_run_id','artifact_id','db_sha256'])test(`same instant with conflicting ${field} stays rejected`,async()=>{
+ const original=data(production()),h=harness(original);
+ const conflicting={...production(),checkpoint_at:'2026-10-12T09:58:40Z',[field]:field==='artifact_id'?11739482360:field==='source_run_id'?'38233197327':'b'.repeat(64)};
+ h.responses.push(update(conflicting));await assert.rejects(h.poll(),/conflict/);assert.equal(h.snapshot(),original);assert.equal(h.requests.length,1);
+});
+
+test('offset older checkpoint is rejected by UTC instant rather than wall time',async()=>{
+ const h=harness(data(production()));h.responses.push(update(cp('2026-10-12T14:00:00+05:00',2)));
+ await assert.rejects(h.poll(),/downgrade/);assert.equal(h.requests.length,1);
+});
+
+test('offset cross-deployment mismatch keeps the existing snapshot',async()=>{
+ const original=data(cp('2026-10-12T12:57:40+03:00')),h=harness(original);
+ h.responses.push(update(production()),data({...production(),checkpoint_at:'2026-10-12T05:58:39-04:00'}));
+ await assert.rejects(h.poll(),/mismatch/);assert.equal(h.snapshot(),original);
+});
+
+for(const field of ['source_run_id','artifact_id','db_sha256'])test(`downloaded conflicting ${field} cannot replace advertised offset identity`,async()=>{
+ const original=data(cp('2026-10-12T12:57:40+03:00')),h=harness(original);
+ const downloaded={...production(),checkpoint_at:'2026-10-12T09:58:40Z',[field]:field==='artifact_id'?11739482360:field==='source_run_id'?'38233197327':'b'.repeat(64)};
+ h.responses.push(update(production()),data(downloaded));await assert.rejects(h.poll(),/mismatch/);assert.equal(h.snapshot(),original);
+});
+
+test('production offset banner ages across the 45-minute threshold',async()=>{
+ const h=harness(data(production()));h.now(Date.parse('2026-10-12T10:43:40Z'));
+ h.responses.push(update({...production(),checkpoint_at:'2026-10-12T09:58:40Z'}));await h.poll();
+ assert.match(h.elements.get('checkpointFreshness').outerHTML,/תמונת הניטור מעודכנת/);
+ h.now(Date.parse('2026-10-12T10:43:40.001Z'));h.responses.push(update(production()));await h.poll();
+ assert.match(h.elements.get('checkpointFreshness').outerHTML,/נתונים ישנים/);assert.equal(h.requests.length,2);
+ assert.equal(h.snapshot().checkpoint_at,production().checkpoint_at);
+});
 
 test('same revision, newer authoritative checkpoint refreshes an open tab',async()=>{
  const h=harness();h.responses.push(update(advance()),data(advance()));await h.poll();

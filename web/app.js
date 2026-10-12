@@ -121,20 +121,18 @@ async function load(){setLoading(true);let err=null;try{let r=await fetch('/api/
 function updateDataLabel(){let stamp=D?.health?.latest_monitor?.finished_at||D?.generated_at;let t=stamp?new Date(stamp):null;$('apiLabel').textContent=apiMode?'נתונים חיים':t&&!isNaN(t)?`ניטור ${t.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}`:'שעת ניטור לא זמינה'}
 let snapshotRevision=null,updatePollBusy=false;
 function checkpointTime(value){
-  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\+00:00)$/.test(value))throw Error('Invalid checkpoint time');
-  const time=Date.parse(value);
-  if(!Number.isFinite(time)||time>Date.now()||new Date(time).toISOString().slice(0,19)!==value.slice(0,19))throw Error('Invalid checkpoint time');
-  return time;
+  return MozesCheckpointTime(value);
 }
 function checkpointIdentity(value){
   if(!value||typeof value!=='object'||!/^[1-9]\d*$/.test(value.source_run_id)||typeof value.source_run_id!=='string'
      ||typeof value.db_sha256!=='string'||!Number.isSafeInteger(value.artifact_id)||value.artifact_id<=0||!/^([a-f0-9]{64})$/.test(value.db_sha256))throw Error('Incomplete checkpoint identity');
-  return {time:checkpointTime(value.checkpoint_at),key:JSON.stringify([value.checkpoint_at,value.source_run_id,value.artifact_id,value.db_sha256])};
+  const time=checkpointTime(value.checkpoint_at);
+  return {time,key:JSON.stringify([time,value.source_run_id,value.artifact_id,value.db_sha256])};
 }
 function loadedCheckpoint(data){
   if(!data.consumer_checkpoint)return null;
   const identity=checkpointIdentity(data.consumer_checkpoint);
-  if(data.checkpoint_at!==data.consumer_checkpoint.checkpoint_at)throw Error('Inconsistent loaded checkpoint');
+  if(checkpointTime(data.checkpoint_at)!==identity.time)throw Error('Inconsistent loaded checkpoint');
   return identity;
 }
 function updateCheckpointFreshness(){const el=$('checkpointFreshness');if(el&&D)el.outerHTML=checkpointBanner();}
