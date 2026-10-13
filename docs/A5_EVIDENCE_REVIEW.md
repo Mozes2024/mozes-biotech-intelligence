@@ -4,6 +4,33 @@
 
 ### Final P0 follow-up
 
+### Isolated promotion idempotency repair
+
+The preservation blocker is repaired only in promote_candidate, before any
+event/source/state/change/outbox/watch writer. Identical constructed payload,
+effective verification state, existing source link, candidate linkage and watch
+state return the existing event ID without executing INSERT/UPDATE/DELETE.
+Missing retrieval metadata on the same evidence retains its original retrieval
+time; an explicit new retrieval observation or new verified guidance still
+updates normally. Shared db.upsert_event_state and its NULL/COALESCE behavior
+remain unchanged for every caller.
+
+Eight deterministic cases advance from 12:00:00 to 12:00:02/04 UTC. Before the
+repair, three regressions fail on changed state/watch timestamps (and missing
+retrieval metadata). After repair, all 63 promotion tests pass. Whole logical
+database dumps and SQLite total_changes/SQL traces prove a true no-write repeat;
+stored outbox delivery and edge receipt/source fields remain identical. Initial
+rejection retains the established audit record; repeated rejection adds nothing.
+Changed verification fields and new exact-date guidance still update, preserving
+prior sources and sent receipts. No frozen-clock workaround or weakened original
+assertion is used. Exact-head full CI results are reported on PR #35.
+
+PR #34 remains unmerged at approved 65a68fc. Cloudflare Builds read is still
+unverifiable: the correct immutable Worker tag was used and returns HTTP 403;
+existing OAuth scopes do not include Builds access. No permissions, token,
+deployment, production records or monitoring controls were changed. #35 repair
+is independently prepared for review; all activation gates remain in force.
+
 Both findings are confirmed. The original 85caa58/b682b0b HotEdge used one
 response cache and one pending promise across clients. Five real fetch-path
 regressions failed before correction. Cache and pending owners now partition
