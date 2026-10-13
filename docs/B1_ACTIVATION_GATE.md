@@ -70,6 +70,14 @@ quietly; no retrospective alerts, rewritten immutable rows or historical replay
 are promised. No deployment timestamp is substituted for an observation that did
 not happen. Initial empty/failed/partial scans cannot move the boundary on retry.
 
+Identical extracted financing text within one SEC issuer CIK and accession shares
+one CHG identity, independent of primary/exhibit URL. Both immutable OFFER rows,
+source URLs and exact text hashes remain preserved. Different text (including
+different transaction amounts or economic dates) retains separate CHG identities;
+different accessions and issuers remain separate even when text is identical.
+This is exact-text deduplication only, not semantic or cross-filing matching.
+Existing CHG rows are not migrated or rewritten; financing alert eligibility is unchanged.
+
 Index failures remain PARTIAL even when the fallback primary document succeeds.
 Stored successful documents survive later failures. Attempt cadence is retained
 on failure; no retry storm occurs. Document truncation/deadline exhaustion is

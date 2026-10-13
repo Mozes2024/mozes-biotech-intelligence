@@ -356,7 +356,10 @@ def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, re
                                           previous_value=None, new_value={'kind': analyzed['kind'], 'form': filing['form']},
                                           source_url=document['url'], source_type='sec', verification_state='derived',
                                           severity='medium' if analyzed['kind'] in {'proposed_offering', 'priced_offering'} else 'low',
-                                          identity=['financing-v2c', analyzed['record_id']],
+                                          # Exact same disclosure across primary/exhibits is one change;
+                                          # source-specific immutable OFFER provenance remains separate.
+                                          identity=['financing-v2c', analyzed['issuer_cik'], filing['accession'],
+                                                    analyzed['source_text_hash']],
                                           metadata={'facts': analyzed['facts'], 'filed': filing['filed']})
             if len(out['errors']) == error_count and time.monotonic() < deadline:
                 state_put(conn, baseline_key, True)

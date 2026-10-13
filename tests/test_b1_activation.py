@@ -9,7 +9,7 @@ import pytest
 
 from mozes import db, financing_intelligence as financing
 from mozes.ingest.edgar import recent_filings_v2 as real_recent_filings
-from mozes.intelligence_store import ensure_schema, state_get
+from mozes.intelligence_store import digest, ensure_schema, state_get
 
 NOW = datetime(2026, 10, 13, 12, tzinfo=timezone.utc)
 ROOT = Path(__file__).resolve().parents[1]
@@ -119,11 +119,66 @@ def test_partial_document_failure_keeps_success_and_retry_does_not_duplicate(obs
     result = financing.refresh_due_financing(conn, now=NOW)
     assert result['status'] == 'PARTIAL' and result['identified'] == 1
     assert not state_get(conn, 'financing_baselined:CAPR', False)
+    primary = dict(conn.execute('SELECT * FROM v2c_financing_events').fetchone())
     unavailable[0] = False
     financing.refresh_due_financing(conn, now=NOW + timedelta(hours=6))
     financing.refresh_due_financing(conn, now=NOW + timedelta(hours=12))
     assert conn.execute('SELECT COUNT(*) FROM v2c_financing_events').fetchone()[0] == 2
+    assert dict(conn.execute('SELECT * FROM v2c_financing_events WHERE record_id=?', (primary['record_id'],)).fetchone()) == primary
+    assert {row[0] for row in conn.execute('SELECT source_url FROM v2c_financing_events')} == {
+        filing()['url'], filing()['url'] + '/ex99'}
+    context = financing.financing_context(conn, 'CAPR', as_of=date(2026, 10, 14))
+    assert len(context) == 1 and len(context[0]['sources']) == 2
+    assert conn.execute('SELECT COUNT(*) FROM change_events').fetchone()[0] == 1
+
+
+@pytest.mark.parametrize('texts,expected_changes', [
+    (['We completed an offering with net proceeds of $20 million.'] * 2, 1),
+    (['We completed an offering with net proceeds of $20 million.',
+      'We completed an offering with net proceeds of $30 million.'], 2),
+    (['On October 1, 2026, we completed an offering with net proceeds of $20 million.',
+      'On October 2, 2026, we completed a separate offering with net proceeds of $20 million.'], 2),
+])
+def test_same_accession_chg_identity_deduplicates_only_exact_text(observation, monkeypatch, texts, expected_changes):
+    conn = observation
+    monkeypatch.setattr('mozes.priority.priority_tickers', lambda: ('CAPR',))
+    financing.refresh_due_financing(conn, now=NOW)  # Establish observation before publication.
+    monkeypatch.setattr('mozes.ingest.edgar.recent_filings_v2', lambda *a, **kw: [filing(form='8-K')])
+    urls = [filing()['url'], filing()['url'] + '/ex99']
+    monkeypatch.setattr('mozes.ingest.edgar.filing_documents', lambda f, **kw:
+                        ([{'url': url} for url in urls], []))
+    by_url = dict(zip(urls, texts))
+    monkeypatch.setattr('mozes.ingest.edgar._get', lambda url, **kw: by_url[url])
+    financing.refresh_due_financing(conn, now=NOW + timedelta(hours=6))
+    immutable = [dict(row) for row in conn.execute('SELECT * FROM v2c_financing_events ORDER BY source_url')]
+    assert len(immutable) == 2
+    assert {row['source_url']: row['source_hash'] for row in immutable} == {
+        url: digest(text) for url, text in by_url.items()}
+    assert {row['source_url']: json.loads(row['payload'])['source_text_hash'] for row in immutable} == {
+        url: digest(text) for url, text in by_url.items()}
+    assert conn.execute('SELECT COUNT(*) FROM change_events').fetchone()[0] == expected_changes
+    financing.refresh_due_financing(conn, now=NOW + timedelta(hours=12))
+    assert [dict(row) for row in conn.execute('SELECT * FROM v2c_financing_events ORDER BY source_url')] == immutable
+    assert conn.execute('SELECT COUNT(*) FROM change_events').fetchone()[0] == expected_changes
+    assert conn.execute('SELECT COUNT(*) FROM alert_outbox').fetchone()[0] == 0
+
+
+@pytest.mark.parametrize('scope', ['different_accession', 'different_issuer'])
+def test_identical_text_does_not_merge_other_publications_or_issuers(observation, monkeypatch, scope):
+    conn = observation
+    monkeypatch.setattr('mozes.priority.priority_tickers', lambda: ('CAPR', 'CYTK'))
+    financing.refresh_due_financing(conn, now=NOW)
+    def submissions(cik, **kw):
+        if scope == 'different_accession':
+            return [filing(accession='first'), filing(accession='second')] if cik == '1' else []
+        return [filing(cik=cik, accession='same')]
+    monkeypatch.setattr('mozes.ingest.edgar.recent_filings_v2', submissions)
+    monkeypatch.setattr('mozes.ingest.edgar._get', lambda *a, **kw:
+                        'We completed an offering with net proceeds of $20 million.')
+    financing.refresh_due_financing(conn, now=NOW + timedelta(hours=6))
+    financing.refresh_due_financing(conn, now=NOW + timedelta(hours=12))
     assert conn.execute('SELECT COUNT(*) FROM change_events').fetchone()[0] == 2
+    assert conn.execute('SELECT COUNT(*) FROM v2c_financing_events').fetchone()[0] == 2
 
 
 def test_deadline_stops_inside_exhibits_and_unattempted_issuers_keep_rotation_priority(observation, monkeypatch):
