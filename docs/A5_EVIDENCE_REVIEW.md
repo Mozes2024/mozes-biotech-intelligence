@@ -1,5 +1,29 @@
 # A5 evidence-aware alert review
 
+## Final cross-version compatibility gate
+
+CONFIRMED: the captured main 6f939b8 alerts_ui.js, after an initialized empty
+feed, displays a popup and calls Notification for a new serialized list-only
+A5 row. Revision checks and publication timestamps do not prevent it.
+PR #34 now retains the full stored feed but projects interrupt-only rows for
+unversioned GET requests; client=alert-evidence-v1 requests retain the full list.
+PR #35 uses that capability and alerts-evidence-v1.json as its complete static
+fallback. Unversioned alerts.json and /api/alerts are interrupt-only too.
+No identities, source hashes, payloads, ACKs or delivery receipts are rewritten.
+Old tabs lose list-only rows until refreshed, but require no refresh to remain
+safe and still notify new eligible urgent events exactly once. New clients
+retain every list row. Worker-first temporarily suppresses legacy browser
+interrupts whose producer lacks evidence metadata; Stage-0 is separately gated.
+Deploy and verify #34 first, including both GET views; then separately approve
+#35 producer/frontend and Stage-0. Verify both static files in normal Pages
+publication and reload an existing tab only to inspect its new UI, not as the
+safety mechanism. Never roll back the compatible feed contract while A5 runs.
+Missing displayed excerpts are not missing source verification. Oversized
+quotes remain omitted with a limitation; eligibility needs explicit verified
+producer metadata. The frontend explicitly discloses when an eligible event's
+source quotation is absent. Missing source basis remains ineligible even when
+other eligibility flags are present. Exact-head results are recorded on the PRs.
+
 Review only. No merge, Worker deployment, production writes, replay, historical correction or OOS activation was performed. Main baseline: `6f939b8299a5d96dc4e175e5e75baf1ec5636080`.
 
 ## Confirmed causes and bounded corrections

@@ -15,7 +15,7 @@ function harness(old=data(),{api=false}={}){
   if(!elements.has(id))elements.set(id,{outerHTML:'',innerHTML:'',dataset:{checked:''},classList:{toggle(){}}});return elements.get(id);
  }};
  const c=vm.createContext({Date:Clock,Intl,URL,window:{},navigator:{},localStorage:{getItem:()=>null,setItem(){}},document,renderCount:0,messages:[],setInterval:(fn,ms)=>timers.push({fn,ms}),fetch:async url=>{
-  requests.push(url);if(url==='alerts.json'||url==='/api/alerts')return {ok:true,json:async()=>({schema:1,revision:'independent',alerts:[],generated_at:'2026-10-12T11:59:00Z'})};if(!responses.length)throw Error('Unexpected fetch');return {ok:true,json:async()=>responses.shift()};
+  requests.push(url);if(url==='alerts-evidence-v1.json'||url==='/api/alerts?client=alert-evidence-v1')return {ok:true,json:async()=>({schema:1,revision:'independent',alerts:[],generated_at:'2026-10-12T11:59:00Z'})};if(!responses.length)throw Error('Unexpected fetch');return {ok:true,json:async()=>responses.shift()};
  }});
  // Execute actual application logic, not a reimplemented refresh algorithm.
  vm.runInContext(health,c);

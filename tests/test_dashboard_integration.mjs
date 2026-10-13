@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
-import {publicFeed} from '../cloudflare/src/alert-feed.js';
+import {publicFeed,handleAlertFeed} from '../cloudflare/src/alert-feed.js';
 
 // Execute every production script, including startup and the final coverage wrapper.
 // Only the browser DOM, clock, timers and network boundary are doubled.
@@ -29,9 +29,20 @@ test('changed dashboard assets use one new compatible version while checkpoint h
  assert.equal(versions.get('/checkpoint_health.js'),'checkpoint-timezone-v1');
 });
 
+test('omitted display excerpts do not imply missing verification or invent eligibility',async()=>{
+ const h=await harness();
+ const confirmed={popup_eligible:true,issuer_verified:true,confirmed_outcome:true,needs_review:false,
+  semantic_version:'alert-evidence-v1',priority:'P1',event_family:'fda_decision',event_outcome:'approval',evidence_basis:'source_text'};
+ h.run(`globalThis.probe=${JSON.stringify(confirmed)}`);
+ assert.equal(h.run('interruptiveAlertEligible(probe)'),true);
+ assert.match(h.run('alertAnalysisHtml(probe)'),/ציטוט המקור אינו מוצג/);
+ assert.equal(h.run('interruptiveAlertEligible({...probe,evidence_basis:null})'),false);
+ assert.doesNotMatch(h.run('alertAnalysisHtml({...probe,evidence_basis:null})'),/זהות המנפיק ותוצאה מהותית מבוססת מקור אומתו/);
+});
+
 async function harness(initial=payload()){
  const elements=new Map(),storage=new Map(),requests=[],responses=[],notifications=[],timers=[];
- let renders=0,feed={schema:1,revision:'baseline',generated_at:initial.generated_at,
+ let renders=0,feed={schema:1,sequence:1,revision:'0'.repeat(64),generated_at:initial.generated_at,
   alerts:clone(initial.alerts),alert_config:initial.alert_config};
  function element(id){if(!elements.has(id)){
   let html='';const node={hidden:true,dataset:{},textContent:'',outerHTML:'',
@@ -49,7 +60,9 @@ async function harness(initial=payload()){
   setInterval:(fn,ms)=>timers.push({fn,ms}),setTimeout:(fn,ms)=>timers.push({fn,ms}),
   fetch:async url=>{requests.push(url);
    if(url==='/api/radar')return {ok:false,status:404};
-   if(url==='alerts.json')return {ok:true,json:async()=>clone(feed)};
+   if(url.startsWith('https://clock.example/alerts'))return handleAlertFeed(new Request(url),
+    {ALERTS_DB:{prepare:()=>({first:async()=>({payload:JSON.stringify(feed),received_at:feed.generated_at})})}});
+   if(url==='alerts-evidence-v1.json')return {ok:true,json:async()=>clone(feed)};
    if(responses.length)return {ok:true,json:async()=>responses.shift()};
    if(url==='data.json')return {ok:true,json:async()=>clone(initial)};
    throw Error(`Unexpected network request: ${url}`);
@@ -160,7 +173,9 @@ test('Python outbox -> Python feed -> serialized Worker feed -> actual index scr
  const cvr=byId.get(generated.ids.cvr).explanation;
  assert.ok(cvr.evidence[0].quote.startsWith('No '));assert.match(cvr.source_hash,/^[a-f0-9]{64}$/);
  assert.equal(cvr.evidence[0].source_hash,cvr.source_hash);
- const h=await harness();h.setFeed({...feed,generated_at:'2026-10-12T13:01:00Z'});await h.run('checkForAlerts()');
+ const initial=payload();initial.alert_config={feed_url:'https://clock.example/alerts'};
+ const h=await harness(initial);h.setFeed({...feed,generated_at:'2026-10-12T13:01:00Z'});await h.run('checkForAlerts()');
+ assert.ok(h.requests.includes('https://clock.example/alerts?client=alert-evidence-v1'));
  assert.equal(h.notifications.length,2);assert.equal(h.popup().hidden,false);
  assert.match(h.popup().innerHTML,/approval/);assert.match(h.popup().innerHTML,/failure/);
  assert.doesNotMatch(h.popup().innerHTML,/Legacy CVR filing|milestone|mixed/);

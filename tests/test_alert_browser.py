@@ -42,14 +42,14 @@ const context={D:{alerts:[],alert_config:{feed_url:'https://clock.example/alerts
 vm.createContext(context);vm.runInContext(fs.readFileSync('web/alerts_ui.js','utf8'),context);
 (async()=>{
  await context.checkForAlerts();assert.strictEqual(context.D.alerts[0].change_id,'CHG-1');
- assert.deepStrictEqual(fetched,['https://clock.example/alerts']);assert.strictEqual(rendered,1);
+ assert.deepStrictEqual(fetched,['https://clock.example/alerts?client=alert-evidence-v1']);assert.strictEqual(rendered,1);
  context.fetch=async url=>{fetched.push(url);if(url.startsWith('https'))throw Error('offline');
   return {ok:true,json:async()=>({schema:1,revision:'older',generated_at:'2026-10-07T17:00:00Z',alerts:[],alert_config:{}})}};
  await context.checkForAlerts();assert.strictEqual(context.D.alerts.length,1);assert.strictEqual(rendered,1);
  context.fetch=async url=>{fetched.push(url);if(url.startsWith('https'))throw Error('offline');
   return {ok:true,json:async()=>({schema:1,revision:'newer',generated_at:'2026-10-07T19:00:00Z',alerts:[],alert_config:{}})}};
  await context.checkForAlerts();assert.strictEqual(context.D.alerts.length,0);
- await context.checkForAlerts();assert.strictEqual(fetched[5],'https://clock.example/alerts');
+ await context.checkForAlerts();assert.strictEqual(fetched[5],'https://clock.example/alerts?client=alert-evidence-v1');
  context.document.hidden=true;await context.checkForAlerts();assert.strictEqual(fetched.length,7);
 })().catch(e=>{console.error(e);process.exitCode=1});
 """

@@ -167,8 +167,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(payload)
             return
         if path == "/api/alerts":
-            from .alert_feed import build_feed
-            self._send_json(build_feed(self.conn))
+            from .alert_feed import build_feed, browser_feed
+            self._send_json(browser_feed(build_feed(self.conn),
+                            evidence_aware=q.get('client') == ['alert-evidence-v1']))
             return
         if path == "/api/updates":
             from .pipeline_v2c import semantic_fingerprint

@@ -68,6 +68,17 @@ def build_feed(conn, *, generated_at=None):
             "generated_at": generated_at or datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
 
+def browser_feed(feed, *, evidence_aware=False):
+    """Project only; never change stored payloads or delivery receipts."""
+    if evidence_aware:
+        return feed
+    from .materiality import interruptive_outcome
+    alerts = [row for row in feed['alerts'] if row.get('popup_eligible') is True
+              and row.get('issuer_verified') is True and row.get('priority') in {'P1', 'P2'}
+              and interruptive_outcome({**row, 'material': True})]
+    return {**feed, 'alerts': alerts}
+
+
 def publish_feed(conn, *, opener=None):
     if not push_allowed() or not os.environ.get("MOZES_ALERT_FEED_URL"):
         return {"status": "DISABLED"}

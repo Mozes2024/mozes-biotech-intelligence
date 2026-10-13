@@ -65,7 +65,9 @@ function alertAnalysisHtml(a){
   const notice=interruptiveAlertEligible(a)?'זהות המנפיק ותוצאה מהותית מבוססת מקור אומתו.':
     a.semantic_version==='alert-evidence-v1'?'מוצג ברשימה בלבד: אין תוצאה מהותית מאומתת המתאימה להתראה קוטעת.':
     'מוצג ברשימה בלבד: נתוני הזכאות להתראה קוטעת חסרים. הסיווג ההיסטורי נשמר.';
-  const policy=`<div class="company">${esc(notice)}</div>`;
+  const displayNotice=interruptiveAlertEligible(a)&&!(x?.evidence?.length)?
+    ' ציטוט המקור אינו מוצג; הזכאות נשענת על אימות המקור שסופק, ולא על קיום ציטוט בתצוגה.':'';
+  const policy=`<div class="company">${esc(notice+displayNotice)}</div>`;
   if(!x)return policy+'<div class="company">הסבר לפי המקור: ממתין לקריאת תוכן ההודעה.</div>';
   const basis={source_text:'תוכן המקור נקרא',feed_summary:'נקרא תקציר ההודעה בלבד',headline_only:'כותרת בלבד',structured_source:'נתונים מובנים מהמקור'};
   return policy+`<div class="company"><b>בסיס ההסבר:</b> ${esc(basis[x.basis]||'לא ידוע')}${x.ai_status==='used'?' · ניסוח בסיוע מודל שפה':''}</div>`+
@@ -83,10 +85,12 @@ async function checkForAlerts(){
   alertPollBusy=true;
   try{
     if(D.alert_config?.feed_url)preferredAlertFeedUrl=D.alert_config.feed_url;
-    const url=apiMode?'/api/alerts':preferredAlertFeedUrl||'alerts.json';
+    const fallback='alerts-evidence-v1.json';
+    const base=apiMode?'/api/alerts':preferredAlertFeedUrl;
+    const url=base?base+(base.includes('?')?'&':'?')+'client=alert-evidence-v1':fallback;
     let r;
     try{r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error(r.status)}
-    catch(error){if(apiMode||url==='alerts.json')throw error;r=await fetch('alerts.json',{cache:'no-store'})}
+    catch(error){if(apiMode||url===fallback)throw error;r=await fetch(fallback,{cache:'no-store'})}
     if(!r.ok)throw Error(r.status);
     const feed=await r.json();
     if(feed.schema!==1||!Array.isArray(feed.alerts)||typeof feed.revision!=='string')throw Error('Invalid alert feed');
