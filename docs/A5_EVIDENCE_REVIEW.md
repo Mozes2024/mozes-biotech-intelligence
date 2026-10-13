@@ -2,6 +2,33 @@
 
 ## Final cross-version compatibility gate
 
+### Final P0 follow-up
+
+Both findings are confirmed. The original 85caa58/b682b0b HotEdge used one
+response cache and one pending promise across clients. Five real fetch-path
+regressions failed before correction. Cache and pending owners now partition
+into exactly two normalized capabilities, unknown=legacy, with independent
+five-second TTLs and coalescing. POST invalidates all variants and generation
+guards reject stale cache writes. Tests cover both warm-cache orders, both
+overlapping orders, unknown clients, POST overlap and TTL boundaries.
+
+The original old-script Worker outage falls back to unprotected alerts.json
+and interrupts for a new list-only row. #34 now owns the compatibility-only
+static/API projection and stored metadata forwarding, without semantic changes.
+Its normal Pages publication must be verified BEFORE Worker activation. This
+includes the protected alerts.json, complete alerts-evidence-v1.json, schema-2
+receipt and authoritative checkpoint integrity/monotonicity. Then verify #34
+Worker through the Durable Object (not only its handler), including an outage.
+Only then approve #35 producer/frontend/Stage-0. Both latest branch heads are
+CI-gated, and #34's latest exact commit is an ancestor of #35.
+
+An actual offline export followed by the captured old script verifies safe
+fallback, urgent once-only polling/cross-tab/reload behavior and byte-identical
+outbox rows. The current complete-list client remains covered by the full index
+script integration. Projection does not mutate ACKs, archives or receipts.
+No rollout actions were taken. Do not roll back either safety boundary while
+A5 runs; regression requires stop and separate authorization.
+
 CONFIRMED: the captured main 6f939b8 alerts_ui.js, after an initialized empty
 feed, displays a popup and calls Notification for a new serialized list-only
 A5 row. Revision checks and publication timestamps do not prevent it.

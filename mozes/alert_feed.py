@@ -69,13 +69,21 @@ def build_feed(conn, *, generated_at=None):
 
 
 def browser_feed(feed, *, evidence_aware=False):
-    """Project only; never change stored payloads or delivery receipts."""
+    """Compatibility projection only; unknown/legacy clients fail closed."""
     if evidence_aware:
         return feed
-    from .materiality import interruptive_outcome
+    allowed = {
+        'fda_decision': {'approval', 'crl', 'pdufa_extension', 'refusal_to_file'},
+        'material_safety': {'clinical_hold', 'hold_lifted'},
+        'clinical_outcome': {'primary_endpoint_met', 'primary_endpoint_failed', 'primary_not_significant', 'futility', 'trial_discontinued'},
+        'market_halt': {'halt', 'resumption', 'volatility_pause'},
+    }
     alerts = [row for row in feed['alerts'] if row.get('popup_eligible') is True
               and row.get('issuer_verified') is True and row.get('priority') in {'P1', 'P2'}
-              and interruptive_outcome({**row, 'material': True})]
+              and row.get('confirmed_outcome') is True and row.get('needs_review') is False
+              and row.get('semantic_version') == 'alert-evidence-v1'
+              and row.get('evidence_basis') in {'source_text', 'feed_summary', 'structured_source'}
+              and row.get('event_outcome') in allowed.get(row.get('event_family'), set())]
     return {**feed, 'alerts': alerts}
 
 
