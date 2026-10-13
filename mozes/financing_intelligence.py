@@ -8,17 +8,18 @@ from __future__ import annotations
 import json
 import re
 import time
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 from urllib.parse import urlparse
 
 from . import db
 from .intelligence_store import digest, encode, ensure_schema, operation_finish, operation_start, utcnow, state_get, state_put
 
-FORMS = ('S-3', 'S-3/A', 'S-3ASR', 'S-1', 'S-1/A', '424B3', '424B4', '424B5', '8-K', '6-K')
+FORMS = ('S-3', 'S-3/A', 'S-3ASR', 'S-1', 'S-1/A', '424B3', '424B4', '424B5', '8-K', '6-K', '10-Q', '10-K', '20-F')
+PERIODIC_FORMS = {'10-Q', '10-K', '20-F'}
 NUMBER = r'(?P<number>\d[\d,]*(?:\.\d+)?)\s*(?P<scale>million|billion|thousand)?'
-MONEY = re.compile(r'(?<![A-Za-z])(?:US\s*)?\$\s*' + NUMBER, re.I)
+MONEY = re.compile(r'(?<![A-Za-z])(?P<currency>US\s*\$|U\.S\.\s*\$|C\$|A\$|(?:USD|CAD|AUD|NZD|HKD|SGD|CHF|JPY|CNY|INR|ZAR)\s*\$?|EUR\s*€?|GBP\s*£?|€|£|\$)\s*' + NUMBER, re.I)
 SHARES = re.compile(NUMBER + r'\s+(?:shares of (?:its |our )?(?:common|ordinary) stock|common shares|ordinary shares)\b', re.I)
-PRICE = re.compile(r'\$\s*(?P<number>\d[\d,]*(?:\.\d+)?)\s+per\s+(?:common\s+)?share\b', re.I)
+PRICE = re.compile(MONEY.pattern + r'\s+per\s+(?:(?:common|ordinary|preferred)\s+)?share\b', re.I)
 SCALE = {'million': 1e6, 'billion': 1e9, 'thousand': 1e3, None: 1}
 
 
@@ -38,77 +39,149 @@ def _fact(text, match, kind, unit):
             'context': text[a:b], 'context_start': a, 'context_end': b}
 
 
+def _segments(text):
+    protected = re.sub(r'\b(?:U\.S\.|Inc\.|Ltd\.)', lambda m: m[0].replace('.', '~'), text)
+    boundaries = [0] + [m.end() for m in re.finditer(r'[.!?](?:\s+(?=[A-Z])|$)|\n\s*\n', protected)] + [len(text)]
+    return [(a, b, text[a:b]) for a, b in zip(boundaries, boundaries[1:]) if text[a:b].strip()]
+
+
+def _instrument(text):
+    if re.search(r'at[- ]the[- ]market|\bATM\b', text, re.I): return 'ATM'
+    if re.search(r'convertible|convertible notes', text, re.I): return 'CONVERTIBLE'
+    if re.search(r'\bPIPE\b|private placement', text, re.I): return 'PIPE'
+    if re.search(r'registered[- ]direct', text, re.I): return 'REGISTERED_DIRECT'
+    if re.search(r'\bwarrants?\b', text, re.I): return 'WARRANT'
+    return 'EQUITY'
+
+
+def _status(text, form):
+    low = text.lower()
+    financing = bool(re.search(r'offering|placement|financing|securities purchase agreement|at[- ]the[- ]market|\bATM\b|warrant', low))
+    atm = _instrument(text) == 'ATM'
+    if financing and re.search(r'cancel(?:led|ed)|withdrawn|terminated', low): return 'cancelled_offering'
+    if re.search(r'earlier offering|prior offering|historical financing', low): return 'historical_financing'
+    if financing and re.search(r'\bif\b|\bwould\b', low): return 'conditional_financing'
+    if financing and re.search(r'\b(?:not|never)\s+(?:yet\s+)?(?:closed|completed)|no\s+(?:closing|settlement)', low): return 'financing_review_required'
+    if re.search(r'warrants? .{0,25}(?:exercised|exercise)',low) and re.search(r'\breceived\b.{0,70}(?:gross|net) proceeds',low) and not re.search(r'not|may|would|if|expected',low): return 'completed_offering'
+    if atm and re.search(r'\b(?:sold|received|generated|raised)\b', low) and not re.search(r'\bno\s+shares|did not sell|not sold|may|will|expected', low): return 'atm_sales'
+    closed = bool(re.search(r'\b(?:closed|completed)\b.{0,70}\b(?:offering|placement|financing|sale|issuance)\b|\b(?:offering|placement)\b.{0,35}\b(?:closed|completed)\b|announced (?:the )?closing of', low))
+    if closed and not re.search(r'will|may|could|expected|subject to|not (?:yet )?(?:closed|completed)', low): return 'completed_offering'
+    if re.search(r'pricing of|\bpriced\b', low) and financing: return 'priced_offering'
+    if atm: return 'atm_capacity'
+    if re.search(r'proposed|intends? to (?:offer|sell)|launch(?:ed)?|commenced|entered.{0,60}securities purchase agreement', low): return 'proposed_offering' if financing else 'not_identified'
+    if re.search(r'will (?:close|complete)|expected.{0,25}(?:close|closing|completion)', low) and financing: return 'proposed_offering'
+    if re.search(r'selling (?:stockholders|shareholders|securityholders)', low): return 'resale_registration'
+    if re.search(r'capacity to (?:sell|offer)|authorized to (?:sell|offer)', low): return 'registration_only'
+    if form.split('/')[0] in {'S-3', 'S-3ASR', 'S-1'}: return 'registration_only'
+    return 'financing_review_required' if financing else 'not_identified'
+
+
+def _currency(match, sentence, text):
+    marker = re.sub(r'\s+', '', match['currency']).upper()
+    if marker != '$':
+        return {'C$':'CAD', 'A$':'AUD', '€':'EUR', '£':'GBP', 'US$':'USD', 'U.S.$':'USD'}.get(marker,marker.rstrip('$€£'))
+    local = re.findall(r'\b(?:USD|CAD|AUD|EUR|GBP|NZD|HKD|SGD|CHF|JPY|CNY|INR|ZAR)\b|Canadian dollars|Australian dollars|U\.S\. dollars', sentence, re.I)
+    units = { {'CANADIAN DOLLARS':'CAD','AUSTRALIAN DOLLARS':'AUD','U.S. DOLLARS':'USD'}.get(x.upper(),x.upper()) for x in local }
+    if len(units) == 1: return units.pop()
+    if units or re.search(r'Canadian|Australian|\b(?:CAD|AUD|NZD|HKD|SGD|CHF|JPY|CNY|INR|ZAR|EUR|GBP)\b|C\$|A\$|€|£', text, re.I): return 'UNKNOWN'
+    return 'USD'  # Existing SEC dollar convention, never applied over an explicit foreign marker.
+
+
+def _period(text):
+    match = re.search(r'(?:months|quarter|year|period) ended\s+([A-Z][a-z]+\s+\d{1,2},?\s+20\d{2})', text, re.I)
+    if not match: return None
+    try: end = datetime.strptime(match[1].replace(',', ''), '%B %d %Y').date().isoformat()
+    except ValueError: return None
+    return {'end':end, 'text':match[0]}
+
+
+def _economic_date(text):
+    match=re.search(r'\b(?:on|in)\s+([A-Z][a-z]+\s+\d{1,2},?\s+20\d{2})',text,re.I)
+    if not match: return None
+    try: return datetime.strptime(match[1].replace(',', ''),'%B %d %Y').date().isoformat()
+    except ValueError: return None
+
+
 def analyze_financing(form, text):
     form = form.upper().strip()
-    low = text.lower()
-    resale = bool(re.search(r'selling (?:stockholders|shareholders|securityholders)', low)
-                  and re.search(r'(?:will not|do not|will receive no) receive (?:any )?proceeds|no proceeds to (?:us|the company)', low))
-    atm = bool(re.search(r'at[- ]the[- ]market (?:offering|sales|equity)|sales agreement.*?sales agent', low))
-    completed = bool(re.search(r'(?:has |have )?(?:closed|completed) (?:its |our |the |an? )?(?:(?:underwritten|public|registered direct|private) )*offering|closing of (?:its |the )?(?:public )?offering (?:occurred|was completed)', low))
-    priced = bool(re.search(r'(?:announces?|announced|has announced) (?:the )?pricing of|priced (?:its |the |an? )?(?:public |underwritten )?offering', low))
-    proposed = bool(re.search(r'(?:proposed|intends? to (?:offer|sell)|commenced|launch(?:ed)?) .{0,70}(?:offering|shares)|proposed (?:public )?offering', low))
-    financing_language = bool(re.search(r'public offering|private placement|registered direct|securities purchase agreement|at[- ]the[- ]market', low))
-    base_form = form.split('/')[0]
-    if completed:
-        for fragment in re.split(r'[.!?]\s+|\n', low):
-            if re.search(r'completed|closed', fragment) and re.search(r'\bif\b|not (?:yet )?(?:completed|closed)|may (?:have )?(?:completed|closed)', fragment):
-                completed = False
-                break
-    if completed and (proposed or priced):
-        kind = 'multiple_transactions_review'
-    elif resale:
-        kind = 'resale_registration'
-    elif completed:
-        kind = 'completed_offering'
-    elif priced:
-        kind = 'priced_offering'
-    elif proposed:
-        kind = 'proposed_offering'
-    elif atm:
-        kind = 'atm_capacity'
-    elif base_form in {'S-3', 'S-3ASR', 'S-1'}:
-        kind = 'registration_only'
-    elif base_form in {'424B3', '424B4', '424B5'} or financing_language:
-        kind = 'financing_review_required'
-    else:
-        kind = 'not_identified'
-    facts = []
-    for m in MONEY.finditer(text):
-        a, b, sentence = _sentence(text, m.start(), m.end())
-        context = sentence.lower()
-        if re.search(r'Canadian dollars|Australian dollars|\bCAD\b|\bAUD\b|C\$|A\$', text, re.I) and not m[0].upper().startswith('US'):
-            continue
-        # Strong anchors in the same sentence; no global largest-dollar-number heuristic.
-        prefix = text[max(a, m.start()-150):m.start()].lower()
-        anchors = [(hit.end(), kind) for expr, kind in (
-            (r'gross proceeds', 'gross_proceeds'),
-            (r'net proceeds', 'net_proceeds'),
-            (r'up to|aggregate offering price|aggregate sales price', 'authorized_capacity'),
-        ) for hit in re.finditer(expr, prefix)]
-        if not anchors:
-            continue
-        fk = max(anchors)[1]
-        if fk == 'authorized_capacity' and not re.search(r'sell|offering|shares|securities', context):
-            continue
-        # Per-share dollars in a proceeds sentence must not become proceeds totals.
-        if re.match(r'\s+per\s+(?:common\s+)?share', text[m.end():m.end()+30], re.I):
-            continue
-        fact = _fact(text, m, fk, 'USD')
-        fact['transaction_status'] = kind
-        facts.append(fact)
-    for regex, fk, unit in ((SHARES, 'offered_common_shares', 'shares'), (PRICE, 'offering_price_per_share', 'USD/share')):
-        for m in regex.finditer(text):
-            _, _, sentence = _sentence(text, m.start(), m.end())
-            if not re.search(r'offer|sell|sale|sold|purchase', sentence, re.I):
-                continue
-            if fk == 'offering_price_per_share' and re.search(r'exercise price|warrant', sentence, re.I):
-                continue
-            facts.append(_fact(text, m, fk, unit))
-    # Multiple figures are kept as candidates, not arbitrarily collapsed into one amount.
-    facts = [dict(item, ambiguous=sum(x['kind'] == item['kind'] for x in facts) > 1) for item in facts]
-    return {'kind': kind, 'form': form, 'facts': facts, 'source_text_hash': digest(text),
-            'has_warrants': bool(re.search(r'\bwarrants?\b', low)),
-            'cash_raised_verified': kind == 'completed_offering' and any(x['kind'] in {'gross_proceeds', 'net_proceeds'} and not x['ambiguous'] for x in facts),
+    transactions, facts = [], []
+    previous = None
+    for a,b,sentence in _segments(text):
+        status = _status(sentence, form)
+        amount_only = (status == 'not_identified' or status == 'registration_only' and previous and previous['status']=='atm_capacity') and bool(re.search(r'gross proceeds|net proceeds|up to',sentence,re.I))
+        if amount_only and previous and a - previous['last_end'] < 3:
+            transaction = previous
+        else:
+            if status == 'not_identified' and form in {'424B3','424B4','424B5'}: status = 'financing_review_required'
+            transaction = {'id':len(transactions),'status':status,'instrument':_instrument(sentence),
+                           'recipient':'selling_shareholders' if re.search(r'selling (?:stockholders|shareholders|securityholders)',sentence,re.I) else 'issuer',
+                           'reporting_period':_period(sentence), 'evidence':[], 'last_end':b}
+            transaction['economic_date']=_economic_date(sentence)
+            if re.search(r'\binvestors?\b.{0,30}receiv',sentence,re.I) and not re.search(r'proceeds to (?:us|the company|the issuer)',sentence,re.I):
+                transaction['recipient']='unknown'
+            transactions.append(transaction)
+        transaction['evidence'].append({'start':a,'end':b,'text':sentence})
+        transaction['last_end'] = b
+        previous = transaction
+        if re.search(r'(?:will not|do not) receive (?:any )?proceeds|(?:will )?receive no proceeds|no proceeds to (?:us|the company)',sentence,re.I):
+            if len(transactions)>1 and transaction['status']=='not_identified':
+                transactions[-2]['recipient']='selling_shareholders'
+            transaction['recipient']='selling_shareholders'
+        matches=list(MONEY.finditer(sentence))
+        for local in matches:
+            # Recover original match offsets, not normalized or synthesized source text.
+            m=MONEY.match(text,a+local.start())
+            if re.match(r'\s+per\s+(?:\w+\s+){0,4}(?:share|unit|ADS)',text[m.end():m.end()+70],re.I): continue
+            prefix=text[max(a,m.start()-150):m.start()]
+            anchors=[(hit.end(),label) for expression,label in [(r'gross proceeds','gross_proceeds'),(r'net proceeds','net_proceeds'),
+                      (r'up to|aggregate offering price|aggregate sales price','authorized_capacity'),(r'aggregate principal amount','convertible_principal')]
+                     for hit in re.finditer(expression,prefix,re.I)]
+            trailing=re.match(r'\s*(?:in|of|as)?\s*(gross proceeds|net proceeds|aggregate principal amount)',text[m.end():b],re.I)
+            fk=trailing[1].lower().replace(' ','_') if trailing else max(anchors)[1] if anchors else None
+            if fk=='aggregate_principal_amount': fk='convertible_principal'
+            if fk in {'gross_proceeds','net_proceeds'} and re.search(r'use.{0,40}proceeds.{0,150}(?:pay|repay|cost|purchase)',prefix,re.I): fk='use_of_proceeds'
+            if not fk or (fk=='authorized_capacity' and not re.search(r'sell|offering|shares|securities|capacity',sentence,re.I)): continue
+            fact=_fact(text,m,fk,_currency(m,sentence,text))
+            fact.update(context=sentence,context_start=a,context_end=b,transaction_id=transaction['id'],
+                        transaction_status=transaction['status'],currency=fact['unit'],reporting_period=transaction['reporting_period'],
+                        amount_uncertain=bool(re.search(r'expect(?:s|ed)?|estimate(?:d)?|would|could|may|potential',text[a:m.start()],re.I) or
+                                              re.match(r'\s*(?:[-–]|to)\s*\$?\d',text[m.end():b],re.I)))
+            facts.append(fact)
+        for regex,fk,unit in [(SHARES,'offered_common_shares','shares'),(PRICE,'offering_price_per_share','USD/share')]:
+            for local in regex.finditer(sentence):
+                if not re.search(r'offer|sell|sale|sold|purchase',sentence,re.I): continue
+                if fk=='offering_price_per_share' and re.search(r'exercise price|warrant',sentence,re.I): continue
+                if fk=='offering_price_per_share' and re.search(r'par value\s*$',sentence[max(0,local.start()-30):local.start()],re.I): continue
+                m=regex.match(text,a+local.start());fact=_fact(text,m,fk,unit)
+                if fk=='offering_price_per_share': fact['unit']=_currency(m,sentence,text)+'/share'
+                fact.update(context=sentence,context_start=a,context_end=b,transaction_id=transaction['id'],transaction_status=transaction['status'])
+                facts.append(fact)
+    active=[t for t in transactions if t['status']!='not_identified']
+    kinds={t['status'] for t in active}
+    if any(t['recipient']=='selling_shareholders' for t in active) and not any(t['recipient']=='issuer' and t['status']=='completed_offering' for t in active):
+        kind='resale_registration'
+    elif len(kinds)>1: kind='multiple_transactions_review'
+    else: kind=next(iter(kinds),'not_identified')
+    if kind=='not_identified' and facts: kind='financing_review_required'
+    for f in facts:
+        t=transactions[f['transaction_id']]
+        f['recipient']=t['recipient']
+        f['ambiguous']=sum(x['kind']==f['kind'] and x['transaction_id']==f['transaction_id'] for x in facts)>1 or (
+            'historical_financing' in kinds and sum(x['kind']==f['kind'] for x in facts)>1)
+        f['realized']=bool(f['kind'] in {'gross_proceeds','net_proceeds'} and t['status'] in {'completed_offering','atm_sales'}
+                           and t['recipient']=='issuer' and f['unit']!='UNKNOWN' and not f['ambiguous'] and not f.get('amount_uncertain'))
+    realized=any(f['realized'] for f in facts)
+    review=kind in {'financing_review_required','multiple_transactions_review','conditional_financing'} or any(
+        f['ambiguous'] or f['unit']=='UNKNOWN' or (f.get('amount_uncertain') and f['transaction_status'] in {'completed_offering','atm_sales'}) for f in facts)
+    review=review or any(t['recipient']=='unknown' for t in active)
+    for t in transactions: t.pop('last_end',None)
+    return {'kind': kind, 'form': form, 'facts': facts, 'transactions':active, 'source_text_hash': digest(text),
+            'financing_version':'financing-b1-v1','classification_status':'REVIEW_REQUIRED' if review else 'KNOWN',
+            'realized_proceeds_status':'AVAILABLE' if realized else 'NOT_VERIFIED',
+            'net_proceeds_available':any(f['kind']=='net_proceeds' and f['realized'] for f in facts),
+            'requires_financing_reconciliation':realized or any(t['status']=='completed_offering' and t['recipient']=='issuer' for t in active),
+            'has_warrants': bool(re.search(r'\bwarrants?\b', text,re.I)),
+            'cash_raised_verified': realized,
             'does_not_adjust_cash_balance': True, 'does_not_change_evidence_score': True,
             'unquantified_dilution': kind not in {'not_identified', 'resale_registration', 'registration_only'}}
 
@@ -125,6 +198,11 @@ def store_financing(conn, ticker, filing, text):
     published = filing.get('accepted') or filing.get('filed')
     if not accession or not published:
         raise ValueError('financing accession and publication date required')
+    source_cik=re.search(r'/data/(\d+)/',parsed.path)
+    cik=str(filing.get('cik') or (source_cik[1] if source_cik else '')).lstrip('0') or None
+    if source_cik and cik != source_cik[1].lstrip('0'):
+        raise ValueError('financing CIK does not match SEC source URL')
+    analysis['issuer_cik']=cik
     rid = 'OFFER-' + digest([ticker, accession, filing['url'], analysis['source_text_hash']])[:32]
     with conn:
         inserted = conn.execute('INSERT OR IGNORE INTO v2c_financing_events VALUES(?,?,?,?,?,?,?,?)',
@@ -133,25 +211,75 @@ def store_financing(conn, ticker, filing, text):
 
 
 def financing_context(conn, ticker, *, as_of):
-    ensure_schema(conn)
+    if not conn.execute("SELECT 1 FROM sqlite_master WHERE name='v2c_financing_events'").fetchone(): return []
     cutoff = (as_of - timedelta(days=120)).isoformat()
     rows = conn.execute('SELECT * FROM v2c_financing_events WHERE ticker=? AND published_at>=? '
-                        'AND substr(published_at,1,10)<=? ORDER BY published_at DESC,captured_at DESC',
-                        (ticker.upper(), cutoff, as_of.isoformat())).fetchall()
-    out, seen = [], set()
+                        'ORDER BY published_at DESC,captured_at DESC',
+                        (ticker.upper(), cutoff)).fetchall()
+    boundary=datetime(as_of.year,as_of.month,as_of.day,tzinfo=timezone.utc)
+    eligible=[]
     for row in rows:
         rec = dict(row)
-        # One filing can include overlapping primary/exhibit disclosures; prefer detailed facts.
-        key = (rec['accession'], json.loads(rec['payload'])['kind'])
+        try:
+            published=datetime.fromisoformat(rec['published_at'].replace('Z','+00:00'))
+            captured=datetime.fromisoformat(rec['captured_at'].replace('Z','+00:00'))
+            if (published.replace(tzinfo=timezone.utc) if published.tzinfo is None else published)>=boundary or captured.tzinfo is None or captured>=boundary: continue
+        except (ValueError,TypeError): continue
+        payload=json.loads(rec['payload'])
+        eligible.append({**payload,'source_url':rec['source_url'],'published_at':rec['published_at'],
+                         'accession':rec['accession'],'source_known_at':rec['captured_at'],'source_hash':rec['source_hash'],
+                         'issuer_cik':payload.get('issuer_cik') or (re.search(r'/data/(\d+)/',rec['source_url'])[1] if re.search(r'/data/(\d+)/',rec['source_url']) else None)})
+    out,seen=[],{}
+    # Prefer source detail over latest empty exhibit; retain all provenance.
+    for item in sorted(eligible,key=lambda x:len(x.get('facts',[])),reverse=True):
+        dates=sorted({t.get('economic_date') or (t.get('reporting_period') or {}).get('end') for t in item.get('transactions',[]) if t.get('economic_date') or t.get('reporting_period')})
+        key=(item['issuer_cik'],item['source_hash'],tuple(dates)) if dates else (item['accession'],item['kind'],item['source_hash'])
+        source={k:item[k] for k in ('accession','source_url','source_hash','source_known_at','published_at')}
+        if not item.get('facts'):
+            detailed=next((other for other in out if other['accession']==item['accession'] and other['kind']==item['kind']),None)
+            if detailed:
+                detailed['sources'].append(source)
+                continue
         if key in seen:
+            seen[key]['sources'].append(source)
             continue
-        seen.add(key)
-        out.append({**json.loads(rec['payload']), 'source_url': rec['source_url'],
-                    'published_at': rec['published_at'], 'accession': rec['accession']})
+        item['sources']=[source];seen[key]=item;out.append(item)
+    out.sort(key=lambda x:x['published_at'],reverse=True)
+    # Unproven overlap across accessions is disclosed, never added as fresh cash.
+    def amounts(item):
+        return {(f['kind'],f['value'],f['unit']) for f in item.get('facts',[]) if f['kind'] in {'net_proceeds','gross_proceeds','convertible_principal','authorized_capacity'}}
+    for item in out:
+        item['overlap_review']=any(other is not item and (other['source_hash']==item['source_hash'] or
+                                  amounts(item) & amounts(other)) for other in out)
     return out[:12]
 
 
+def requires_reconciliation(disclosure, statement_date):
+    """Reported receipt dates only; never add gross/net/capacity to cash."""
+    if not statement_date: return False
+    if disclosure.get('financing_version')!='financing-b1-v1': return disclosure.get('kind')=='completed_offering'
+    if not disclosure.get('requires_financing_reconciliation'): return False
+    for transaction in disclosure.get('transactions',[]):
+        if transaction['status'] not in {'completed_offering','atm_sales'} or transaction['recipient']!='issuer': continue
+        end=transaction.get('economic_date') or (transaction.get('reporting_period') or {}).get('end')
+        if end is None or end>statement_date: return True
+    return False
+
+
 from .source_observability import observed
+
+
+def _published_after_coverage(filing, started_at):
+    """Publication, not first discovery or the ATM reporting period, is the boundary."""
+    try:
+        published = datetime.fromisoformat((filing.get('accepted') or filing['filed']).replace('Z', '+00:00'))
+        started = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+        if started.tzinfo is None: return False
+        # SEC date-only publication is conservatively available at UTC midnight.
+        if published.tzinfo is None: published = published.replace(tzinfo=timezone.utc)
+        return published > started
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
 
 
 @observed
@@ -174,6 +302,13 @@ def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, re
         baselined = state_get(conn, baseline_key, False)
         error_count = len(out['errors'])
         try:
+            coverage_key = 'financing_periodic_coverage_started:' + watch['ticker']
+            coverage_started = state_get(conn, coverage_key)
+            if coverage_started is None:
+                coverage_started = utcnow()
+                # Persist before source I/O: failed/partial initial scans must not
+                # turn previously published coverage into new changes on retry.
+                state_put(conn, coverage_key, coverage_started)
             out['processed'] += 1
             filings = edgar.recent_filings_v2(watch['cik'], forms=FORMS, limit=max_filings)
             for filing in filings:
@@ -186,10 +321,11 @@ def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, re
                 for document in documents[:4]:
                     text = edgar.html_to_text(edgar._get(document['url']))
                     out['filings_checked'] += 1
-                    analyzed = store_financing(conn, watch['ticker'], {**filing, 'url': document['url']}, text)
+                    analyzed = store_financing(conn, watch['ticker'], {**filing, 'url': document['url'], 'cik':watch['cik']}, text)
                     if analyzed:
                         out['identified'] += 1
-                        if analyzed['new_record'] and baselined:
+                        new_publication = filing['form'] not in PERIODIC_FORMS or _published_after_coverage(filing, coverage_started)
+                        if analyzed['new_record'] and baselined and new_publication:
                             if recorder is None:
                                 from .live_monitor import record_change
                                 recorder = record_change

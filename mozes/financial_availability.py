@@ -43,7 +43,10 @@ def _later_financing(conn, ticker, anchor, cutoff):
         if source.scheme != 'https' or source.hostname not in {'www.sec.gov', 'data.sec.gov'}:
             continue
         payload = json.loads(row['payload'])
-        if payload.get('kind') in RECONCILE_KINDS:
+        from .financing_intelligence import requires_reconciliation
+        reconcile=(requires_reconciliation(payload,anchor.isoformat()) if payload.get('financing_version')=='financing-b1-v1'
+                   else payload.get('kind') in RECONCILE_KINDS)
+        if reconcile:
             disclosures.append({'kind': payload['kind'], 'published_at': row['published_at'],
                                 'source_url': row['source_url'], 'accession': row['accession']})
     return disclosures

@@ -68,8 +68,9 @@ def test_clinical_press_release_is_not_financing():
 
 def test_foreign_dollar_amount_not_presented_as_usd():
     out = analyze_financing('8-K', 'We completed the offering with gross proceeds of C$50 million in Canadian dollars.')
-    assert not out['facts']
-    assert not out['cash_raised_verified']
+    assert len(out['facts']) == 1 and out['facts'][0]['unit'] == 'CAD'
+    assert out['facts'][0]['value'] == 50e6
+    assert out['cash_raised_verified']  # Source reports CAD receipts, never USD cash/runway.
 
 
 def test_conditional_completion_not_verified_cash():
