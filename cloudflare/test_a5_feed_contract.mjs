@@ -1,11 +1,48 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {publicFeed} from './src/alert-feed.js';
+import {publicFeed,clientFeed,handleAlertFeed} from './src/alert-feed.js';
+import fs from 'node:fs';
+import vm from 'node:vm';
 const alert={change_id:'CHG-123',priority:'P1',polarity:'negative',ticker:'ACME',
  event_family:'clinical_outcome',event_outcome:'primary_endpoint_failed',
  evidence_basis:'source_text',semantic_version:'alert-evidence-v1',uncertainty_status:'none',
  issuer_verified:true,confirmed_outcome:true,needs_review:false,popup_eligible:true};
 const feed=rows=>({schema:1,sequence:1,revision:'a'.repeat(64),generated_at:'2026-10-12T12:00:00Z',alerts:rows});
+
+// Captured from main 6f939b8:web/alerts_ui.js; execute its real polling,
+// popup and Notification paths, beginning with an initialized empty feed.
+function oldBrowser(){
+ const storage=new Map(),notifications=[],popup={hidden:true,innerHTML:'',querySelector:()=>({})};
+ const c=vm.createContext({D:{alert_config:{}},apiMode:false,document:{hidden:false},navigator:{},
+  window:{localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}},
+  Notification:class{static permission='granted';constructor(title,options){notifications.push(options.tag);}},
+  $:()=>popup,esc:x=>x,alertWhyHe:a=>a.headline,render:()=>{},page:'dash'});
+ c.window.Notification=c.Notification;
+ vm.runInContext(fs.readFileSync(new URL('../tests/fixtures/a5_pre_a5_alerts_ui.js',import.meta.url),'utf8'),c);
+ return {popup,notifications,async poll(value){c.fetch=async()=>({ok:true,json:async()=>JSON.parse(JSON.stringify(value))});await c.checkForAlerts();}};
+}
+test('reproduce: initialized actual pre-A5 script interrupts for a new serialized list-only row',async()=>{
+ const browser=oldBrowser();await browser.poll(publicFeed(feed([])));
+ await browser.poll(publicFeed({...feed([{...alert,popup_eligible:false}]),revision:'b'.repeat(64)}));
+ assert.equal(browser.popup.hidden,false);assert.deepEqual(browser.notifications,['CHG-123']);
+});
+test('Worker GET separates legacy and evidence-aware clients without changing stored rows or receipts',async()=>{
+ const snapshot=publicFeed({...feed([{...alert,popup_eligible:false}, {...alert,change_id:'CHG-456'}]),revision:'b'.repeat(64)});
+ const serialized=JSON.stringify(snapshot),env={ALERTS_DB:{prepare:()=>({first:async()=>({payload:serialized,received_at:'receipt'})})}};
+ const legacy=await (await handleAlertFeed(new Request('https://clock.example/alerts'),env)).json();
+ const aware=await (await handleAlertFeed(new Request('https://clock.example/alerts?client=alert-evidence-v1'),env)).json();
+ assert.deepEqual(legacy.alerts.map(a=>a.change_id),['CHG-456']);assert.equal(aware.alerts.length,2);
+ assert.equal(aware.received_at,'receipt');assert.equal(aware.revision,snapshot.revision);assert.equal(JSON.stringify(snapshot),serialized);
+ const browser=oldBrowser();await browser.poll(clientFeed(publicFeed(feed([]))));
+ await browser.poll(legacy);await browser.poll(legacy);
+ assert.deepEqual(browser.notifications,['CHG-456']);assert.ok(!browser.popup.innerHTML.includes('CHG-123'));
+});
+test('missing source verification suppresses eligibility independently of displayed excerpt availability',()=>{
+ for(const basis of ['source_text','feed_summary','structured_source']) {
+  const value=publicFeed(feed([{...alert,evidence_basis:basis}]));assert.equal(value.alerts[0].popup_eligible,true);
+ }
+ assert.equal(publicFeed(feed([{...alert,evidence_basis:null}])).alerts[0].popup_eligible,false);
+});
 test('serialized public feed preserves the explicit interruptive contract and removes private fields',()=>{
  const result=JSON.parse(JSON.stringify(publicFeed(feed([{...alert,secret:'private'}])))).alerts[0];
  for(const key of ['event_family','event_outcome','evidence_basis','semantic_version','uncertainty_status',

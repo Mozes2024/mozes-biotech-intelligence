@@ -116,6 +116,12 @@ export function publicFeed(value) {
       .filter(x => CHANNELS.has(x) && x !== "log"), feed_url: config.feed_url || null } };
 }
 
+// Unversioned clients notify on every unseen row. Keep the complete snapshot
+// stored, but require explicit client capability before exposing list-only rows.
+export function clientFeed(feed, evidenceAware = false) {
+  return evidenceAware ? feed : {...feed, alerts: feed.alerts.filter(row => row.popup_eligible === true)};
+}
+
 async function readBounded(request) {
   if (Number(request.headers.get("Content-Length")) > MAX_BYTES) throw Error("too large");
   const reader = request.body?.getReader();
@@ -146,7 +152,9 @@ export async function handleAlertFeed(request, env, now = new Date()) {
     if (request.method === "GET") {
       const stored = await env.ALERTS_DB.prepare("SELECT payload,received_at FROM alert_feed WHERE id=1").first();
       if (!stored) return response(env, { error: "alert feed not initialized" }, 503);
-      return response(env, { ...JSON.parse(stored.payload), received_at: stored.received_at });
+      const feed = publicFeed(JSON.parse(stored.payload));
+      const aware = new URL(request.url).searchParams.get('client') === 'alert-evidence-v1';
+      return response(env, { ...clientFeed(feed, aware), received_at: stored.received_at });
     }
     if (!request.headers.get("Content-Type")?.startsWith("application/json")) {
       return response(env, { error: "JSON required" }, 415);
