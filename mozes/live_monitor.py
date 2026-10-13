@@ -355,6 +355,9 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
                 "nasdaq_halts": _isolated("nasdaq_halts", lambda: poll_nasdaq_halts(
                     conn, fetch=_feed_fetch, watch_tickers=watch_tickers)),
             }
+        if sec and priority_only and os.environ.get('MOZES_B1_FINANCING_OBSERVATION') == '1':
+            from .financing_intelligence import refresh_due_financing
+            details['financing'] = refresh_due_financing(conn)
         reconcile_states(conn)
         details["changes"] = conn.execute("SELECT COUNT(*) FROM change_events WHERE detected_at>=?", (started,)).fetchone()[0]
         if os.environ.get("MOZES_ALERT_DISPATCH", "0") == "1":
@@ -364,7 +367,9 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
                 details["errors"].append({"alert_enqueue": details["alerts"]["errors"]})
         if sec and not os.environ.get("SEC_USER_AGENT"):
             details["sec_skipped"] = "SEC_USER_AGENT not configured"
-        status = "OK" if not details["errors"] else "PARTIAL"
+        financing_status = details.get('financing', {}).get('status')
+        status = ('PARTIAL' if details['errors'] or financing_status in {'FAILED', 'PARTIAL'} else
+                  'INCOMPLETE' if financing_status == 'INCOMPLETE' else 'OK')
     except Exception as exc:
         details["errors"].append({"fatal": str(exc)})
         status = "FAILED"

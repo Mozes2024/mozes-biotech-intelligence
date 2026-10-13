@@ -6,6 +6,7 @@ share-count denominators, or a probability of an offering.
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from datetime import date, timedelta, datetime, timezone
@@ -283,15 +284,22 @@ def _published_after_coverage(filing, started_at):
 
 
 @observed
-def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, recorder=None):
+def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, recorder=None,
+                      watches=None, observation_started=None, deadline=None):
     from .ingest import edgar
     today = today or date.today()
     rid = operation_start(conn, 'financing')
-    out = {'requested': len(db.watch_rows(conn)), 'processed': 0, 'filings_checked': 0, 'identified': 0,
-           'errors': [], 'missing_cik': [], 'budget_exhausted': False}
+    watches = db.watch_rows(conn) if watches is None else watches
+    out = {'requested': len(watches), 'processed': 0, 'filings_checked': 0, 'identified': 0,
+           'errors': [], 'missing_cik': [], 'budget_exhausted': False, 'document_limit_reached': False}
+    if observation_started:
+        out.update(observation_started=observation_started, budget_seconds=budget_seconds,
+                   max_filings=max_filings, cohort='priority')
     cutoff = (today - timedelta(days=45)).isoformat()
-    deadline = time.monotonic() + budget_seconds
-    for watch in db.watch_rows(conn):
+    bounded_requests = deadline is not None
+    deadline = min(deadline, time.monotonic() + budget_seconds) if deadline is not None else time.monotonic() + budget_seconds
+    request_options = {'deadline': deadline} if bounded_requests else {}
+    for watch in watches:
         if time.monotonic() >= deadline:
             out['budget_exhausted'] = True
             break
@@ -305,27 +313,42 @@ def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, re
             coverage_key = 'financing_periodic_coverage_started:' + watch['ticker']
             coverage_started = state_get(conn, coverage_key)
             if coverage_started is None:
-                coverage_started = utcnow()
+                coverage_started = observation_started or utcnow()
                 # Persist before source I/O: failed/partial initial scans must not
                 # turn previously published coverage into new changes on retry.
                 state_put(conn, coverage_key, coverage_started)
             out['processed'] += 1
-            filings = edgar.recent_filings_v2(watch['cik'], forms=FORMS, limit=max_filings)
-            for filing in filings:
+            if observation_started:
+                state_put(conn, 'b1_financing_attempt:' + watch['ticker'], utcnow())
+            filings = edgar.recent_filings_v2(watch['cik'], forms=FORMS, limit=max_filings, **request_options)
+            for filing in filings[:max_filings]:
                 if time.monotonic() >= deadline:
                     out['budget_exhausted'] = True
                     break
                 if not cutoff <= filing.get('filed', '') <= today.isoformat():
                     continue
-                documents = edgar.filing_documents(filing) if filing['form'] in {'8-K', '6-K'} else [{'url': filing['url']}]
+                documents = [{'url': filing['url']}]
+                if filing['form'] in {'8-K', '6-K'}:
+                    if observation_started:
+                        documents, diagnostics = edgar.filing_documents(filing, return_diagnostics=True, **request_options)
+                        out['errors'].extend({'ticker': watch['ticker'], 'reason': item['reason']}
+                                             for item in diagnostics if item['status'] != 'OK')
+                    else:
+                        documents = edgar.filing_documents(filing)
+                out['document_limit_reached'] |= len(documents) > 4
                 for document in documents[:4]:
-                    text = edgar.html_to_text(edgar._get(document['url']))
+                    if time.monotonic() >= deadline:
+                        out['budget_exhausted'] = True
+                        break
+                    text = edgar.html_to_text(edgar._get(document['url'], **request_options))
                     out['filings_checked'] += 1
                     analyzed = store_financing(conn, watch['ticker'], {**filing, 'url': document['url'], 'cik':watch['cik']}, text)
                     if analyzed:
                         out['identified'] += 1
                         new_publication = filing['form'] not in PERIODIC_FORMS or _published_after_coverage(filing, coverage_started)
-                        if analyzed['new_record'] and baselined and new_publication:
+                        emit = (_published_after_coverage(filing, observation_started) if observation_started
+                                else baselined and new_publication)
+                        if analyzed['new_record'] and emit:
                             if recorder is None:
                                 from .live_monitor import record_change
                                 recorder = record_change
@@ -339,8 +362,36 @@ def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, re
                 state_put(conn, baseline_key, True)
         except Exception as exc:
             out['errors'].append({'ticker': watch['ticker'], 'error': str(exc)[:200]})
+            out['budget_exhausted'] |= time.monotonic() >= deadline
     out['error_count'] = len(out['errors'])
     out['completeness_pct'] = round(100 * out['processed'] / out['requested'], 1) if out['requested'] else 100.0
-    status = 'PARTIAL' if out['errors'] else 'INCOMPLETE' if out['missing_cik'] or out['budget_exhausted'] else 'OK'
+    status = 'PARTIAL' if out['errors'] else 'INCOMPLETE' if out['missing_cik'] or out['budget_exhausted'] or out['document_limit_reached'] else 'OK'
     operation_finish(conn, rid, status, out)
     return {**out, 'status': status}
+
+
+def refresh_due_financing(conn, *, now=None):
+    """One bounded priority batch per six hours, owned by the hot monitor DB."""
+    from .priority import priority_tickers
+    if not os.environ.get('SEC_USER_AGENT', '').strip():
+        return {'status': 'SKIPPED', 'reason': 'SEC_USER_AGENT missing'}
+    ensure_schema(conn)
+    now = now or datetime.now(timezone.utc)
+    observation = state_get(conn, 'b1_financing_observation', {})
+    if observation.get('last_attempt'):
+        last = datetime.fromisoformat(observation['last_attempt'])
+        if now - last < timedelta(hours=6):
+            return {'status': 'SKIPPED', 'reason': 'not_due'}
+    priority = set(priority_tickers())
+    watches = [row for row in db.watch_rows(conn) if row['ticker'] in priority
+               and str(row.get('cik') or '').isdigit()]
+    if not watches:
+        return {'status': 'SKIPPED', 'reason': 'no_priority_cik'}
+    watches.sort(key=lambda row: (state_get(conn, 'b1_financing_attempt:' + row['ticker'], ''), row['ticker']))
+    started = observation.get('started_at') or now.isoformat()
+    # Commit before I/O: a partial/failed attempt cannot retry on every hot tick
+    # or move the new-publication boundary. Unattempted issuers retain priority.
+    state_put(conn, 'b1_financing_observation', {'started_at': started, 'last_attempt': now.isoformat()})
+    return refresh_financing(conn, today=now.date(), watches=watches[:5], max_filings=8,
+                             budget_seconds=60, deadline=time.monotonic() + 60,
+                             observation_started=started)

@@ -173,7 +173,7 @@ def semantic_fingerprint(payload):
                      'recommendation': row.get('recommendation'), 'security': (row.get('security') or {}).get('status'),
                      'close': (row.get('market') or {}).get('last_close'),
                      'financial_source': financial.get('source_hash'), 'runway_band': financial.get('runway_band'),
-                     'financing': [(x.get('accession'), x.get('kind')) for x in row.get('financing_events', [])]})
+                     'financing': digest(row.get('financing_events', []))})
     health = payload.get('health') or {}
     return digest({'live': live, 'summary': payload.get('summary'),
                    'alerts': payload.get('alerts'), 'alert_config': {
