@@ -74,6 +74,18 @@ digest verification; mismatches abort. No network or database writes occur.
 
 ## Review gates
 
+Focused review correction: expanding coverage to 10-Q/10-K/20-F must not emit
+new changes for previously published reports of already-baselined issuers. An
+issuer-specific periodic coverage start timestamp is persisted in the existing
+v2c_state before source I/O, including empty, failed or partial initial scans.
+Reports published at/before that boundary enrich context quietly; reports
+published after it retain normal one-time change detection. Publication date,
+not the reported ATM period, determines whether information is new. Same-day
+date-only sources are conservatively treated as initial coverage. Existing
+8-K/6-K behavior and immutable rows are unchanged. Deterministic regressions
+reproduced 5 failures / 2 passes before correction, including a real CHG from
+a historical 10-Q; after correction history creates no CHG or outbox candidate.
+
 Full Python, production JavaScript chain, Worker/D1 regressions, smoke, syntax
 and Docker checks must pass against the final PR HEAD. No merge or deployment
 is authorized. Full historical impact remains limited by archived source coverage;

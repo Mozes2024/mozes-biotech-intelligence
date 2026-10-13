@@ -15,6 +15,7 @@ from . import db
 from .intelligence_store import digest, encode, ensure_schema, operation_finish, operation_start, utcnow, state_get, state_put
 
 FORMS = ('S-3', 'S-3/A', 'S-3ASR', 'S-1', 'S-1/A', '424B3', '424B4', '424B5', '8-K', '6-K', '10-Q', '10-K', '20-F')
+PERIODIC_FORMS = {'10-Q', '10-K', '20-F'}
 NUMBER = r'(?P<number>\d[\d,]*(?:\.\d+)?)\s*(?P<scale>million|billion|thousand)?'
 MONEY = re.compile(r'(?<![A-Za-z])(?P<currency>US\s*\$|U\.S\.\s*\$|C\$|A\$|(?:USD|CAD|AUD|NZD|HKD|SGD|CHF|JPY|CNY|INR|ZAR)\s*\$?|EUR\s*€?|GBP\s*£?|€|£|\$)\s*' + NUMBER, re.I)
 SHARES = re.compile(NUMBER + r'\s+(?:shares of (?:its |our )?(?:common|ordinary) stock|common shares|ordinary shares)\b', re.I)
@@ -268,6 +269,19 @@ def requires_reconciliation(disclosure, statement_date):
 from .source_observability import observed
 
 
+def _published_after_coverage(filing, started_at):
+    """Publication, not first discovery or the ATM reporting period, is the boundary."""
+    try:
+        published = datetime.fromisoformat((filing.get('accepted') or filing['filed']).replace('Z', '+00:00'))
+        started = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+        if started.tzinfo is None: return False
+        # SEC date-only publication is conservatively available at UTC midnight.
+        if published.tzinfo is None: published = published.replace(tzinfo=timezone.utc)
+        return published > started
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+
+
 @observed
 def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, recorder=None):
     from .ingest import edgar
@@ -288,6 +302,13 @@ def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, re
         baselined = state_get(conn, baseline_key, False)
         error_count = len(out['errors'])
         try:
+            coverage_key = 'financing_periodic_coverage_started:' + watch['ticker']
+            coverage_started = state_get(conn, coverage_key)
+            if coverage_started is None:
+                coverage_started = utcnow()
+                # Persist before source I/O: failed/partial initial scans must not
+                # turn previously published coverage into new changes on retry.
+                state_put(conn, coverage_key, coverage_started)
             out['processed'] += 1
             filings = edgar.recent_filings_v2(watch['cik'], forms=FORMS, limit=max_filings)
             for filing in filings:
@@ -303,7 +324,8 @@ def refresh_financing(conn, *, today=None, max_filings=8, budget_seconds=120, re
                     analyzed = store_financing(conn, watch['ticker'], {**filing, 'url': document['url'], 'cik':watch['cik']}, text)
                     if analyzed:
                         out['identified'] += 1
-                        if analyzed['new_record'] and baselined:
+                        new_publication = filing['form'] not in PERIODIC_FORMS or _published_after_coverage(filing, coverage_started)
+                        if analyzed['new_record'] and baselined and new_publication:
                             if recorder is None:
                                 from .live_monitor import record_change
                                 recorder = record_change
