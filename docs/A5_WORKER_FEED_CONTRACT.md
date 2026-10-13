@@ -1,5 +1,22 @@
 # A5 public feed dependency (review only)
 
+## Cross-version gate
+
+An initialized pre-A5 tab notifies on every unseen change_id, even when
+popup_eligible is false. The captured main 6f939b8 script reproduces both popup
+and system notification against the serialized A5 feed in the contract tests.
+GET without client=alert-evidence-v1 now exposes only explicitly eligible rows.
+The complete stored snapshot, IDs, sequence, revision and receipt remain intact;
+capability-aware clients retain all list rows. Unknown clients fail closed.
+During Worker-first rollout, legacy producer metadata cannot prove eligibility,
+so its browser interrupts are temporarily suppressed until A5 producer activation.
+The new frontend must use the capability parameter and an evidence-aware static
+fallback; the unversioned static/API routes must also be interrupt-only.
+No manual refresh is required to protect old tabs. Their list is intentionally
+limited to urgent rows until refreshed; new clients retain the complete list.
+Displayed quotation omission is independent of source verification: oversized
+quotes are omitted with a limitation; missing verification still fails closed.
+
 The current public feed drops semantic family and popup eligibility. A browser
 cannot safely infer them from a priority or a headline. This isolated change
 preserves bounded semantic metadata without changing stored identity, polarity,
