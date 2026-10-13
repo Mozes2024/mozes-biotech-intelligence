@@ -195,13 +195,17 @@ export class HotEdge {
     const handlers={'/alerts':handleAlertFeed,'/edge/ack':acknowledge,'/edge/candidates':candidates,
       '/edge/candidate/ack':candidateAck,'/edge/investigate':investigate,'/edge/event':eventTrace};
     if (path==='/alerts' && request.method==='GET') {
-      if(this.alertCache?.expires>Date.now())return this.alertCache.response.clone();
-      const loading=this.alertLoading ||= {promise:handleAlertFeed(request,env),generation:this.alertGeneration || 0};
+      const capability=new URL(request.url).searchParams.get('client')==='alert-evidence-v1'?'alert-evidence-v1':'legacy';
+      const cache=this.alertCache ||= new Map(),pending=this.alertLoading ||= new Map();
+      const cached=cache.get(capability);
+      if(cached?.expires>Date.now())return cached.response.clone();
+      let loading=pending.get(capability);
+      if(!loading){loading={promise:handleAlertFeed(request,env),generation:this.alertGeneration || 0};pending.set(capability,loading);}
       try {
         const response=await loading.promise;
-        if(response.ok && loading.generation===(this.alertGeneration || 0))this.alertCache={response:response.clone(),expires:Date.now()+5000};
+        if(response.ok && loading.generation===(this.alertGeneration || 0))cache.set(capability,{response:response.clone(),expires:Date.now()+5000});
         return response.clone();
-      } finally {if(this.alertLoading===loading)this.alertLoading=null;}
+      } finally {if(pending.get(capability)===loading)pending.delete(capability);}
     }
     if (handlers[path]) {
       const response=await (['/edge/ack','/edge/candidate/ack'].includes(path)

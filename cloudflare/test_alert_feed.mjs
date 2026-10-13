@@ -52,7 +52,7 @@ try {
   assert.equal((await handleAlertFeed(new Request("https://clock.example/alerts"), env, now)).status, 503);
   assert.equal((await handleAlertFeed(post(feed, "wrong"), env, now)).status, 401);
   assert.equal((await handleAlertFeed(post(feed), env, now)).status, 200);
-  const got = await handleAlertFeed(new Request("https://clock.example/alerts"), env, now);
+  const got = await handleAlertFeed(new Request("https://clock.example/alerts?client=alert-evidence-v1"), env, now);
   assert.equal(got.headers.get("Access-Control-Allow-Origin"), "https://mozes2024.github.io");
   const publicText = await got.text();
   assert(!publicText.includes("never public") && !publicText.includes("private-address"));

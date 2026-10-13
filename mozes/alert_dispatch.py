@@ -290,6 +290,8 @@ def recent_alerts(conn, *, days=7, limit=100, now=None):
             "SELECT a.result_json FROM alert_analysis_jobs j JOIN alert_analyses a USING(analysis_id) WHERE j.change_id=?",
             (row["change_id"],)).fetchone()
         alerts.append({
+            **{k: payload.get(k) for k in ('issuer_verified', 'popup_eligible', 'event_family', 'event_outcome',
+                                         'confirmed_outcome', 'needs_review', 'uncertainty_status', 'evidence_basis', 'semantic_version')},
             "change_id": row["change_id"],
             "edge_event_ids": payload.get("edge_event_ids", []),
             "created_at": row["created_at"],
