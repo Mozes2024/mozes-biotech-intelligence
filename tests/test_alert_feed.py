@@ -12,7 +12,9 @@ def test_export_writes_small_alerts_and_update_manifest(tmp_path):
     payload = export_payload(conn, tmp_path / 'web' / 'data.json')
     feed = json.loads((tmp_path / 'web' / 'alerts.json').read_text(encoding='utf-8'))
     updates = json.loads((tmp_path / 'web' / 'updates.json').read_text(encoding='utf-8'))
-    assert feed['schema'] == 1 and feed['alerts'] == payload['alerts']
+    full = json.loads((tmp_path / 'web' / 'alerts-evidence-v1.json').read_text(encoding='utf-8'))
+    assert feed['schema'] == 1 and full['alerts'] == payload['alerts']
+    assert all(row['popup_eligible'] for row in feed['alerts'])
     assert updates['revision'] == payload['build']['snapshot_revision']
     assert (tmp_path / 'web' / 'alerts.json').stat().st_size < 20_000
     assert 'health' not in feed and 'candidates' not in feed

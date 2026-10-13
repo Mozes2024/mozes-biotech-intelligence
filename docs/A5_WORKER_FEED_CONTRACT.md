@@ -2,6 +2,32 @@
 
 ## Cross-version gate
 
+### P0 cache isolation and static prerequisite
+
+At 85caa58, five real HotEdge.fetch regressions fail: full-first and legacy-first
+cached responses, both overlapping request orders, and per-variant POST reads.
+Both alertCache and alertLoading now have exactly two normalized capability
+keys; unknown clients share legacy. Each variant retains its five-second TTL
+and same-capability request coalescing. Successful POST invalidates all variants;
+generation checks prevent stale pending reads from warming either new cache.
+
+An old initialized script also reproduces unwanted Notification when Worker
+fetch fails and currently deployed alerts.json contains a new list-only row.
+Therefore #34 includes the compatibility-only Python browser projection and
+offline export previously placed in #35, without A5 classification changes.
+The unversioned static/API views fail closed, and alerts-evidence-v1.json retains
+the complete list. Existing outbox rows and receipts are never changed.
+
+Required rollout order: separately approve merge #34; allow normal Pages export
+and verify the protected static fallback plus schema-2 checkpoint receipt BEFORE
+authorizing Worker #34 activation. Then verify real Durable Object requests in
+both orders/concurrently and during a Worker outage. Only after these gates may
+#35 producer/frontend/Stage-0 be separately approved. No manual refresh is a
+safety requirement. Legacy metadata cannot prove urgency, so browser interrupts
+remain temporarily suppressed until A5 supplies explicit verified metadata.
+The tested new urgent events still notify once; full-list clients retain all rows.
+Do not roll back the protected fallback or compatible Worker while A5 is active.
+
 An initialized pre-A5 tab notifies on every unseen change_id, even when
 popup_eligible is false. The captured main 6f939b8 script reproduces both popup
 and system notification against the serialized A5 feed in the contract tests.

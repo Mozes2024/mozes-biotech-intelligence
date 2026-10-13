@@ -206,9 +206,10 @@ def export_payload(conn, destination, *, today=None, consumer=None):
     path = Path(destination)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
-    from .alert_feed import build_feed
-    (path.parent / 'alerts.json').write_text(encode(build_feed(conn, generated_at=payload['generated_at'])),
-                                           encoding='utf-8')
+    from .alert_feed import build_feed, browser_feed
+    feed = build_feed(conn, generated_at=payload['generated_at'])
+    (path.parent / 'alerts.json').write_text(encode(browser_feed(feed)), encoding='utf-8')
+    (path.parent / 'alerts-evidence-v1.json').write_text(encode(feed), encoding='utf-8')
     update = {'schema': 1, 'revision': payload['build']['snapshot_revision'], 'generated_at': payload['generated_at']}
     if consumer is not None:
         update['checkpoint'] = {key: consumer.get(key) for key in
