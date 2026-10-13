@@ -5,7 +5,7 @@ import json
 from datetime import date, timedelta, datetime, timezone
 
 from .financial_intelligence import financial_context, MONTH_DAYS
-from .financing_intelligence import financing_context
+from .financing_intelligence import financing_context, requires_reconciliation
 from .intelligence_store import ensure_schema
 
 
@@ -33,7 +33,7 @@ def enrich_financial_context(conn, rows, today):
             events = financing_context(conn, ticker, as_of=today)
             post_statement = [e for e in events if e['published_at'][:10] > (financial.get('period_end') or '9999')]
             financial['later_financing_disclosures'] = len(post_statement)
-            financial['requires_financing_reconciliation'] = any(e['kind'] == 'completed_offering' for e in post_statement)
+            financial['requires_financing_reconciliation'] = any(requires_reconciliation(e,financial.get('period_end')) for e in post_statement)
             by_ticker[ticker] = (financial, events)
         financial, events = by_ticker[ticker]
         row['financial_context'] = financial

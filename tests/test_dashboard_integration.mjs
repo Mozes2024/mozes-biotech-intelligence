@@ -143,3 +143,18 @@ test('independent change_id dedup survives repeated alert polls and composed das
  assert.equal(h.notifications.length,1);assert.equal(h.popup().innerHTML,popup);
  assert.equal((h.html().match(/<h3>התראות אחרונות<\/h3>/g)||[]).length,1);assertComposed(h);
 });
+
+test('B1 financing details preserve currency, period and receipt limitations in the production chain',async()=>{
+ const data=payload(),event=data.live.find(a=>a.id===RESEARCH[0]);
+ event.financing_events=[{form:'10-Q',kind:'atm_sales',classification_status:'REVIEW_REQUIRED',published_at:'2026-10-01',
+  facts:[{kind:'net_proceeds',unit:'CAD',realized:true,span:{text:'C$11 million'},context:'<reported receipt>',
+   reporting_period:{text:'three months ended June 30, 2026'}},
+   {kind:'authorized_capacity',unit:'USD',realized:false,span:{text:'$100 million'},context:'capacity'}]}];
+ const h=await harness(data);assertComposed(h);
+ const detail=h.run(`market(D.live.find(a=>a.id===${JSON.stringify(RESEARCH[0])}))`);
+ for(const text of ['CAD','C$11 million','three months ended June 30, 2026','קיבולת — אינה מזומן שגויס',
+  'קבלת התמורה לא אומתה','אינו מתווסף ליתרת המזומן','דורש בדיקה','&lt;reported receipt&gt;'])assert.ok(detail.includes(text),text);
+ assert.doesNotMatch(detail,/<reported receipt>/);
+ assert.ok(index.includes('financial_context_ui.js?v=financing-b1-v1'));
+ assert.deepEqual(h.snapshot().validation,fixture.validation);
+});
