@@ -398,7 +398,34 @@ def main(argv=None):
         conn.close()
         return 0
     result = run_priority_pipeline(conn) if args.priority_only else run_pipeline(conn, deep=args.deep)
-    payload = export_payload(conn, args.output)
+    try:
+        payload = export_payload(conn, args.output)
+    except ValueError as exc:
+        reason = str(exc).partition(' ')[0]
+        if reason not in {'regulatory_review_public_byte_budget', 'regulatory_review_pages_site_budget'}:
+            raise
+        # Public presentation refusal must not strand observed data behind the
+        # previous run's manifest. Checkpoint/upload ownership remains unchanged.
+        manifest = {'schema': 1, 'pipeline_complete': result['status'] == 'OK',
+                    'runtime_status': result['status'], 'data_publishable': False,
+                    'should_publish': False, 'export_status': 'REFUSED', 'export_reason': reason,
+                    'source_sha': os.environ.get('GITHUB_SHA'), 'generated_at': utcnow()}
+        Path('.monitor').mkdir(exist_ok=True)
+        Path('.monitor/manifest.json').write_text(encode(manifest), encoding='utf-8')
+        result_path = os.environ.get('MOZES_RESULT_PATH')
+        if result_path:
+            tmp = Path(result_path + '.tmp')
+            tmp.parent.mkdir(parents=True, exist_ok=True)
+            tmp.write_text(encode({'protocol': 'mozes-v2e2-result',
+                                   'run_token': os.environ.get('MOZES_RUN_TOKEN'),
+                                   'status': result.get('status'), 'details': result.get('details'),
+                                   'manifest': manifest}), encoding='utf-8')
+            os.replace(tmp, result_path)
+        if os.environ.get('GITHUB_OUTPUT'):
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                fh.write('should_publish=false\n')
+        conn.close()
+        return 0
     fingerprint = semantic_fingerprint(payload)
     now = datetime.now(timezone.utc)
     # Requests are diagnostic state only; deployment acknowledgements own cadence.
