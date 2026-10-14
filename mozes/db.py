@@ -102,10 +102,12 @@ def load_event_sources(conn, event_id):
 
 
 def store_prices(conn, ticker, rows, source):
+    from .price_validation import validated_prices
+    rows = validated_prices(rows)
     with conn:
         conn.executemany(
             "INSERT OR REPLACE INTO prices(ticker,date,close,volume,source) VALUES(?,?,?,?,?)",
-            [(ticker, r["date"][:10], float(r["close"]), r.get("volume"), source) for r in rows],
+            [(ticker, r["date"], r["close"], r.get("volume"), source) for r in rows],
         )
 
 

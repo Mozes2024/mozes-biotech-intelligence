@@ -6,12 +6,13 @@ import urllib.request
 from datetime import datetime, timezone
 
 from ..config import TIINGO_API_KEY
+from ..price_validation import validated_prices
 
 
 def load_csv(path):
     with open(path, newline="", encoding="utf-8") as fh:
-        return [{"date": r["date"][:10], "close": float(r.get("adj_close") or r["close"]),
-                 "volume": float(r["volume"]) if r.get("volume") else None} for r in csv.DictReader(fh)]
+        return validated_prices([{"date": r["date"][:10], "close": r.get("adj_close") or r["close"],
+                                 "volume": r["volume"] if r.get("volume") else None} for r in csv.DictReader(fh)])
 
 
 def fetch_tiingo(ticker, start, end):
@@ -21,7 +22,7 @@ def fetch_tiingo(ticker, start, end):
            f"&token={TIINGO_API_KEY}")
     with urllib.request.urlopen(url, timeout=30) as r:
         data = json.loads(r.read().decode())
-    return [{"date": d["date"][:10], "close": d["adjClose"], "volume": d.get("adjVolume")} for d in data]
+    return validated_prices([{"date": d["date"][:10], "close": d["adjClose"], "volume": d.get("adjVolume")} for d in data])
 
 
 def fetch_yahoo_chart(ticker, start, end):
@@ -36,14 +37,13 @@ def fetch_yahoo_chart(ticker, start, end):
     adjusted = data["indicators"].get("adjclose", [{}])[0].get("adjclose", [])
     rows = []
     for i, stamp in enumerate(data.get("timestamp", [])):
-        close = (adjusted[i] if i < len(adjusted) else None) or quote["close"][i]
+        close = adjusted[i] if i < len(adjusted) and adjusted[i] is not None else quote["close"][i]
         if close is not None:
             rows.append({"date": datetime.fromtimestamp(stamp, timezone.utc).date().isoformat(), "close": close,
                          "volume": quote.get("volume", [None] * len(data["timestamp"]))[i]})
-    return rows
+    return validated_prices(rows)
 
 
 def store(conn, ticker, rows, source):
-    with conn:
-        conn.executemany("INSERT OR REPLACE INTO prices (ticker, date, close, volume, source) VALUES (?,?,?,?,?)",
-                         [(ticker, r["date"], r["close"], r.get("volume"), source) for r in rows])
+    from ..db import store_prices
+    store_prices(conn, ticker, rows, source)
