@@ -14,6 +14,21 @@ const RESEARCH=['KOD-PEAK-PA1','AUTO-HROW-NCT07832552','AUTO-MRNA-NCT06033261',
 const WATCH=['KOD-BLA','AUTO-ALGS-NCT06963710','AUTO-BLTE-NCT05244304',
  'AUTO-ABVX-NCT05507203','AUTO-DNLI-NCT06075537','AUTO-MIRM-NCT04663308'];
 const clone=value=>JSON.parse(JSON.stringify(value));
+
+test('pending regulatory claims remain inspectable through the production system wrappers',async()=>{
+ const initial=payload();
+ initial.regulatory_review={available:true,count:1,items:[{review_id:'REG-REVIEW-TEST',ticker:'AAA',
+  issuer_verified:false,application:null,reason:'outcome_requires_separate_reconciliation',
+  source_url:'https://www.sec.gov/Archives/edgar/data/123/a/ex99.htm',published_at:'2026-10-12',
+  observed_at:'2026-10-13',verification_state:'REVIEW_REQUIRED',confirmed_outcome:false,
+  evidence:{statement:'FDA approved an unresolved claim <script>bad()</script>'}}]};
+ const h=await harness(initial),before=h.snapshot();
+ const html=h.run('system()');
+ assert.ok(html.includes('REG-REVIEW-TEST')&&html.includes('טענה לא מוכרעת'));
+ assert.ok(html.includes('&lt;script&gt;')&&!html.includes('<script>bad()'));
+ assert.deepEqual(h.snapshot().alerts,before.alerts);
+ assert.equal(h.notifications.length,0);
+});
 const checkpoint=(id=1)=>({checkpoint_at:`2026-10-12T12:${id===1?'40':'41'}:00+00:00`,
  source_run_id:String(id),artifact_id:id,db_sha256:String(id).repeat(64)});
 function payload(){const cp=checkpoint();return {...clone(fixture),generated_at:cp.checkpoint_at,build:{snapshot_revision:'same'},
