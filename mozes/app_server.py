@@ -151,16 +151,33 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urlparse(self.path)
         path = unquote(u.path)
-        q = parse_qs(u.query)
+        q = parse_qs(u.query, keep_blank_values=True)
+        if path == '/api/radar' or path.startswith('/api/events/'):
+            current = date.today().isoformat()
+            values = q.get('as_of', [current])
+            try:
+                if len(values) != 1 or date.fromisoformat(values[0]).isoformat() != values[0]:
+                    raise ValueError('canonical date required')
+            except ValueError:
+                self._send_json({'error': 'invalid_as_of',
+                                 'explanation': 'Use one YYYY-MM-DD date; intraday cutoffs are unsupported.'}, 400)
+                return
+            as_of = values[0]
+            if as_of != current:
+                # The live database has no complete archived state/source history.
+                # A price cutoff cannot reconstruct lifecycle/features/validation.
+                self._send_json({'error': 'historical_scoring_unsupported', 'as_of': as_of,
+                                 'supported_as_of': current,
+                                 'explanation': 'This endpoint scores current state only. Historical or future scoring '
+                                                'requires a complete frozen as-of source/state snapshot, unavailable '
+                                                'from the current database.'}, 422)
+                return
         if path == "/api/health":
             bootstrap_database(self.conn)
             self._send_json({"ok": True, "version": "0.3.0", "db": str(DB_PATH), "events": db.count_events(self.conn)})
             return
         if path == "/api/radar":
-            try:
-                today = date.fromisoformat(q.get("as_of", [date.today().isoformat()])[0])
-            except ValueError:
-                self._send_json({"error": "invalid as_of date"}, 400); return
+            today = date.fromisoformat(as_of)
             from .pipeline_v2c import semantic_fingerprint
             payload = build(self.conn, today)
             payload['build'] = {'snapshot_revision': semantic_fingerprint(payload)}
@@ -180,7 +197,6 @@ class Handler(BaseHTTPRequestHandler):
             event = _find_live_event(self.conn, event_id)
             if not event:
                 self._send_json({"error": "event not found"}, 404); return
-            as_of = q.get("as_of", [date.today().isoformat()])[0]
             self._send_json(score_event(self.conn, event, as_of))
             return
         if path == "/api/paper":
