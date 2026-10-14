@@ -204,8 +204,15 @@ def export_payload(conn, destination, *, today=None, consumer=None):
         payload['build']['change_cursor'] = dict(latest_change)
     payload['build']['snapshot_revision'] = semantic_fingerprint(payload)
     path = Path(destination)
+    serialized = json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False)
+    if 'regulatory_review' in payload:
+        from .regulatory_review import MAX_PAGES_SITE_BYTES, PAGES_EXPORT_RESERVE_BYTES
+        other_bytes = sum(p.stat().st_size for p in path.parent.rglob('*')
+                          if p.is_file() and p != path)
+        if len(serialized.encode('utf-8')) + other_bytes + PAGES_EXPORT_RESERVE_BYTES > MAX_PAGES_SITE_BYTES:
+            raise ValueError('regulatory_review_pages_site_budget exceeded; publication stopped; no rows omitted')
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
+    path.write_text(serialized, encoding='utf-8')
     from .alert_feed import build_feed, browser_feed
     feed = build_feed(conn, generated_at=payload['generated_at'])
     (path.parent / 'alerts.json').write_text(encode(browser_feed(feed)), encoding='utf-8')

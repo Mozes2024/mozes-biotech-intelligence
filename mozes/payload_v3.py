@@ -21,6 +21,7 @@ from .live_intelligence import enrich_live_rows
 from .financial_context import enrich_financial_context, operation_health
 from .latency_metrics import summary as latency_summary
 from .clinical_events import clinical_payload
+from .regulatory_review import review_queue
 
 VERSION = "0.3.2"
 
@@ -265,6 +266,7 @@ def build(conn, today: date, *, consumer_only=False):
         "refresh": refresh,
         "alerts": recent_alerts(conn),
         "clinical_intelligence": clinical_payload(conn),
+        "regulatory_review": review_queue(conn),
         "alert_config": channel_configuration(conn),
         "hot_latency": latency_summary(conn),
         "edge_health": (lambda row: json.loads(row[0]) if row else None)(conn.execute(
