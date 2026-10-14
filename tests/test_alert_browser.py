@@ -4,6 +4,34 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_popup_policy_separates_list_corrections_from_new_urgent_events():
+    script = r"""
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const context={};vm.createContext(context);vm.runInContext(fs.readFileSync('web/alerts_ui.js','utf8'),context);
+let saved=null,shown=[];
+const notifier=context.createAlertNotifier({storage:{getItem:()=>saved,setItem:(_,v)=>saved=v},
+ show:rows=>shown.push(rows.map(a=>a.change_id)),system:()=>{},now:()=>1000});
+const base={verification_state:'primary_source',priority:'P2'};
+const atos={...base,change_id:'ATOS',popup_eligible:false,event_family:'corporate_action'};
+const routine={...base,change_id:'routine',priority:'P3',popup_eligible:true};
+const unverified={...base,change_id:'unverified',priority:'P1',verification_state:'investigation_only',popup_eligible:true};
+const clinical={...base,change_id:'clinical',popup_eligible:true,event_family:'clinical_outcome'};
+const urgent={...base,change_id:'urgent',priority:'P1',popup_eligible:true};
+(async()=>{
+ await notifier.observe([],true);
+ await notifier.observe([atos,routine,unverified,clinical,urgent]);
+ assert.deepStrictEqual(shown,[['clinical','urgent']]);
+ assert.ok(JSON.parse(saved).ATOS,'non-popup list events are still remembered');
+ await notifier.observe([{...atos,priority:'P1',popup_eligible:true},clinical,urgent]);
+ assert.strictEqual(shown.length,1,'reclassification of existing ID cannot notify again');
+ const reloaded=context.createAlertNotifier({storage:{getItem:()=>saved,setItem:(_,v)=>saved=v},show:()=>{throw Error('duplicate')},system:()=>{},now:()=>1001});
+ await reloaded.observe([atos,clinical,urgent]);
+})().catch(e=>{console.error(e);process.exitCode=1});
+"""
+    result = subprocess.run(['node', '-e', script], cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr + result.stdout
+
+
 def test_browser_notifies_negative_and_unknown_alerts_once_across_tabs_and_reload():
     script = r"""
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
@@ -13,7 +41,7 @@ const storage={getItem:()=>saved,setItem:(_,v)=>{saved=v}};
 const lock=fn=>{const next=queue.then(fn);queue=next.catch(()=>{});return next};
 const options={storage,lock,show:rows=>shown.push(rows.map(x=>x.change_id)),system:a=>system.push(a.change_id),now:()=>1000};
 const first=context.createAlertNotifier(options),second=context.createAlertNotifier(options);
-const old={change_id:'old',polarity:'positive'},negative={change_id:'negative',polarity:'negative'},halt={change_id:'halt',polarity:'unknown'};
+const old={change_id:'old',polarity:'positive'},negative={change_id:'negative',polarity:'negative',priority:'P1',verification_state:'primary_source',popup_eligible:true},halt={change_id:'halt',polarity:'unknown',priority:'P1',verification_state:'primary_source',popup_eligible:true};
 (async()=>{
  await first.observe([old],true);await second.observe([old],true);
  assert.strictEqual(shown.length,0);
@@ -63,7 +91,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const source=fs.readFileSync('web/alerts_ui.js','utf8');let saved=null;
 const storage={getItem:()=>saved,setItem:(_,value)=>{saved=value}};
 const old={change_id:'CHG-old',ticker:'OLD',headline:'Existing',priority:'P2'};
-const fresh={change_id:'CHG-new',ticker:'NEW',headline:'New verified event',priority:'P1'};
+const fresh={change_id:'CHG-new',ticker:'NEW',headline:'New verified event',priority:'P1',verification_state:'primary_source',popup_eligible:true};
 function browser(){
  const open={},dismiss={},popup={hidden:true,innerHTML:'',querySelector:key=>key==='[data-open-alerts]'?open:dismiss};
  const context={D:{alerts:[],alert_config:{}},apiMode:false,page:'dash',document:{hidden:false},

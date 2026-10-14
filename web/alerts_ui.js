@@ -6,12 +6,17 @@ function createAlertNotifier({storage, show, system, lock=task=>task(), now=()=>
     if(!seen||typeof seen!=='object'||Array.isArray(seen))seen={};
     const stamp=now(),cutoff=stamp-7*86400000;
     seen=Object.fromEntries(Object.entries(seen).filter(([,at])=>Number.isFinite(at)&&at>=cutoff));
-    const fresh=rows.filter(a=>a.change_id&&!seen[a.change_id]);
+    const fresh=rows.filter(a=>a.change_id&&!seen[a.change_id]&&alertPopupEligible(a));
     for(const a of rows)if(a.change_id)seen[a.change_id]=stamp;
     memory=seen;try{storage.setItem(key,JSON.stringify(seen))}catch(_){}
     if(!baseline&&fresh.length){show(fresh);for(const a of fresh)system(a)}
     return baseline?[]:fresh;
   })}};
+}
+function alertPopupEligible(a){
+  // Eligibility is separate from list visibility; older feeds fail closed.
+  const verified=a.verification_state==='primary_source'||a.issuer_verified===true&&['sec','fda','wire','company_ir'].includes(a.source_type);
+  return a.popup_eligible===true&&verified&&['P1','P2'].includes(a.priority);
 }
 let alertNotifier=null,lastAlertFeed=null,alertFeedInitialized=false,alertPollBusy=false,preferredAlertFeedUrl=null;
 function getAlertNotifier(){
@@ -54,7 +59,9 @@ function alertAnalysisHtml(a){
   const x=a.explanation;
   if(!x)return '<div class="company">הסבר לפי המקור: ממתין לקריאת תוכן ההודעה.</div>';
   const basis={source_text:'תוכן המקור נקרא',feed_summary:'נקרא תקציר ההודעה בלבד',headline_only:'כותרת בלבד',structured_source:'נתונים מובנים מהמקור'};
-  return `<div class="company"><b>בסיס ההסבר:</b> ${esc(basis[x.basis]||'לא ידוע')}${x.ai_status==='used'?' · ניסוח בסיוע מודל שפה':''}</div>`+
+  const family={corporate_action:'פעולה תאגידית / CVR מותנה',clinical_outcome:'תוצאות ניסוי קליני',fda_decision:'החלטה רגולטורית',material_safety:'בטיחות / עצירה קלינית',merger_acquisition:'מיזוג או רכישה',financing:'מימון',regulatory_milestone:'אבן דרך רגולטורית',conditional_milestone:'אבן דרך מותנית',routine_administration:'דיווח מנהלי'};
+  return (a.event_family?`<div class="company"><b>סוג האירוע:</b> ${esc(family[a.event_family]||a.event_family)}</div>`:'')+
+    `<div class="company"><b>בסיס ההסבר:</b> ${esc(basis[x.basis]||'לא ידוע')}${x.ai_status==='used'?' · ניסוח בסיוע מודל שפה':''}</div>`+
     (x.evidence||[]).map(e=>`<blockquote class="alert-evidence" dir="auto">${esc(e.quote)}</blockquote>`).join('')+
     (x.missing_he||[]).map(text=>`<div class="company">${esc(text)}</div>`).join('');
 }

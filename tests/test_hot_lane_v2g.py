@@ -75,6 +75,7 @@ def test_all_sources_failing_is_failed(tmp_path, monkeypatch):
 # 2 — a crashed sender must not strand rows in 'sending' -----------------------------------
 
 def _queued_alert(conn):
+    _verified_gmab(conn)
     change_id = record_change(
         conn, ticker="GMAB", change_type="company_release_signal", previous_value=None,
         new_value={"headline": "Genmab announces positive topline results"},
@@ -82,6 +83,13 @@ def _queued_alert(conn):
         identity=["company_release", "GMAB", "1"],
     )
     return change_id, conn.execute("SELECT alert_id FROM alert_outbox").fetchone()[0]
+
+
+def _verified_gmab(conn):
+    # Monitoring preference alone cannot prove issuer identity.
+    conn.execute("INSERT OR IGNORE INTO sponsor_ticker_map VALUES(?,?,?,?,?,?,?)",
+                 ("genmab", "Genmab", "GMAB", "1434265", .99, "SEC-v2C-equity", "2026-10-05"))
+    db.upsert_security_lifecycle(conn, "GMAB", status="ACTIVE", source_url="https://www.sec.gov/files/company_tickers_exchange.json")
 
 
 def test_stale_sending_row_is_recovered_after_lease(tmp_path):
@@ -163,6 +171,7 @@ def test_wire_fixtures_parse(name):
 def test_gmab_oct5_release_replays_as_single_p1_alert(tmp_path):
     """The Genmab EPCORE DLBCL-2 release that was missed on 2026-10-05, replayed from real feeds."""
     conn = db.connect(tmp_path / "gmab.db")
+    _verified_gmab(conn)
     feeds = {url: _feed(name) for name, url in WIRE_FEEDS}
     result = poll_wire_feeds(conn, fetch=lambda url: feeds[url], now=GMAB_RELEASE + timedelta(minutes=5),
                              resolve_headline=lambda conn, headline: None)
@@ -196,13 +205,15 @@ def test_alias_resolution_is_unique_or_nothing():
     assert resolve_alias("Unrelated company raises capital") is None
 
 
-# 4 — P1 only for watchlist tickers; unattributed signals never page ----------------------
+# 4 — generic materiality is not urgency; unattributed signals never page --------------
 
-def test_p1_requires_watched_ticker():
+def test_p1_requires_urgent_outcome_not_generic_watchlist_materiality():
     material = {"material": True}
     assert alert_priority("fda_release_signal", "high", material, ticker=None, watched=False) == "P3"
     assert alert_priority("fda_release_signal", "high", material, ticker="ZZZZ", watched=False) == "P2"
-    assert alert_priority("fda_release_signal", "high", material, ticker="GMAB", watched=True) == "P1"
+    assert alert_priority("fda_release_signal", "high", material, ticker="GMAB", watched=True) == "P2"
+    urgent = classify_outcome("FDA approved the new therapy today")
+    assert alert_priority("fda_release_signal", "high", urgent, ticker="ZZZZ", verified=True) == "P1"
     assert alert_priority("nasdaq_halt_signal", "critical", {}, ticker="ZZZZ", watched=False) == "P2"
     assert alert_priority("nasdaq_volatility_pause", "high", {}, ticker="GMAB", watched=True) == "P2"
     # A non-material headline-only release is browsing, not an alert, even for a watched name.
