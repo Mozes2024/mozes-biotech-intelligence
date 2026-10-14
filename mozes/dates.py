@@ -55,9 +55,9 @@ class DateWindow:
     inferred_year: bool = False
 
 
-def normalize_date_text(text, ref: date, confirmed_by_company=False, secondary_source=False) -> DateWindow:
+def normalize_date_text(text, ref: date | None, confirmed_by_company=False, secondary_source=False) -> DateWindow:
     t = str(text).lower()
-    ry = ref.year
+    ry = ref.year if ref else None
 
     def out(p, s=None, e=None, inferred=False):
         c = PRECISION_CONF[p]
@@ -106,6 +106,14 @@ def normalize_date_text(text, ref: date, confirmed_by_company=False, secondary_s
     if m := re.search(r"\b(?:end of|year[- ]end)\s+(20\d{2})\b", t):
         y = int(m[1])
         return out("early_late_year", date(y, 9, 1), date(y, 12, 31))
+    if ref is None:
+        # Explicit calendar guidance above needs no publication anchor. Relative
+        # wording and missing years must never borrow the PIT sentinel's year.
+        if not re.search(r'next year|this year|coming weeks|coming months', t):
+            if m := re.search(r"\b(20\d{2})\b", t):
+                y = int(m[1])
+                return out("year", date(y, 1, 1), date(y, 12, 31))
+        return out("unknown")
     if re.search(r"\b(?:year[- ]end|end of (?:the )?year)\b", t):
         return out("early_late_year", date(ry, 9, 1), date(ry, 12, 31))
     if m := re.search(rf"\b{MRE}\s+(\d{{1,2}})(?:st|nd|rd|th)?\b", t):
@@ -137,13 +145,13 @@ def date_info(chronology, sources):
         if c.get("date_text"):
             rel = (sources.get(c.get("src")) or {}).get("reliability")
             w = normalize_date_text(
-                c["date_text"], date.fromisoformat(pub_effective(c["date"])),
+                c["date_text"], date.fromisoformat(pub_effective(c["date"])) if c.get("date") else None,
                 confirmed_by_company=(rel == "primary"), secondary_source=(rel != "primary"),
             )
             item["norm"] = asdict(w)
         timeline.append(item)
     timeline.sort(key=lambda x: pub_effective(x["date"]))
-    dated = [x for x in timeline if x.get("norm") and x["norm"]["precision"] != "unknown"]
+    dated = [x for x in timeline if x.get("date") and x.get("norm") and x["norm"]["precision"] != "unknown"]
     changes = []
     for prev, cur in zip(dated, dated[1:]):
         pn, cn = prev["norm"], cur["norm"]
