@@ -12,6 +12,8 @@ Guarantees (enforced + tested in tests/test_leakage.py):
 from __future__ import annotations
 
 import copy
+import re
+from datetime import date, datetime, timezone
 from types import MappingProxyType
 
 from .dates import pub_effective
@@ -51,16 +53,53 @@ def thaw(o):
     return o
 
 
+def _cutoff_day(as_of):
+    if isinstance(as_of, str) and ('T' in as_of or ' ' in as_of):
+        raise ValueError('intraday_snapshot_unsupported: market-session/source availability provenance required')
+    try:
+        if not isinstance(as_of, str) or date.fromisoformat(as_of).isoformat() != as_of:
+            raise ValueError('canonical date required')
+        return date.fromisoformat(as_of)
+    except ValueError:
+        raise ValueError('invalid_as_of: use YYYY-MM-DD') from None
+
+
+def _publication_time(value):
+    """Date-only availability stays conservative; precise clocks must be aware."""
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        if re.fullmatch(r'\d{4}(?:-\d{2}(?:-\d{2})?)?', value):
+            return datetime.combine(date.fromisoformat(pub_effective(value)), datetime.min.time(), timezone.utc)
+        stamp = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        return stamp.astimezone(timezone.utc) if stamp.tzinfo is not None else None
+    except (ValueError, OverflowError):
+        return None
+
+
 def before(d, as_of: str) -> bool:
-    return pub_effective(d) < as_of
+    cutoff = datetime.combine(_cutoff_day(as_of), datetime.min.time(), timezone.utc)
+    published = _publication_time(d)
+    return published is not None and published < cutoff
+
+
+def _price_before(value, as_of):
+    if not isinstance(value, str):
+        return False
+    try:
+        day = date.fromisoformat(value)
+        return day.isoformat() == value and day < _cutoff_day(as_of)
+    except ValueError:
+        return False
 
 
 def pick_version(versions, as_of):
-    vs = sorted((v for v in versions if before(v.get("date"), as_of)), key=lambda v: pub_effective(v["date"]))
+    vs = sorted((v for v in versions if before(v.get("date"), as_of)), key=lambda v: _publication_time(v["date"]))
     return vs[-1] if vs else None
 
 
 def snapshot_at(event: dict, as_of: str):
+    _cutoff_day(as_of)
     leaked = all_keys(event) & OUTCOME_KEYS
     if leaked:
         raise LeakageError(f"event {event.get('id')} carries outcome fields: {sorted(leaked)}")
@@ -76,8 +115,8 @@ def snapshot_at(event: dict, as_of: str):
         "runway_months": runway.get("months") if runway and before(runway.get("known_from"), as_of) else None,
         "as_of": as_of,
         "documents": [d for d in event.get("documents", []) if before(d.get("published"), as_of)],
-        "prices": sorted((p for p in event.get("prices", []) if p["date"] < as_of), key=lambda p: p["date"]),
-        "bench": sorted((p for p in event.get("bench", []) if p["date"] < as_of), key=lambda p: p["date"]),
+        "prices": sorted((p for p in event.get("prices", []) if _price_before(p.get("date"), as_of)), key=lambda p: p["date"]),
+        "bench": sorted((p for p in event.get("bench", []) if _price_before(p.get("date"), as_of)), key=lambda p: p["date"]),
         "analyst": [a for a in event.get("analyst", []) if before(a.get("date"), as_of)],
         "trial_record": pick_version(event.get("trial_versions", []), as_of),
         "features": dict(event.get("features") or {}) if feats_ok else {},
@@ -92,14 +131,18 @@ def snapshot_at(event: dict, as_of: str):
 def assert_point_in_time(snap):
     """Defense in depth: re-validates a (possibly modified) snapshot. Raises LeakageError."""
     a = snap["as_of"]
+    try:
+        _cutoff_day(a)
+    except ValueError as exc:
+        raise LeakageError(str(exc)) from exc
     for coll, key in (("documents", "published"), ("analyst", "date"), ("chronology", "date"), ("flags", "known_from")):
         for item in snap.get(coll, ()):
             if not before(item.get(key), a):
                 raise LeakageError(f"{coll} item dated {item.get(key)} is not before as_of {a}")
     for coll in ("prices", "bench"):
         for p in snap.get(coll, ()):
-            if p["date"] >= a:
-                raise LeakageError(f"{coll} row {p['date']} is not before as_of {a}")
+            if not _price_before(p.get("date"), a):
+                raise LeakageError(f"{coll} row {p.get('date')} is not before as_of {a}")
     tr = snap.get("trial_record")
     if tr and not before(tr.get("date"), a):
         raise LeakageError("trial record version is not before as_of")
