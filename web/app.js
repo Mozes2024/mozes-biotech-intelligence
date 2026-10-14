@@ -84,8 +84,8 @@ function alertsPage(){let rows=D.alerts||[],n=k=>rows.filter(a=>a.priority===k).
   return pageTitle('התראות','אירועים שנקלטו בסורק: עדכוני מסחר, הודעות FDA, תוצאות ניסויים והודעות מהותיות',`${rows.length} בשבעת הימים האחרונים`)+
     `<div class="notice">${esc(alertDeliveryNotice())}${'Notification' in window?` <button class="btn" type="button" onclick="enableAlertPopups()">הפעל גם התראות מערכת</button>`:''}</div>`+
     `<div class="simple-summary"><div class="summary-box red"><strong>${n('P1')}</strong><span>דחופות (P1)</span></div><div class="summary-box blue"><strong>${n('P2')}</strong><span>חשובות (P2)</span></div></div>`+
-    `<section class="panel"><div class="panel-body">${alertRows(rows)||'<div class="empty">לא היו התראות בשבעת הימים האחרונים.</div>'}</div></section>`}
-function alertsCompact(){let rows=(D.alerts||[]).slice(0,3);return `<section class="panel simple-panel"><div class="panel-head"><h3>התראות אחרונות</h3><span class="spacer"></span><button class="btn" onclick="page='alerts';render()">לכל ההתראות</button></div><div class="panel-body">${alertRows(rows)||'<div class="empty">אין התראות בשבעת הימים האחרונים.</div>'}</div></section>`}
+    `<section class="panel"><div class="panel-body">${alertRows(rows)||`<div class="empty">${emptyChangesHe('alerts')}</div>`}</div></section>`}
+function alertsCompact(){let rows=(D.alerts||[]).slice(0,3);return `<section class="panel simple-panel"><div class="panel-head"><h3>התראות אחרונות</h3><span class="spacer"></span><button class="btn" onclick="page='alerts';render()">לכל ההתראות</button></div><div class="panel-body">${alertRows(rows)||`<div class="empty">${emptyChangesHe('alerts')}</div>`}</div></section>`}
 function enableAlertPopups(){if(!('Notification' in window)){toast('התראות בתוך האתר פעילות; הדפדפן אינו תומך בהתראות מערכת');return}Notification.requestPermission().then(p=>toast(p==='granted'?'התראות מערכת הופעלו להתראות חדשות':'ההתראות ימשיכו להופיע בתוך האתר'))}
 function changeRows(rows){return rows.map(c=>{
   let value=c.new_value||{},isNews=NEWS_TYPES.includes(c.change_type);
@@ -93,6 +93,12 @@ function changeRows(rows){return rows.map(c=>{
   let published=isNews&&value.published_at?` · פורסם ${esc(value.published_at.replace('T',' ').slice(0,16))}`:'';
   return `<div class="source"><b>${esc(c.ticker||c.nct_id||'—')}</b> · ${esc(changeDescription(c))} ${badge(severityLabel(c.severity),c.severity==='high'?'red':'amber')}<div class="company">זוהה ${esc(c.detected_at?.replace('T',' ').slice(0,16))}${published} · ${c.verification_state==='primary_source'?'אומת ממקור ראשוני':c.verification_state==='investigation_only'?'דורש בדיקת תוכן':'שינוי מחושב'}</div><div class="company">${esc(body)}</div>${c.source_url?`<a href="${esc(c.source_url)}" target="_blank" rel="noreferrer">מקור ↗</a>`:''}</div>`;
 }).join('')}
+function emptyChangesHe(field='changes'){
+  if(!Array.isArray(D[field]))return 'מידע העדכונים לא זמין; אין להסיק שלא התרחשו עדכונים.';
+  if(MozesCheckpointHealth(D).stale)return 'לא מוצגים עדכונים בנתונים הישנים; יש לבדוק תמונת ניטור מעודכנת.';
+  if(D.health?.status!=='ok')return 'לא מוצגים עדכונים; כיסוי המקורות חלקי, נכשל או לא ידוע. אין להסיק שלא התרחשו עדכונים.';
+  return 'לא נקלטו עדכונים בתקופה זו במקורות שנבדקו.';
+}
 function changes(){
   let rows=D.changes||[],sourceTypes=NEWS_TYPES;
   let news=D.news||rows.filter(c=>sourceTypes.includes(c.change_type));
@@ -100,10 +106,10 @@ function changes(){
   let feeds=D.official_feeds||[],counts={};feeds.forEach(f=>counts[f.status]=(counts[f.status]||0)+1);
   let coverage=`RSS פעיל: ${counts.active||0} · ללא אתר רשמי מקושר: ${counts.no_official_site||0} · ללא RSS מאומת: ${counts.no_rss_found||0} · כשל בדיקה: ${counts.fetch_error||0}`;
   return pageTitle('מה השתנה?','עדכונים שנקלטו בשבעת הימים האחרונים',`${rows.length} שינויים`)+
-    `<section class="panel"><div class="panel-head"><h3>חדשות והודעות חברות</h3></div><div class="panel-body"><p class="company">${coverage}</p>${changeRows(news)||'<div class="empty">לא נקלטו ידיעות חדשותיות או הגשות SEC חדשות בשבעת הימים האחרונים.</div>'}<details><summary>מצב מקורות RSS רשמיים</summary>${feeds.map(f=>`<div class="source"><b>${esc(f.ticker)}</b> · ${esc(({active:'RSS פעיל',no_rss_found:'לא נמצא RSS רשמי',no_official_site:'חסר אתר חברה רשמי',fetch_error:'בדיקת המקור נכשלה'})[f.status]||f.status)} · נבדק ${esc((f.checked_at||f.observed_at||'').replace('T',' ').slice(0,16))} ${f.feed?`<a href="${esc(f.feed)}" target="_blank" rel="noreferrer">RSS ↗</a>`:''}</div>`).join('')||'הבדיקה טרם רצה'}</details></div></section>`+
-    `<section class="panel"><div class="panel-head"><h3>שינויים נוספים</h3></div><div class="panel-body">${changeRows(other)||'<div class="empty">אין שינויים נוספים בשבעת הימים האחרונים.</div>'}</div></section>`;
+    `<section class="panel"><div class="panel-head"><h3>חדשות והודעות חברות</h3></div><div class="panel-body"><p class="company">${coverage}</p>${changeRows(news)||`<div class="empty">${emptyChangesHe()}</div>`}<details><summary>מצב מקורות RSS רשמיים</summary>${feeds.map(f=>`<div class="source"><b>${esc(f.ticker)}</b> · ${esc(({active:'RSS פעיל',no_rss_found:'לא נמצא RSS רשמי',no_official_site:'חסר אתר חברה רשמי',fetch_error:'בדיקת המקור נכשלה'})[f.status]||f.status)} · נבדק ${esc((f.checked_at||f.observed_at||'').replace('T',' ').slice(0,16))} ${f.feed?`<a href="${esc(f.feed)}" target="_blank" rel="noreferrer">RSS ↗</a>`:''}</div>`).join('')||'הבדיקה טרם רצה'}</details></div></section>`+
+    `<section class="panel"><div class="panel-head"><h3>שינויים נוספים</h3></div><div class="panel-body">${changeRows(other)||`<div class="empty">${emptyChangesHe()}</div>`}</div></section>`;
 }
-function changedCompact(){let rows=(D.changes||[]).slice(0,3);return `<section class="panel simple-panel"><div class="panel-head"><h3>מה השתנה בשבעת הימים האחרונים</h3><span class="spacer"></span><button class="btn" onclick="page='changes';render()">לכל השינויים</button></div><div class="panel-body">${changeRows(rows)||'<div class="empty">לא זוהו שינויים חדשים בתקופה זו.</div>'}</div></section>`}
+function changedCompact(){let rows=(D.changes||[]).slice(0,3);return `<section class="panel simple-panel"><div class="panel-head"><h3>מה השתנה בשבעת הימים האחרונים</h3><span class="spacer"></span><button class="btn" onclick="page='changes';render()">לכל השינויים</button></div><div class="panel-body">${changeRows(rows)||`<div class="empty">${emptyChangesHe()}</div>`}</div></section>`}
 function checkpointBanner(){let h=MozesCheckpointHealth(D);return `<div id="checkpointFreshness" class="notice ${h.stale?'red-note':'blue-note'}" role="status"><b>${h.stale?'נתונים ישנים — תמונת מצב בלבד':'תמונת הניטור מעודכנת'}</b> · checkpoint: ${esc(h.checkpoint_at||'לא זמין')} · ${h.age_minutes===null?'גיל הנתונים אינו ידוע':`גיל הנתונים: ${h.age_minutes} דקות`}</div>`}
 function render(){renderMenu();sideFoot();let html=page==='dash'?dashboard()+changedCompact():page==='alerts'?alertsPage():page==='radar'?radar():page==='changes'?changes():page==='candidates'?candidates():page==='resolved'?resolved():page==='paper'?paper():page==='validation'?validation():system();$('main').innerHTML=checkpointBanner()+html;bindRows();if(page==='radar'){['fType','fClass','fVerify'].forEach(id=>{let e=$(id);if(e)e.onchange=()=>{radarFilters[id==='fType'?'type':id==='fClass'?'cls':'verify']=e.value;render();};});}}
 function bindRows(){document.querySelectorAll('[data-event]').forEach(x=>x.onclick=()=>openEvent(x.dataset.event));}

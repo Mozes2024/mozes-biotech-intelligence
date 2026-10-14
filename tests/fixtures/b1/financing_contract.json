@@ -1,0 +1,377 @@
+[
+  {
+    "id": "closing_announcement",
+    "form": "8-K",
+    "text": "The company announced the closing of its previously announced public offering. Gross proceeds were $50 million.",
+    "kind": "completed_offering",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 50000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "trailing_anchor",
+    "form": "8-K",
+    "text": "We completed the offering and received $30 million in gross proceeds.",
+    "kind": "completed_offering",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 30000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "atm_sales",
+    "form": "10-Q",
+    "text": "During the three months ended June 30, 2026, we sold shares under our at-the-market sales agreement and received gross proceeds of $12 million and net proceeds of $11 million.",
+    "kind": "atm_sales",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 12000000,
+        "unit": "USD"
+      },
+      {
+        "kind": "net_proceeds",
+        "value": 11000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "foreign_cad",
+    "form": "6-K",
+    "text": "We completed the offering with gross proceeds of C$50 million in Canadian dollars.",
+    "kind": "completed_offering",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 50000000,
+        "unit": "CAD"
+      }
+    ]
+  },
+  {
+    "id": "mixed_currency",
+    "form": "6-K",
+    "text": "We completed the offering with gross proceeds of US$40 million. Our Canadian subsidiary has capacity to sell up to C$10 million of shares.",
+    "kind": "multiple_transactions_review",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 40000000,
+        "unit": "USD"
+      },
+      {
+        "kind": "authorized_capacity",
+        "value": 10000000,
+        "unit": "CAD"
+      }
+    ]
+  },
+  {
+    "id": "priced_expected_close",
+    "form": "8-K",
+    "text": "We announced the pricing of our public offering with gross proceeds of $50 million. Closing is expected next week.",
+    "kind": "priced_offering",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 50000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "will_close",
+    "form": "8-K",
+    "text": "We will close the offering for gross proceeds of $50 million if the conditions are met.",
+    "kind": "conditional_financing",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 50000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "negated_closure",
+    "form": "8-K",
+    "text": "We have not completed the offering with gross proceeds of $50 million.",
+    "kind": "financing_review_required",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 50000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "cancelled",
+    "form": "8-K",
+    "text": "The company cancelled its public offering with expected gross proceeds of $50 million.",
+    "kind": "cancelled_offering",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 50000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "shelf",
+    "form": "S-3",
+    "text": "We may offer up to $200 million of securities under this shelf registration.",
+    "kind": "registration_only",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "authorized_capacity",
+        "value": 200000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "atm_capacity",
+    "form": "424B5",
+    "text": "Our at-the-market sales agreement permits sales of up to $150 million of shares.",
+    "kind": "atm_capacity",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "authorized_capacity",
+        "value": 150000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "priced_private",
+    "form": "8-K",
+    "text": "We priced our private placement with gross proceeds of $22 million.",
+    "kind": "priced_offering",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 22000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "closed_pipe",
+    "form": "8-K",
+    "text": "The company closed its PIPE private placement with gross proceeds of $22 million.",
+    "kind": "completed_offering",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 22000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "direct_closed",
+    "form": "8-K",
+    "text": "We completed our registered-direct offering with net proceeds of $17 million.",
+    "kind": "completed_offering",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "net_proceeds",
+        "value": 17000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "signed_not_settled",
+    "form": "8-K",
+    "text": "We entered into a securities purchase agreement for a registered direct offering with expected gross proceeds of $25 million.",
+    "kind": "proposed_offering",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 25000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "closed_convertible",
+    "form": "8-K",
+    "text": "We completed an offering of convertible notes with gross proceeds of $80 million.",
+    "kind": "completed_offering",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 80000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "warrant_exercise_price",
+    "form": "424B5",
+    "text": "We offer warrants with an exercise price of $5 per share.",
+    "kind": "financing_review_required",
+    "cash_verified": false,
+    "facts": []
+  },
+  {
+    "id": "resale",
+    "form": "S-3",
+    "text": "Selling shareholders may sell up to $30 million of shares. We will not receive any proceeds.",
+    "kind": "resale_registration",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "authorized_capacity",
+        "value": 30000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "shareholder_closed",
+    "form": "8-K",
+    "text": "Selling shareholders completed the offering for gross proceeds of $30 million. We will receive no proceeds.",
+    "kind": "resale_registration",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 30000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "closed_and_proposed",
+    "form": "8-K",
+    "text": "We completed an offering with gross proceeds of $20 million. Separately, we proposed another offering with expected gross proceeds of $15 million.",
+    "kind": "multiple_transactions_review",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 20000000,
+        "unit": "USD"
+      },
+      {
+        "kind": "gross_proceeds",
+        "value": 15000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "aud",
+    "form": "6-K",
+    "text": "We completed an offering with net proceeds of A$17 million in Australian dollars.",
+    "kind": "completed_offering",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "net_proceeds",
+        "value": 17000000,
+        "unit": "AUD"
+      }
+    ]
+  },
+  {
+    "id": "eur",
+    "form": "6-K",
+    "text": "We completed the offering and received EUR 8 million in net proceeds.",
+    "kind": "completed_offering",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "net_proceeds",
+        "value": 8000000,
+        "unit": "EUR"
+      }
+    ]
+  },
+  {
+    "id": "unknown_dollars",
+    "form": "6-K",
+    "text": "Canadian dollar disclosures follow. We completed an offering with gross proceeds of $15 million.",
+    "kind": "completed_offering",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 15000000,
+        "unit": "UNKNOWN"
+      }
+    ]
+  },
+  {
+    "id": "gross_not_net",
+    "form": "8-K",
+    "text": "We completed our public offering with gross proceeds of $40 million before expenses.",
+    "kind": "completed_offering",
+    "cash_verified": true,
+    "facts": [
+      {
+        "kind": "gross_proceeds",
+        "value": 40000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "atm_no_sales",
+    "form": "10-Q",
+    "text": "We sold no shares under the at-the-market program during the quarter. The capacity to sell is up to $50 million.",
+    "kind": "atm_capacity",
+    "cash_verified": false,
+    "facts": [
+      {
+        "kind": "authorized_capacity",
+        "value": 50000000,
+        "unit": "USD"
+      }
+    ]
+  },
+  {
+    "id": "unrelated_cash",
+    "form": "8-K",
+    "text": "Our cash balance was $90 million. We launched a proposed public offering.",
+    "kind": "proposed_offering",
+    "cash_verified": false,
+    "facts": []
+  },
+  {
+    "id": "clinical",
+    "form": "8-K",
+    "text": "The trial met its primary endpoint.",
+    "kind": "not_identified",
+    "cash_verified": false,
+    "facts": []
+  }
+]

@@ -1,5 +1,30 @@
 # A5 evidence-aware alert review
 
+## Current main reconciliation — October 14, 2026
+
+PR #35 merges production main `c0aa1af489efbf01ea79e194621530f3c04d90ec`
+into its existing history. Four conflicts are reconciled by behavior: keep #38's
+strict notifier default and validated transport, retain A5's evidence display
+and end-to-end semantic cases, combine both integration test sets, and publish
+one compatible `alert-evidence-a5-recovery-v1` asset version. The B1 financial
+asset remains `financing-b1-v1`; B1 implementation and monitoring are unchanged
+relative to production main. The open-tab checkpoint regressions and #38's
+recent-visibility regressions remain intact.
+
+The additional activation regression runs the actual A5 Python producer fixture
+through the serialized Worker handler and complete index script chain. It tests
+both a six-row modern feed with a smaller legacy projection and a four-row
+list-only modern feed whose legacy projection is empty. A filtered response with
+the same revision must use the complete static fallback; repeated Worker outage
+polls preserve every historical ID and emit no popup or system notification.
+Existing A5 approval/failure cases still notify once, while milestone, CVR,
+mixed and immutable legacy rows remain listed without interrupts.
+
+Exact-head full validation and CI are reported on PR #35. Passing offline tests
+are GO for review only, not proof of live Worker compatibility or authorization
+to activate. Merge/deployment/activation remain HOLD pending separate approval
+and the outstanding Worker/DO/Builds evidence described below.
+
 ## Final cross-version compatibility gate
 
 ### Final P0 follow-up
@@ -25,11 +50,15 @@ Changed verification fields and new exact-date guidance still update, preserving
 prior sources and sent receipts. No frozen-clock workaround or weakened original
 assertion is used. Exact-head full CI results are reported on PR #35.
 
-PR #34 remains unmerged at approved 65a68fc. Cloudflare Builds read is still
-unverifiable: the correct immutable Worker tag was used and returns HTTP 403;
-existing OAuth scopes do not include Builds access. No permissions, token,
-deployment, production records or monitoring controls were changed. #35 repair
-is independently prepared for review; all activation gates remain in force.
+PR #34 merged on October 13 as e98cb3c25b6c3a427bb06cd55b4189d72bf82762.
+PR #38 merged on October 14; the current production baseline is
+c0aa1af489efbf01ea79e194621530f3c04d90ec. Its normal Pages deployment
+38546398398 succeeded, with complete historical list visibility and protected
+legacy projection verified. This branch merges that baseline without rewriting
+shared history. Cloudflare Builds evidence and live Worker compatibility remain
+unverified (existing access returned HTTP 403). No permission expansion or
+Worker deployment is authorized here. PR #35 remains review-only; all A5
+activation gates remain in force.
 
 Both findings are confirmed. The original 85caa58/b682b0b HotEdge used one
 response cache and one pending promise across clients. Five real fetch-path
@@ -42,12 +71,14 @@ overlapping orders, unknown clients, POST overlap and TTL boundaries.
 The original old-script Worker outage falls back to unprotected alerts.json
 and interrupts for a new list-only row. #34 now owns the compatibility-only
 static/API projection and stored metadata forwarding, without semantic changes.
-Its normal Pages publication must be verified BEFORE Worker activation. This
-includes the protected alerts.json, complete alerts-evidence-v1.json, schema-2
-receipt and authoritative checkpoint integrity/monotonicity. Then verify #34
-Worker through the Durable Object (not only its handler), including an outage.
-Only then approve #35 producer/frontend/Stage-0. Both latest branch heads are
-CI-gated, and #34's latest exact commit is an ancestor of #35.
+The Pages compatibility gate is satisfied by #38's verified normal deployment:
+protected alerts.json, complete alerts-evidence-v1.json, schema-2 successful
+publication receipt and checkpoint ordering. The current branch retains #38's
+feed-completeness validation, complete static fallback, snapshot freshness guards
+and notification deduplication. Before activation, separately verify the compatible
+Worker through the Durable Object (not only its handler), both client views,
+cache isolation and outage fallback. Only then separately approve #35
+producer/frontend/Stage-0. Exact-head CI does not establish live Worker readiness.
 
 An actual offline export followed by the captured old script verifies safe
 fallback, urgent once-only polling/cross-tab/reload behavior and byte-identical
@@ -68,17 +99,23 @@ Old tabs lose list-only rows until refreshed, but require no refresh to remain
 safe and still notify new eligible urgent events exactly once. New clients
 retain every list row. Worker-first temporarily suppresses legacy browser
 interrupts whose producer lacks evidence metadata; Stage-0 is separately gated.
-Deploy and verify #34 first, including both GET views; then separately approve
-#35 producer/frontend and Stage-0. Verify both static files in normal Pages
-publication and reload an existing tab only to inspect its new UI, not as the
-safety mechanism. Never roll back the compatible feed contract while A5 runs.
+#34 is merged and the Pages/static compatibility boundary is verified by #38.
+Live Worker/DO verification of both GET views remains a deployment dependency;
+only after that evidence and separate approval may #35 producer/frontend and
+Stage-0 activate. Reload an existing tab only to inspect its new UI, not as the
+safety mechanism. Never roll back the compatible feed contract or #38 recovery
+guards while A5 runs.
 Missing displayed excerpts are not missing source verification. Oversized
 quotes remain omitted with a limitation; eligibility needs explicit verified
 producer metadata. The frontend explicitly discloses when an eligible event's
 source quotation is absent. Missing source basis remains ineligible even when
 other eligibility flags are present. Exact-head results are recorded on the PRs.
 
-Review only. No merge, Worker deployment, production writes, replay, historical correction or OOS activation was performed. Main baseline: `6f939b8299a5d96dc4e175e5e75baf1ec5636080`.
+This reconciliation updates PR #35 for review only. It does not merge PR #35,
+deploy the Worker, activate A5, modify production data or trigger replay/monitoring.
+Historical review evidence below used baseline
+`6f939b8299a5d96dc4e175e5e75baf1ec5636080`; the reconciled production baseline is
+`c0aa1af489efbf01ea79e194621530f3c04d90ec`.
 
 ## Confirmed causes and bounded corrections
 
@@ -158,7 +195,7 @@ The actual Python outbox and small feed are serialized through Worker `publicFee
 
 A real local browser loaded `alerts_ui.js?v=alert-evidence-a5-v1` alongside the unchanged #33 app/Live Intelligence versions and #31/#32 checkpoint-health version. Natural alert polling showed exactly two popups from six producer/Worker-serialized fixture rows; all six remained listed. A normal reload produced no repeated popup. One research section with six cards and six WATCH cards remained composed. This is local integration verification with explicit test alerts and a frozen dashboard fixture, not production verification or native OS notification delivery; system-notification calls are covered by offline tests.
 
-The separately reviewable feed-contract dependency is PR #34 at `6b909c27294859b58f52a9ec16ce4c4a389c7219`. Its exact-head full CI run `38288481139` passed both test and worker-image jobs. Its contract preserves semantic metadata and bounded exact citations, and accepts `source-rules-v2`.
+The feed-contract dependency from PR #34 is merged into main at `e98cb3c25b6c3a427bb06cd55b4189d72bf82762`. Historical dependency CI `38288481139` remains provenance, not current activation evidence. The current production Pages boundary includes #38 at `c0aa1af489efbf01ea79e194621530f3c04d90ec`, verified by successful deployment `38546398398`. The compatible Worker contract preserves semantic metadata and bounded exact citations, and accepts `source-rules-v2`; its actual live deployment still needs separate verification.
 
 Before A5 producer/frontend activation, a separately authorized deployment must install and verify the #34 Worker contract. An older Worker strips policy fields and rejects the new explanation method; successful Python/frontend tests cannot prove that deployment dependency is satisfied. The A5 Stage-0 code also requires explicit Worker deployment approval. No deploy command or activation hook is included here.
 

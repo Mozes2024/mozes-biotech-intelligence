@@ -2,6 +2,10 @@
 (function () {
   'use strict';
   const labels = {
+    atm_sales: 'מכירות ATM שבוצעו — תמורה מדווחת',
+    cancelled_offering: 'הצעה שבוטלה — אינה מזומן שהתקבל',
+    conditional_financing: 'מימון מותנה — קבלת התמורה לא אומתה',
+    historical_financing: 'מימון קודם / רקע היסטורי',
     registration_only: '\u05e8\u05d9\u05e9\u05d5\u05dd \u05de\u05d3\u05e3 / \u05e8\u05d9\u05e9\u05d5\u05dd \u05e0\u05d9\u05d9\u05e8\u05d5\u05ea \u2014 \u05dc\u05d0 \u05d2\u05d9\u05d5\u05e1 \u05d1\u05e4\u05d5\u05e2\u05dc',
     atm_capacity: '\u05de\u05e1\u05d2\u05e8\u05ea \u05dc\u05de\u05db\u05d9\u05e8\u05ea \u05de\u05e0\u05d9\u05d5\u05ea \u05d1\u05e9\u05d5\u05e7 (ATM)',
     proposed_offering: '\u05d2\u05d9\u05d5\u05e1 \u05de\u05ea\u05d5\u05db\u05e0\u05df',
@@ -48,7 +52,14 @@
     if (f.source_url?.startsWith('https://data.sec.gov/')) html += `<a href="${esc(f.source_url)}" target="_blank" rel="noopener noreferrer">\u05de\u05e7\u05d5\u05e8 \u05d4\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05d1\u05beSEC</a>`;
     for (const e of a.financing_events || []) {
       html += `<details class="source"><summary>${esc(e.form)} | ${esc(labels[e.kind] || labels.financing_review_required)} | ${esc(e.published_at?.slice(0,10))}</summary>`;
-      for (const fact of e.facts || []) html += `<p class="ltr">${esc(fact.span?.text)}${fact.ambiguous ? ' (\u05db\u05de\u05d4 \u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05de\u05d0\u05d5\u05ea\u05d5 \u05e1\u05d5\u05d2)' : ''}</p><blockquote class="ltr">${esc(fact.context)}</blockquote>`;
+      const types={gross_proceeds:'תמורה ברוטו',net_proceeds:'תמורה נטו',authorized_capacity:'קיבולת — אינה מזומן שגויס',convertible_principal:'ערך נקוב — אינו תמורה',use_of_proceeds:'שימוש בתמורה — אינו סכום הגיוס'};
+      if(e.classification_status==='REVIEW_REQUIRED'||e.overlap_review)html+='<p class="notice">דיווח דורש בדיקה / התאמה בין עסקאות ומקורות.</p>';
+      html+='<p class="company">הדיווח אינו מתווסף ליתרת המזומן ואינו מאמת runway נוכחי.</p>';
+      for (const fact of e.facts || []) {
+        html+=`<p>${esc(types[fact.kind]||fact.kind)} · ${esc(fact.unit)} · ${esc(fact.realized===true?'תמורה ממומשת מדווחת':'קבלת התמורה לא אומתה')}${fact.ambiguous?' · דורש בדיקה':''}</p>`;
+        if(fact.reporting_period)html+=`<p>${esc(fact.reporting_period.text)}</p>`;
+        html+=`<p class="ltr">${esc(fact.span?.text)}</p><blockquote class="ltr">${esc(fact.context)}</blockquote>`;
+      }
       if (e.source_url?.startsWith('https://www.sec.gov/')) html += `<a href="${esc(e.source_url)}" target="_blank" rel="noopener noreferrer">\u05e4\u05ea\u05d7 \u05d3\u05d9\u05d5\u05d5\u05d7 \u05de\u05e7\u05d5\u05e8\u05d9</a>`;
       html += '</details>';
     }

@@ -140,7 +140,7 @@ for(const issue of ['older','future','invalid','missing-field','missing-metadata
  h.responses.push(advertised);await assert.rejects(h.poll());assert.deepEqual(h.requests,['updates.json']);assert.equal(h.snapshot().checkpoint_at,cp().checkpoint_at);
 });
 test('independent feed and existing change_id deduplication survive checkpoint-only refresh',async()=>{
- const h=harness();h.c.feed={revision:'feed-independent',alerts:[{change_id:'CHG-keep'}],alert_config:{feed_url:'https://example.test/alerts'}};
+ const h=harness();h.c.feed={schema:1,generated_at:'2026-10-12T11:59:00Z',revision:'feed-independent',alerts:[{change_id:'CHG-keep'}],alert_config:{feed_url:'https://example.test/alerts'}};
  h.run('lastAlertFeed=feed');h.responses.push(update(advance()),data(advance()));await h.poll();
  assert.equal(h.snapshot().alerts,h.c.feed.alerts);assert.equal(h.snapshot().alert_config,h.c.feed.alert_config);
  let shown=0,notified=0;const values=new Map();h.c.storage={getItem:key=>values.get(key),setItem:(key,value)=>values.set(key,value)};

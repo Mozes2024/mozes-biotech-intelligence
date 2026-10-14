@@ -1,0 +1,1255 @@
+{
+  "baseline": "e98cb3c25b6c3a427bb06cd55b4189d72bf82762",
+  "checkpoint_sha256": "e11100eb24dc9ecaab91a81e332ccc3273f194818a0d57a30559daee47a8a64b",
+  "integrity": "ok",
+  "foreign_key_violations": 0,
+  "financing_records": 29,
+  "stored_classifications": {
+    "financing_review_required": 14,
+    "atm_capacity": 3,
+    "proposed_offering": 7,
+    "resale_registration": 2,
+    "registration_only": 1,
+    "priced_offering": 2
+  },
+  "hash_verified_full_documents": 0,
+  "whole_document_unresolved": 29,
+  "full_document_results": [],
+  "available_contexts": 172,
+  "disclosures_with_changed_excerpt_results": 16,
+  "changed_excerpt_count": 45,
+  "changed_excerpts_requiring_review": 38,
+  "context_detail_changes": [
+    {
+      "ticker": "MRNA",
+      "facts_before": 6,
+      "facts_after": 8
+    }
+  ],
+  "examples": [
+    {
+      "ticker": "SMMT",
+      "url": "https://www.sec.gov/Archives/edgar/data/1599298/000119312526405776/d178892d8k.htm",
+      "changes": [
+        {
+          "before": "financing_review_required",
+          "after": "proposed_offering",
+          "review_required": false,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 2000000000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "offering_price_per_share",
+              "value": 18356.14,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "ABVX",
+      "url": "https://www.sec.gov/Archives/edgar/data/1956827/000195682726000027/abvx-20260630.htm",
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 747500000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "authorized_capacity",
+              "value": 111.57,
+              "unit": "UNKNOWN",
+              "realized": false
+            },
+            {
+              "kind": "authorized_capacity",
+              "value": 95.34,
+              "unit": "EUR",
+              "realized": false
+            },
+            {
+              "kind": "offering_price_per_share",
+              "value": 95.34,
+              "unit": "EUR/share",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 920000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "BIVI",
+      "url": "https://www.sec.gov/Archives/edgar/data/1580149/000152013826000391/bivi-20260911_8k.htm",
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "authorized_capacity",
+              "value": 6464341.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "BIVI",
+      "url": "https://www.sec.gov/Archives/edgar/data/1580149/000152013826000389/bivi-424b5.htm",
+      "changes": [
+        {
+          "before": "atm_capacity",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 2.07,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "atm_capacity",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 2.07,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 1.59,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "AMLX",
+      "url": "https://www.sec.gov/Archives/edgar/data/1658551/000119312526359418/d179247d8k.htm",
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 35.5,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "AMLX",
+      "url": "https://www.sec.gov/Archives/edgar/data/1658551/000119312526359416/d180581d424b5.htm",
+      "changes": [
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "net_proceeds",
+              "value": 471700000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "net_proceeds",
+              "value": 542500000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "net_proceeds",
+              "value": 471700000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "net_proceeds",
+              "value": 542500000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offered_common_shares",
+              "value": 14090000.0,
+              "unit": "shares",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "AMLX",
+      "url": "https://www.sec.gov/Archives/edgar/data/1658551/000119312526355696/d180581d424b5.htm",
+      "changes": [
+        {
+          "before": "financing_review_required",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": []
+        }
+      ]
+    },
+    {
+      "ticker": "CRDL",
+      "url": "https://www.sec.gov/Archives/edgar/data/1702123/000127956926000889/ex991.htm",
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 573750.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "MRNA",
+      "url": "https://www.sec.gov/Archives/edgar/data/1682852/000119312526378505/d108896d8k.htm",
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "completed_offering",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "convertible_principal",
+              "value": 3000000000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "convertible_principal",
+              "value": 400000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "net_proceeds",
+              "value": 2957300000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "not_identified",
+          "review_required": false,
+          "facts": []
+        }
+      ]
+    },
+    {
+      "ticker": "MRNA",
+      "url": "https://www.sec.gov/Archives/edgar/data/1682852/000119312526378505/d108896dex992.htm",
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "use_of_proceeds",
+              "value": 285000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 142.77,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "excerpt_results": [
+    {
+      "ticker": "QTTB",
+      "accession": "000119312526389836",
+      "context_count": 0,
+      "changes": []
+    },
+    {
+      "ticker": "QTTB",
+      "accession": "000119312526389836",
+      "context_count": 0,
+      "changes": []
+    },
+    {
+      "ticker": "SMMT",
+      "accession": "000119312526405776",
+      "context_count": 1,
+      "changes": [
+        {
+          "before": "financing_review_required",
+          "after": "proposed_offering",
+          "review_required": false,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 2000000000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "offering_price_per_share",
+              "value": 18356.14,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "SMMT",
+      "accession": "000119312526405776",
+      "context_count": 0,
+      "changes": []
+    },
+    {
+      "ticker": "ABVX",
+      "accession": "000195682726000027",
+      "context_count": 5,
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 747500000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "authorized_capacity",
+              "value": 111.57,
+              "unit": "UNKNOWN",
+              "realized": false
+            },
+            {
+              "kind": "authorized_capacity",
+              "value": 95.34,
+              "unit": "EUR",
+              "realized": false
+            },
+            {
+              "kind": "offering_price_per_share",
+              "value": 95.34,
+              "unit": "EUR/share",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 920000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offered_common_shares",
+              "value": 403347.0,
+              "unit": "shares",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offered_common_shares",
+              "value": 319251.0,
+              "unit": "shares",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "BIVI",
+      "accession": "000152013826000391",
+      "context_count": 1,
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "authorized_capacity",
+              "value": 6464341.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "BIVI",
+      "accession": "000152013826000389",
+      "context_count": 25,
+      "changes": [
+        {
+          "before": "atm_capacity",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 2.07,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "atm_capacity",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 2.07,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 1.59,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 1.39,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "BMEA",
+      "accession": "000119312526397909",
+      "context_count": 14,
+      "changes": [
+        {
+          "before": "financing_review_required",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "convertible_principal",
+              "value": 300000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "authorized_capacity",
+              "value": 15000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offered_common_shares",
+              "value": 9100000.0,
+              "unit": "shares",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "ABBV",
+      "accession": "000110465926098367",
+      "context_count": 0,
+      "changes": []
+    },
+    {
+      "ticker": "AGEN",
+      "accession": "000119312526389364",
+      "context_count": 15,
+      "changes": []
+    },
+    {
+      "ticker": "ALLR",
+      "accession": "000121390026099576",
+      "context_count": 0,
+      "changes": []
+    },
+    {
+      "ticker": "ALLR",
+      "accession": "000121390026099576",
+      "context_count": 0,
+      "changes": []
+    },
+    {
+      "ticker": "ALZN",
+      "accession": "000121465926010726",
+      "context_count": 8,
+      "changes": []
+    },
+    {
+      "ticker": "APLM",
+      "accession": "000119312526384280",
+      "context_count": 7,
+      "changes": [
+        {
+          "before": "financing_review_required",
+          "after": "resale_registration",
+          "review_required": false,
+          "facts": [
+            {
+              "kind": "authorized_capacity",
+              "value": 0.01,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": []
+        }
+      ]
+    },
+    {
+      "ticker": "ATOS",
+      "accession": "000119312526395694",
+      "context_count": 1,
+      "changes": []
+    },
+    {
+      "ticker": "APMD",
+      "accession": "000119312526385355",
+      "context_count": 3,
+      "changes": [
+        {
+          "before": "financing_review_required",
+          "after": "completed_offering",
+          "review_required": false,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 220800000.0,
+              "unit": "USD",
+              "realized": true
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 220800000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "authorized_capacity",
+              "value": 150000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "completed_offering",
+          "review_required": false,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 220800000.0,
+              "unit": "USD",
+              "realized": true
+            },
+            {
+              "kind": "offered_common_shares",
+              "value": 13800000.0,
+              "unit": "shares",
+              "realized": false
+            },
+            {
+              "kind": "offering_price_per_share",
+              "value": 16.0,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "AMLX",
+      "accession": "000119312526359418",
+      "context_count": 1,
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 35.5,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "AMLX",
+      "accession": "000119312526359416",
+      "context_count": 10,
+      "changes": [
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "net_proceeds",
+              "value": 471700000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "net_proceeds",
+              "value": 542500000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "net_proceeds",
+              "value": 471700000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "net_proceeds",
+              "value": 542500000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offered_common_shares",
+              "value": 14090000.0,
+              "unit": "shares",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 35.5,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "financing_review_required",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 6.12,
+              "unit": "USD/share",
+              "realized": false
+            },
+            {
+              "kind": "offering_price_per_share",
+              "value": 3.97,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "AMLX",
+      "accession": "000119312526355696",
+      "context_count": 1,
+      "changes": [
+        {
+          "before": "financing_review_required",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": []
+        }
+      ]
+    },
+    {
+      "ticker": "CANF",
+      "accession": "000121390026097856",
+      "context_count": 0,
+      "changes": []
+    },
+    {
+      "ticker": "CANF",
+      "accession": "000121390026096480",
+      "context_count": 0,
+      "changes": []
+    },
+    {
+      "ticker": "CELZ",
+      "accession": "000147793226005805",
+      "context_count": 1,
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offered_common_shares",
+              "value": 4000000.0,
+              "unit": "shares",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "CELZ",
+      "accession": "000147793226005329",
+      "context_count": 0,
+      "changes": []
+    },
+    {
+      "ticker": "CNSY",
+      "accession": "000119312526387267",
+      "context_count": 1,
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 3000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "CRDL",
+      "accession": "000127956926000889",
+      "context_count": 1,
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 573750.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "MRNA",
+      "accession": "000119312526378505",
+      "context_count": 5,
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "completed_offering",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "convertible_principal",
+              "value": 3000000000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "convertible_principal",
+              "value": 400000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "net_proceeds",
+              "value": 2957300000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "not_identified",
+          "review_required": false,
+          "facts": []
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 142.77,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 392.62,
+              "unit": "USD/share",
+              "realized": false
+            },
+            {
+              "kind": "offering_price_per_share",
+              "value": 142.77,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "MRNA",
+      "accession": "000119312526378505",
+      "context_count": 0,
+      "changes": []
+    },
+    {
+      "ticker": "MRNA",
+      "accession": "000119312526378505",
+      "context_count": 2,
+      "changes": [
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "use_of_proceeds",
+              "value": 285000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "not_identified",
+          "after": "financing_review_required",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offering_price_per_share",
+              "value": 142.77,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ticker": "ELOX",
+      "accession": "000119312526389422",
+      "context_count": 70,
+      "changes": [
+        {
+          "before": "registration_only",
+          "after": "proposed_offering",
+          "review_required": false,
+          "facts": [
+            {
+              "kind": "authorized_capacity",
+              "value": 20000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "registration_only",
+          "after": "registration_only",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "net_proceeds",
+              "value": 60300000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "net_proceeds",
+              "value": 2000000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "net_proceeds",
+              "value": 7000000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "registration_only",
+          "after": "proposed_offering",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "authorized_capacity",
+              "value": 0.011,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "authorized_capacity",
+              "value": 56.43,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "gross_proceeds",
+              "value": 2000000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "offered_common_shares",
+              "value": 6818.0,
+              "unit": "shares",
+              "realized": false
+            },
+            {
+              "kind": "offered_common_shares",
+              "value": 34599.0,
+              "unit": "shares",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "registration_only",
+          "after": "registration_only",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "authorized_capacity",
+              "value": 20000000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "authorized_capacity",
+              "value": 0.01,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "registration_only",
+          "after": "atm_capacity",
+          "review_required": false,
+          "facts": [
+            {
+              "kind": "authorized_capacity",
+              "value": 6500000.0,
+              "unit": "USD",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "registration_only",
+          "after": "atm_sales",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "gross_proceeds",
+              "value": 3500000.0,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "gross_proceeds",
+              "value": 64.57,
+              "unit": "USD",
+              "realized": false
+            },
+            {
+              "kind": "offered_common_shares",
+              "value": 54222.0,
+              "unit": "shares",
+              "realized": false
+            },
+            {
+              "kind": "offering_price_per_share",
+              "value": 64.57,
+              "unit": "USD/share",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "registration_only",
+          "after": "resale_registration",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offered_common_shares",
+              "value": 600000.0,
+              "unit": "shares",
+              "realized": false
+            },
+            {
+              "kind": "offered_common_shares",
+              "value": 4358919.0,
+              "unit": "shares",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "registration_only",
+          "after": "resale_registration",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offered_common_shares",
+              "value": 614285.0,
+              "unit": "shares",
+              "realized": false
+            },
+            {
+              "kind": "offered_common_shares",
+              "value": 4358919.0,
+              "unit": "shares",
+              "realized": false
+            }
+          ]
+        },
+        {
+          "before": "registration_only",
+          "after": "conditional_financing",
+          "review_required": true,
+          "facts": [
+            {
+              "kind": "offered_common_shares",
+              "value": 7937217.0,
+              "unit": "shares",
+              "realized": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "database_bytes_unchanged": true
+}

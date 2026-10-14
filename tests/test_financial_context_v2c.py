@@ -27,7 +27,9 @@ def test_enrichment_does_not_change_recommendation_or_validation(tmp_path):
     assert conn.execute('SELECT COUNT(*) FROM model_validation').fetchone()[0]==0
 
 
-def test_completed_later_financing_is_not_added_to_cash_twice(tmp_path):
+def test_completed_later_financing_is_not_added_to_cash_twice(tmp_path, monkeypatch):
+    monkeypatch.setattr('mozes.financial_intelligence.utcnow', lambda:'2026-08-02T12:00:00+00:00')
+    monkeypatch.setattr('mozes.financing_intelligence.utcnow', lambda:'2026-08-05T12:00:00+00:00')
     conn=db.connect(tmp_path/'x.db')
     store_financials(conn,'AAA',raw(),as_of='2026-08-02',expected_cik=123)
     filing={'form':'8-K','filed':'2026-08-05','accession':'0000000123-26-000002',

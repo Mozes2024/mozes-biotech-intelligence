@@ -13,7 +13,10 @@ const storage={getItem:()=>saved,setItem:(_,v)=>{saved=v}};
 const lock=fn=>{const next=queue.then(fn);queue=next.catch(()=>{});return next};
 const options={storage,lock,show:rows=>shown.push(rows.map(x=>x.change_id)),system:a=>system.push(a.change_id),now:()=>1000};
 const first=context.createAlertNotifier(options),second=context.createAlertNotifier(options);
-const old={change_id:'old',polarity:'positive'},negative={change_id:'negative',polarity:'negative'},halt={change_id:'halt',polarity:'unknown'};
+const eligibility={popup_eligible:true,issuer_verified:true,confirmed_outcome:true,needs_review:false,
+ semantic_version:'alert-evidence-v1',evidence_basis:'source_text',priority:'P1',event_family:'clinical_outcome',event_outcome:'primary_endpoint_failed'};
+const old={...eligibility,change_id:'old',polarity:'positive'},negative={...eligibility,change_id:'negative',polarity:'negative'},
+ halt={...eligibility,change_id:'halt',polarity:'unknown',event_family:'market_halt',event_outcome:'halt'};
 (async()=>{
  await first.observe([old],true);await second.observe([old],true);
  assert.strictEqual(shown.length,0);
@@ -38,7 +41,7 @@ const context={D:{alerts:[],alert_config:{feed_url:'https://clock.example/alerts
  document:{hidden:false},window:{localStorage:storage},navigator:{},render:()=>rendered++,
  showAlertPopup:()=>{},showSystemAlert:()=>{},
  fetch:async url=>{fetched.push(url);return {ok:true,json:async()=>({schema:1,revision:'a',generated_at:'2026-10-07T18:00:00Z',
-  alerts:[{change_id:'CHG-1',priority:'P1',polarity:'negative'}],alert_config:{feed_url:'https://clock.example/alerts'}})}}};
+  alerts:[{change_id:'CHG-1',created_at:'2026-09-30T12:00:00Z',priority:'P1',polarity:'negative'}],alert_config:{feed_url:'https://clock.example/alerts'}})}}};
 vm.createContext(context);vm.runInContext(fs.readFileSync('web/alerts_ui.js','utf8'),context);
 (async()=>{
  await context.checkForAlerts();assert.strictEqual(context.D.alerts[0].change_id,'CHG-1');

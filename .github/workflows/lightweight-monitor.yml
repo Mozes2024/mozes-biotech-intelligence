@@ -105,6 +105,8 @@ jobs:
     timeout-minutes: 12
     env:
       SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
+      # Separately authorized opt-in; same lock, DB, checkpoint and publisher.
+      MOZES_B1_FINANCING_OBSERVATION: ${{ vars.MOZES_B1_FINANCING_OBSERVATION }}
       MOZES_DB_PATH: .monitor/mozes-live.db
       MOZES_NEWS_ENABLED: '1'
       MOZES_HTTP_CACHE: .monitor/http-cache

@@ -7,7 +7,7 @@ function interruptiveAlertEligible(a){
     a.semantic_version==='alert-evidence-v1'&&['source_text','feed_summary','structured_source'].includes(a.evidence_basis)&&
     ['P1','P2'].includes(a.priority)&&(allowed[a.event_family]||[]).includes(a.event_outcome);
 }
-function createAlertNotifier({storage, show, system, eligible=()=>true, lock=task=>task(), now=()=>Date.now()}){
+function createAlertNotifier({storage, show, system, eligible=interruptiveAlertEligible, lock=task=>task(), now=()=>Date.now()}){
   const key='mozes-alerts-seen-v1';let memory={};
   return {async observe(rows,baseline=false){return lock(()=>{
     let seen;try{seen=JSON.parse(storage.getItem(key)||'{}')}catch(_){seen=memory}
@@ -78,7 +78,22 @@ function safeSourceUrl(value){
   try{const url=new URL(value);return ['http:','https:'].includes(url.protocol)&&!url.username&&!url.password?url.href:null}catch(_){return null}
 }
 function preserveAlertFeed(next){
-  if(lastAlertFeed){next.alerts=lastAlertFeed.alerts;next.alert_config=lastAlertFeed.alert_config}
+  // A complete, newer research snapshot must not inherit an older feed's list.
+  if(lastAlertFeed&&(!Number.isFinite(Date.parse(next.generated_at))||Date.parse(lastAlertFeed.generated_at)>=Date.parse(next.generated_at))){
+    try{validateAlertFeed(lastAlertFeed,next)}catch(_){return}
+    next.alerts=lastAlertFeed.alerts;next.alert_config=lastAlertFeed.alert_config;
+  }
+}
+function validateAlertFeed(feed,snapshot=D){
+  if(!feed||feed.schema!==1||!Array.isArray(feed.alerts)||typeof feed.revision!=='string'||!feed.revision||
+     !Number.isFinite(Date.parse(feed.generated_at)))throw Error('Invalid alert feed');
+  const cutoff=Date.parse(feed.generated_at)-7*86400000,ids=new Set(feed.alerts.map(a=>a.change_id));
+  // Projections share a revision with the complete feed. A revision alone does
+  // not prove completeness: retain all known IDs still in the feed's window.
+  const known=[...(snapshot?.alerts||[]),...(lastAlertFeed?.alerts||[])];
+  if(feed.truncated===true||known.some(a=>a.change_id&&!ids.has(a.change_id)&&
+     (!Number.isFinite(Date.parse(a.created_at))||Date.parse(a.created_at)>=cutoff)))throw Error('Incomplete alert feed');
+  return feed;
 }
 async function checkForAlerts(){
   if(!D||document.hidden||alertPollBusy)return;
@@ -88,13 +103,15 @@ async function checkForAlerts(){
     const fallback='alerts-evidence-v1.json';
     const base=apiMode?'/api/alerts':preferredAlertFeedUrl;
     const url=base?base+(base.includes('?')?'&':'?')+'client=alert-evidence-v1':fallback;
-    let r;
-    try{r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error(r.status)}
-    catch(error){if(apiMode||url===fallback)throw error;r=await fetch(fallback,{cache:'no-store'})}
-    if(!r.ok)throw Error(r.status);
-    const feed=await r.json();
-    if(feed.schema!==1||!Array.isArray(feed.alerts)||typeof feed.revision!=='string')throw Error('Invalid alert feed');
+    const read=async address=>{
+      const r=await fetch(address,{cache:'no-store'});if(!r.ok)throw Error(r.status);
+      return validateAlertFeed(await r.json());
+    };
+    let feed;
+    try{feed=await read(url)}
+    catch(error){if(apiMode||url===fallback)throw error;feed=await read(fallback)}
     if(lastAlertFeed&&Date.parse(feed.generated_at)<Date.parse(lastAlertFeed.generated_at))return;
+    if(Number.isFinite(Date.parse(D.generated_at))&&Date.parse(feed.generated_at)<Date.parse(D.generated_at))return;
     if(lastAlertFeed?.revision===feed.revision){lastAlertFeed=feed;return}
     await getAlertNotifier().observe(feed.alerts,!alertFeedInitialized);
     alertFeedInitialized=true;lastAlertFeed=feed;preserveAlertFeed(D);render();
