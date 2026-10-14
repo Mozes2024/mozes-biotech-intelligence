@@ -113,8 +113,10 @@ def apply_guidance(conn, ticker, statement, *, today=None):
         current_sources[s['source_id']] = {'reliability': 'primary' if s['source_type'] == 'sec' else 'secondary'}
     info = date_info(event.get('chronology', []), current_sources)
     old = info.get('window')
-    active_dates = [pub_effective(c.get('date')) for c in event.get('chronology', [])
-                    if c.get('date_text') and not c.get('superseded')]
+    # Unknown publication dates remain evidence, not a latest-publication bound.
+    # pub_effective's unknown sentinel is for availability/PIT, not recency.
+    active_dates = [pub_effective(c['date']) for c in event.get('chronology', [])
+                    if c.get('date') and c.get('date_text') and not c.get('superseded')]
     latest_pub = max(active_dates, default='0001-01-01')
     latest_version = conn.execute('SELECT published_at FROM v2c_regulatory_versions WHERE event_id=? '
                                   'ORDER BY published_at DESC LIMIT 1', (event['id'],)).fetchone()

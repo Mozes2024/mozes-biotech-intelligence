@@ -137,7 +137,7 @@ def date_info(chronology, sources):
         if c.get("date_text"):
             rel = (sources.get(c.get("src")) or {}).get("reliability")
             w = normalize_date_text(
-                c["date_text"], date.fromisoformat(pub_effective(c["date"])),
+                c["date_text"], date.fromisoformat(pub_effective(c.get("date"))),
                 confirmed_by_company=(rel == "primary"), secondary_source=(rel != "primary"),
             )
             item["norm"] = asdict(w)
