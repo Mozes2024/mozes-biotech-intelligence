@@ -1,7 +1,9 @@
 from datetime import date
+import pytest
 
 from mozes.dates import normalize_date_text as N
 from mozes.dates import pub_effective
+from mozes.dates import date_info
 
 REF = date(2026, 1, 15)
 
@@ -85,3 +87,37 @@ def test_pub_effective_is_conservative():
     assert pub_effective("2026-09") == "2026-09-30"
     assert pub_effective("2026") == "2026-12-31"
     assert pub_effective(None) == "9999-12-31"
+
+
+@pytest.mark.parametrize('text', ['next year', 'coming weeks', 'coming months', 'this year',
+                                  'December 14', 'year-end'])
+@pytest.mark.parametrize('publication', [None, '', 'absent'])
+def test_undated_guidance_cannot_infer_anchor_or_overflow(text, publication):
+    item = {'src': 'unknown', 'text': 'Original evidence', 'date_text': text}
+    if publication != 'absent':
+        item['date'] = publication
+    original = dict(item)
+    info = date_info([item], {'unknown': {'reliability': 'primary'}})
+    assert info['window'] is None and info['changes'] == []
+    norm = info['timeline'][0]['norm']
+    assert norm['precision'] == 'unknown' and norm['start'] is None and norm['end'] is None
+    assert item == original and info['timeline'][0]['date'] == item.get('date')
+
+
+def test_undated_explicit_window_remains_evidence_but_never_latest_guidance():
+    undated = {'date': None, 'src': 'unknown', 'date_text': 'December 14, 2027'}
+    known = {'date': '2026-09-01', 'src': 'known', 'date_text': 'October 15, 2026'}
+    for chronology in ([undated, known], [known, undated]):
+        info = date_info(chronology, {})
+        assert info['window'] == {'start': '2026-10-15', 'end': '2026-10-15'}
+        assert info['changes'] == []
+        evidence = next(x for x in info['timeline'] if x['src'] == 'unknown')
+        assert evidence['norm']['start'] == '2027-12-14' and evidence['date'] is None
+    assert date_info([undated], {})['window'] is None
+
+
+def test_explicit_year_without_publication_can_normalize_but_not_establish_recency():
+    for text in ['Q4 2027', 'September 2027', '2027']:
+        info = date_info([{'date_text': text}], {})
+        assert info['window'] is None
+        assert info['timeline'][0]['norm']['start'].startswith('2027-')

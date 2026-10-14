@@ -1,5 +1,6 @@
 from datetime import date
 import json
+import pytest
 
 from mozes import db
 from mozes.dates import date_info
@@ -113,3 +114,65 @@ def test_other_issuer_filing_is_not_used_for_ticker_guidance(tmp_path):
     db.upsert_watch(conn, 'AAA', 'Alpha', cik='456')
     assert apply_guidance(conn, 'AAA', statement(), today=date(2026,10,1))['reason'] == 'source_issuer_does_not_match_ticker'
     assert len(db.load_events(conn)[0]['chronology']) == 1
+
+
+def add_unknown_publication(conn, value):
+    loaded = db.load_events(conn, 'live')[0]
+    entry = {'src': 'undated', 'text': 'Undated guidance', 'date_text': 'October 15, 2026'}
+    if value != 'absent':
+        entry['date'] = value
+    loaded['chronology'].append(entry)
+    with conn:
+        conn.execute('UPDATE events SET payload=? WHERE id=?', (json.dumps(loaded), loaded['id']))
+    return entry
+
+
+@pytest.mark.parametrize('unknown', [None, '', 'absent'])
+def test_unknown_publication_does_not_reject_new_filing_or_rewrite_history(tmp_path, unknown):
+    conn = db.connect(tmp_path / 'x.db'); event(conn)
+    original = add_unknown_publication(conn, unknown)
+    s = statement(filed='2026-09-15T14:23:00Z')
+    out = apply_guidance(conn, 'AAA', s, today=date(2026,10,1))
+    assert out['status'] == 'updated'
+    loaded = db.load_events(conn, 'live')[0]
+    assert loaded['id'] == 'APP-A'
+    assert loaded['chronology'][1] == {**original, 'superseded': True}
+    assert loaded['chronology'][-1]['date'] == '2026-09-15'
+    version = conn.execute('SELECT * FROM v2c_regulatory_versions').fetchone()
+    source = db.load_event_sources(conn, 'APP-A')[0]
+    assert version['published_at'] == source['published_at'] == s['filed']
+    assert version['observed_at'] and source['retrieved_at']
+    before = conn.total_changes
+    assert apply_guidance(conn, 'AAA', s, today=date(2026,10,1))['status'] == 'unchanged'
+    assert conn.total_changes == before
+    older = statement(text='PDUFA target action date is December 1, 2026.', filed='2026-09-14')
+    assert apply_guidance(conn, 'AAA', older, today=date(2026,10,1))['reason'] == 'older_source'
+    assert conn.execute('SELECT COUNT(*) FROM v2c_regulatory_versions').fetchone()[0] == 1
+
+
+def test_unknown_publication_does_not_hide_same_day_ambiguity(tmp_path):
+    conn = db.connect(tmp_path / 'x.db'); event(conn)
+    add_unknown_publication(conn, None)
+    conflicting = statement(text='PDUFA target action date is January 15, 2027.', filed='2026-06-01')
+    assert apply_guidance(conn, 'AAA', conflicting, today=date(2026,10,1))['reason'] == 'same_day_conflict_needs_publication_time'
+    assert conn.execute('SELECT COUNT(*) FROM v2c_regulatory_versions').fetchone()[0] == 0
+
+
+@pytest.mark.parametrize('known', ['2026-09', '2026'])
+def test_unknown_publication_does_not_weaken_partial_date_cutoff(tmp_path, known):
+    conn = db.connect(tmp_path / 'x.db'); event(conn)
+    loaded = db.load_events(conn, 'live')[0]
+    loaded['chronology'][0]['date'] = known
+    with conn:
+        conn.execute('UPDATE events SET payload=? WHERE id=?', (json.dumps(loaded), loaded['id']))
+    add_unknown_publication(conn, None)
+    assert apply_guidance(conn, 'AAA', statement(), today=date(2026,10,1))['reason'] == 'older_source'
+
+
+def test_unknown_publication_does_not_admit_future_or_unidentified_source(tmp_path):
+    conn = db.connect(tmp_path / 'x.db'); event(conn)
+    add_unknown_publication(conn, None)
+    assert apply_guidance(conn, 'AAA', statement(filed='2026-10-02'), today=date(2026,10,1))['reason'] == 'source_not_yet_available'
+    assert apply_guidance(conn, 'AAA', statement(filed=None), today=date(2026,10,1))['reason'] == 'primary_filing_identity_missing'
+    db.upsert_watch(conn, 'AAA', 'Alpha', cik='456')
+    assert apply_guidance(conn, 'AAA', statement(), today=date(2026,10,1))['reason'] == 'source_issuer_does_not_match_ticker'
