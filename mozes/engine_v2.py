@@ -20,6 +20,7 @@ from .versions import VERSIONS
 from .market import join_on_dates
 from .scoring_common import catalyst_impact, risk_flags, observed_features, known_number
 from .financial_availability import financial_availability
+from .price_validation import validated_prices
 
 READOUT_TYPES = {"P3_TOPLINE", "P2_TOPLINE", "P12_DATA", "INTERIM"}
 REG_TYPES = {"PDUFA_NME", "PDUFA_SUPP", "PDUFA_GENERIC", "ADCOM"}
@@ -162,6 +163,25 @@ def evidence_for(event: dict) -> dict:
 def market_setup_from_db(conn, ticker: str, as_of: str, benchmark="XBI") -> dict:
     p = db.load_prices(conn, ticker, before=as_of)
     b = db.load_prices(conn, benchmark, before=as_of)
+    try:
+        p = validated_prices(p)
+    except ValueError:
+        return {'available': False, 'n_prices': len(p), 'benchmark': benchmark, 'reason': 'invalid_stock_prices'}
+    benchmark_invalid = False
+    try:
+        b = validated_prices(b)
+    except ValueError:
+        b, benchmark_invalid = [], True
+    try:
+        result = _market_setup_valid_prices(p, b, benchmark)
+    except (ArithmeticError, ValueError):
+        return {'available': False, 'n_prices': len(p), 'benchmark': benchmark, 'reason': 'invalid_market_arithmetic'}
+    if benchmark_invalid:
+        result['benchmark_data_status'] = 'INVALID'
+    return result
+
+
+def _market_setup_valid_prices(p, b, benchmark):
     if len(p) < 31:
         return {"available": False, "n_prices": len(p), "benchmark": benchmark, "reason": "fewer than 31 pre-event closes in DB"}
     last = p[-1]
@@ -182,8 +202,12 @@ def market_setup_from_db(conn, ticker: str, as_of: str, benchmark="XBI") -> dict
     if len(lrs) > 1:
         m = sum(lrs) / len(lrs)
         vol = math.sqrt(sum((x-m)**2 for x in lrs)/(len(lrs)-1))*math.sqrt(252)
+    if not all(math.isfinite(x) for x in [*rets.values(), *rel.values(), *lrs] + ([vol] if vol is not None else [])):
+        raise ValueError('nonfinite market calculation')
     return {"available": True, "n_prices": len(p), "last_close": last, "returns": rets, "relative_to_xbi": rel,
-            "realized_vol_20d": vol, "benchmark": benchmark}
+            "realized_vol_20d": vol, "benchmark": benchmark,
+            "benchmark_data_status": 'AVAILABLE' if len(pairs) >= 31 else 'INSUFFICIENT_DATA',
+            "benchmark_as_of": pairs[-1][1]['date'] if pairs else None}
 
 
 def classify_v2(event, state, impact, evidence, flags, market, date_conf, gates, today, window):
