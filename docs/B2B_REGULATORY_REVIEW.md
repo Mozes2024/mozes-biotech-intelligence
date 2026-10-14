@@ -30,10 +30,11 @@ decision semantics or alert eligibility changes.
 The separate system-page overlay displays issuer/application identity only when
 independently supported by source CIK, watch identity and a verified catalog
 application. Its existing application status is separate from the pending claim.
-Each claim remains `REVIEW_REQUIRED`, never a confirmed outcome. Exact source
-reference, reason code, full original evidence and stored timestamps are visible.
-Non-SEC/malformed references are escaped text, not executable links. Unsupported
-payloads retain raw evidence. All rows remain visible without a silent cutoff.
+Each claim remains `REVIEW_REQUIRED`, never a confirmed outcome. Exact public SEC
+reference, reason code, original literal statement and supported timestamps are
+visible. Nonpublic/credential-bearing references and unsupported raw payloads
+stay in private storage with an explicit public withholding notice. Every row
+remains represented, subject to a fail-closed publication byte budget.
 
 Filing/publication time, original retrieval time and queue observation time are
 distinct. Missing original retrieval/event times remain unknown: queue observation
@@ -84,3 +85,49 @@ Safe decisions need a separately approved storage and authorization design:
 
 No new tables, controls, routes or mutation code from that design are included.
 GO for review of this presentation PR; HOLD for any decision/promotion workflow.
+
+## Final public-export review corrections
+
+The initial PR exported unrestricted raw statement dictionaries and malformed raw
+strings. Tests reproduced disclosure of synthetic reviewer notes, internal nested
+fields and a private/token-bearing reference. These are conditional exposure
+paths, not evidence that production contained or disclosed a real secret.
+
+The public field contract is now explicit:
+
+| Fields | Public purpose and boundary |
+| --- | --- |
+| review_id, ticker | Opaque queue reference and issuer ticker from the existing scanner |
+| issuer_name, issuer_verified | Existing public watch identity, only when source CIK matches |
+| application | Already-public verified catalog ID/event ID/program/status/verification/event time; separate from the pending claim |
+| source_url, primary_source_reference, source_reference_withheld | Exact HTTPS SEC Archives reference without credentials/query/fragment, or null with a visible withholding flag |
+| reason | Fixed producer reason code; unknown legacy free text is not exported |
+| published_at, retrieved_at, event_timestamp | ISO source timestamps, only for a public reference; missing/invalid values remain null and event time remains an unconfirmed claim |
+| observed_at | Queue observation timestamp, not actor identity or source retrieval time |
+| verification_state, confirmed_outcome | Constants REVIEW_REQUIRED / false; no decision or promotion |
+| evidence_available, evidence | Original literal public SEC statement plus supported catalyst_type/form only; no arbitrary JSON, inferred window, reviewer notes or unverified application ID |
+
+Exact public source text is not truncated. Full original JSON, malformed input and
+nonpublic references remain unchanged in the database for authorized inspection;
+they are not copied into a public snapshot. This relies on the existing scanner's
+public-source literal statement provenance; it does not independently re-fetch
+each filing or establish authenticity of arbitrary manual database edits.
+
+Review content has a conservative 8 MiB UTF-8 budget including indentation overhead.
+Exceeding it raises `regulatory_review_public_byte_budget` before any export files
+are written. It never publishes a partial list or silently drops rows. A total-site
+preflight adds the actual serialized data bytes, all other existing web assets and
+a 1 MiB reserve for bounded feed/update/receipt files; it stops at a conservative
+1,000,000,000-byte ceiling with `regulatory_review_pages_site_budget`.
+
+Read-only HEAD inspection on 2026-10-14 measured current Pages data.json at
+45,877,520 bytes (identity encoding), and this checkout's other web assets at
+220,183 bytes. The review contribution therefore has ample current headroom, but
+future growth is guarded rather than assumed. [GitHub's site limit is 1 GB](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
+The 256 KiB alert-feed limit is a separate contract; the review list is not added
+to the alert feed. No workflow, deployment, receipt or alert policy was changed.
+
+Four final-review regression cases failed before correction (two disclosure paths,
+review-budget overflow, total-site overflow). Public-export, preservation and UI
+tests pass after correction, including all 106 fixture rows when within budget,
+unchanged previous publication files on refusal, escaping and notification isolation.

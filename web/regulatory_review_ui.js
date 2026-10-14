@@ -28,8 +28,8 @@
       html += `<p>פורסם במקור: ${unknown(row.published_at)} · נשלף במקור: ${unknown(row.retrieved_at)} · נצפה בתור: ${unknown(row.observed_at)}</p>`;
       html += `<p>מועד אירוע שנטען בראיות, לא מאומת: ${unknown(row.event_timestamp)}</p>`;
       html += `<p class="ltr">מקור מדויק: ${unknown(row.source_url)}</p>${sourceLink(row.source_url)}`;
-      if (row.evidence_available === false) html += '<p class="notice">מבנה הראיות לא נתמך; המקור הגולמי נשמר להלן.</p>';
-      html += `<h4>ראיות מקוריות — ללא הכרעה</h4><pre class="ltr">${esc(typeof row.evidence === 'string' ? row.evidence : JSON.stringify(row.evidence, null, 2))}</pre></details>`;
+      if (row.source_reference_withheld || row.evidence_available === false) html += '<p class="notice">חלק מהמידע אינו מתאים לייצוא ציבורי. הרשומה והראיות המלאות נשמרו בתור המקורי לבדיקה מורשית.</p>';
+      html += `<h4>ציטוט מקור ושדות ציבוריים — ללא הכרעה</h4><pre class="ltr">${esc(JSON.stringify(row.evidence, null, 2))}</pre></details>`;
     }
     return html + '</div></section>';
   };
