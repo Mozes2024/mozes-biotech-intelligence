@@ -1,12 +1,20 @@
 // Alert transport is independent of the large research snapshot.
-function createAlertNotifier({storage, show, system, lock=task=>task(), now=()=>Date.now()}){
+function interruptiveAlertEligible(a){
+  const allowed={fda_decision:['approval','crl','pdufa_extension','refusal_to_file'],material_safety:['clinical_hold','hold_lifted'],
+    clinical_outcome:['primary_endpoint_met','primary_endpoint_failed','primary_not_significant','futility','trial_discontinued'],
+    market_halt:['halt','resumption','volatility_pause']};
+  return a.popup_eligible===true&&a.issuer_verified===true&&a.confirmed_outcome===true&&a.needs_review===false&&
+    a.semantic_version==='alert-evidence-v1'&&['source_text','feed_summary','structured_source'].includes(a.evidence_basis)&&
+    ['P1','P2'].includes(a.priority)&&(allowed[a.event_family]||[]).includes(a.event_outcome);
+}
+function createAlertNotifier({storage, show, system, eligible=interruptiveAlertEligible, lock=task=>task(), now=()=>Date.now()}){
   const key='mozes-alerts-seen-v1';let memory={};
   return {async observe(rows,baseline=false){return lock(()=>{
     let seen;try{seen=JSON.parse(storage.getItem(key)||'{}')}catch(_){seen=memory}
     if(!seen||typeof seen!=='object'||Array.isArray(seen))seen={};
     const stamp=now(),cutoff=stamp-7*86400000;
     seen=Object.fromEntries(Object.entries(seen).filter(([,at])=>Number.isFinite(at)&&at>=cutoff));
-    const fresh=rows.filter(a=>a.change_id&&!seen[a.change_id]);
+    const fresh=rows.filter(a=>a.change_id&&!seen[a.change_id]&&eligible(a));
     for(const a of rows)if(a.change_id)seen[a.change_id]=stamp;
     memory=seen;try{storage.setItem(key,JSON.stringify(seen))}catch(_){}
     if(!baseline&&fresh.length){show(fresh);for(const a of fresh)system(a)}
@@ -17,12 +25,13 @@ let alertNotifier=null,lastAlertFeed=null,alertFeedInitialized=false,alertPollBu
 function getAlertNotifier(){
   if(!alertNotifier){
     let storage;try{storage=window.localStorage}catch(_){storage={getItem:()=>null,setItem:()=>{}}}
-    alertNotifier=createAlertNotifier({storage,show:showAlertPopup,system:showSystemAlert,
+    alertNotifier=createAlertNotifier({storage,show:showAlertPopup,system:showSystemAlert,eligible:interruptiveAlertEligible,
       lock:task=>navigator.locks?navigator.locks.request('mozes-alert-notifications',task):task()});
   }
   return alertNotifier;
 }
 function showAlertPopup(rows){
+  rows=rows.filter(interruptiveAlertEligible);if(!rows.length)return;
   const box=$('alertPopups');if(!box)return;
   box.innerHTML=`<div class="alert-popup-head"><b>${rows.length===1?'התראה חדשה':`${rows.length} התראות חדשות`}</b><button class="btn" type="button" aria-label="סגור התראות" data-dismiss>×</button></div>`+
     rows.slice(0,3).map(a=>`<div class="alert-popup-row"><b><span class="ltr">${esc(a.ticker||'—')}</span> · ${esc(a.priority)}</b><p>${esc(a.headline||alertWhyHe(a))}</p></div>`).join('')+
@@ -32,6 +41,7 @@ function showAlertPopup(rows){
   box.querySelector('[data-open-alerts]').onclick=()=>{box.hidden=true;page='alerts';render()};
 }
 function showSystemAlert(a){
+  if(!interruptiveAlertEligible(a))return;
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   try{const n=new Notification(`MOZES ${a.priority||''} ${a.ticker||''}`.trim(),{
     body:a.headline||alertWhyHe(a),lang:'he',dir:'rtl',tag:a.change_id});
@@ -62,21 +72,40 @@ function safeSourceUrl(value){
   try{const url=new URL(value);return ['http:','https:'].includes(url.protocol)&&!url.username&&!url.password?url.href:null}catch(_){return null}
 }
 function preserveAlertFeed(next){
-  if(lastAlertFeed){next.alerts=lastAlertFeed.alerts;next.alert_config=lastAlertFeed.alert_config}
+  // A complete, newer research snapshot must not inherit an older feed's list.
+  if(lastAlertFeed&&(!Number.isFinite(Date.parse(next.generated_at))||Date.parse(lastAlertFeed.generated_at)>=Date.parse(next.generated_at))){
+    try{validateAlertFeed(lastAlertFeed,next)}catch(_){return}
+    next.alerts=lastAlertFeed.alerts;next.alert_config=lastAlertFeed.alert_config;
+  }
+}
+function validateAlertFeed(feed,snapshot=D){
+  if(!feed||feed.schema!==1||!Array.isArray(feed.alerts)||typeof feed.revision!=='string'||!feed.revision||
+     !Number.isFinite(Date.parse(feed.generated_at)))throw Error('Invalid alert feed');
+  const cutoff=Date.parse(feed.generated_at)-7*86400000,ids=new Set(feed.alerts.map(a=>a.change_id));
+  // Projections share a revision with the complete feed. A revision alone does
+  // not prove completeness: retain all known IDs still in the feed's window.
+  const known=[...(snapshot?.alerts||[]),...(lastAlertFeed?.alerts||[])];
+  if(feed.truncated===true||known.some(a=>a.change_id&&!ids.has(a.change_id)&&
+     (!Number.isFinite(Date.parse(a.created_at))||Date.parse(a.created_at)>=cutoff)))throw Error('Incomplete alert feed');
+  return feed;
 }
 async function checkForAlerts(){
   if(!D||document.hidden||alertPollBusy)return;
   alertPollBusy=true;
   try{
     if(D.alert_config?.feed_url)preferredAlertFeedUrl=D.alert_config.feed_url;
-    const url=apiMode?'/api/alerts':preferredAlertFeedUrl||'alerts.json';
-    let r;
-    try{r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error(r.status)}
-    catch(error){if(apiMode||url==='alerts.json')throw error;r=await fetch('alerts.json',{cache:'no-store'})}
-    if(!r.ok)throw Error(r.status);
-    const feed=await r.json();
-    if(feed.schema!==1||!Array.isArray(feed.alerts)||typeof feed.revision!=='string')throw Error('Invalid alert feed');
+    const fallback='alerts-evidence-v1.json';
+    const base=apiMode?'/api/alerts':preferredAlertFeedUrl;
+    const url=base?base+(base.includes('?')?'&':'?')+'client=alert-evidence-v1':fallback;
+    const read=async address=>{
+      const r=await fetch(address,{cache:'no-store'});if(!r.ok)throw Error(r.status);
+      return validateAlertFeed(await r.json());
+    };
+    let feed;
+    try{feed=await read(url)}
+    catch(error){if(apiMode||url===fallback)throw error;feed=await read(fallback)}
     if(lastAlertFeed&&Date.parse(feed.generated_at)<Date.parse(lastAlertFeed.generated_at))return;
+    if(Number.isFinite(Date.parse(D.generated_at))&&Date.parse(feed.generated_at)<Date.parse(D.generated_at))return;
     if(lastAlertFeed?.revision===feed.revision){lastAlertFeed=feed;return}
     await getAlertNotifier().observe(feed.alerts,!alertFeedInitialized);
     alertFeedInitialized=true;lastAlertFeed=feed;preserveAlertFeed(D);render();
