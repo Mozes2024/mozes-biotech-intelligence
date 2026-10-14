@@ -25,3 +25,12 @@ bounds, missing/future source publications and issuer mismatch.
 No event IDs, source records, histories, ACKs or receipts are migrated/replayed.
 No production action is included. Date-only conflicting disclosures still require
 human reconciliation; this change does not infer intraday order or outcome time.
+
+Final-review regressions exposed 20 additional failures at the initial PR head:
+relative undated text overflowed year 9999, partial text inferred that year, and
+explicit undated targets incorrectly became the current window. Normalization
+now accepts an absent anchor: self-contained calendar dates remain in the evidence,
+but ungrounded relative/partial guidance stays unknown. Undated entries are excluded
+from effective-window selection and ordered change comparisons, not from the
+timeline. `pub_effective(None)` remains unchanged for all PIT callers. The combined
+date/regulatory suite passes 55 tests after this correction.
