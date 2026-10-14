@@ -15,7 +15,7 @@ function harness(old=data(),{api=false}={}){
   if(!elements.has(id))elements.set(id,{outerHTML:'',innerHTML:'',dataset:{checked:''},classList:{toggle(){}}});return elements.get(id);
  }};
  const c=vm.createContext({Date:Clock,Intl,URL,window:{},navigator:{},localStorage:{getItem:()=>null,setItem(){}},document,renderCount:0,messages:[],setInterval:(fn,ms)=>timers.push({fn,ms}),fetch:async url=>{
-  requests.push(url);if(url==='alerts.json'||url==='/api/alerts')return {ok:true,json:async()=>({schema:1,revision:'independent',alerts:[],generated_at:'2026-10-12T11:59:00Z'})};if(!responses.length)throw Error('Unexpected fetch');return {ok:true,json:async()=>responses.shift()};
+  requests.push(url);if(url==='alerts-evidence-v1.json'||url==='/api/alerts?client=alert-evidence-v1')return {ok:true,json:async()=>({schema:1,revision:'independent',alerts:[],generated_at:'2026-10-12T11:59:00Z'})};if(!responses.length)throw Error('Unexpected fetch');return {ok:true,json:async()=>responses.shift()};
  }});
  // Execute actual application logic, not a reimplemented refresh algorithm.
  vm.runInContext(health,c);
@@ -140,7 +140,7 @@ for(const issue of ['older','future','invalid','missing-field','missing-metadata
  h.responses.push(advertised);await assert.rejects(h.poll());assert.deepEqual(h.requests,['updates.json']);assert.equal(h.snapshot().checkpoint_at,cp().checkpoint_at);
 });
 test('independent feed and existing change_id deduplication survive checkpoint-only refresh',async()=>{
- const h=harness();h.c.feed={revision:'feed-independent',alerts:[{change_id:'CHG-keep'}],alert_config:{feed_url:'https://example.test/alerts'}};
+ const h=harness();h.c.feed={schema:1,generated_at:'2026-10-12T11:59:00Z',revision:'feed-independent',alerts:[{change_id:'CHG-keep'}],alert_config:{feed_url:'https://example.test/alerts'}};
  h.run('lastAlertFeed=feed');h.responses.push(update(advance()),data(advance()));await h.poll();
  assert.equal(h.snapshot().alerts,h.c.feed.alerts);assert.equal(h.snapshot().alert_config,h.c.feed.alert_config);
  let shown=0,notified=0;const values=new Map();h.c.storage={getItem:key=>values.get(key),setItem:(key,value)=>values.set(key,value)};

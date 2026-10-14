@@ -27,7 +27,7 @@ test('changed dashboard assets use one new compatible version while checkpoint h
  assert.equal(versions.get('/checkpoint_health.js'),'checkpoint-timezone-v1');
 });
 
-async function harness(initial=payload()){
+async function harness(initial=payload(),now='2026-10-12T13:00:00Z'){
  const elements=new Map(),storage=new Map(),requests=[],responses=[],notifications=[],timers=[];
  let renders=0,feed={schema:1,revision:'baseline',generated_at:initial.generated_at,
   alerts:clone(initial.alerts),alert_config:initial.alert_config};
@@ -38,7 +38,7 @@ async function harness(initial=payload()){
   Object.defineProperty(node,'innerHTML',{get:()=>html,set:value=>{html=value;if(id==='main')renders++;}});
   elements.set(id,node);
  }return elements.get(id);}
- class Clock extends Date{static now(){return Date.parse('2026-10-12T13:00:00Z')}}
+ class Clock extends Date{static now(){return Date.parse(now)}}
  class Notification{static permission='granted';constructor(title,options){notifications.push({title,options});}}
  const localStorage={getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)};
  const c=vm.createContext({Date:Clock,Intl,URL,Notification,navigator:{},location:{hash:''},
@@ -47,7 +47,7 @@ async function harness(initial=payload()){
   setInterval:(fn,ms)=>timers.push({fn,ms}),setTimeout:(fn,ms)=>timers.push({fn,ms}),
   fetch:async url=>{requests.push(url);
    if(url==='/api/radar')return {ok:false,status:404};
-   if(url==='alerts.json')return {ok:true,json:async()=>clone(feed)};
+   if(url==='alerts-evidence-v1.json')return {ok:true,json:async()=>clone(feed)};
    if(responses.length)return {ok:true,json:async()=>responses.shift()};
    if(url==='data.json')return {ok:true,json:async()=>clone(initial)};
    throw Error(`Unexpected network request: ${url}`);
@@ -135,13 +135,31 @@ test('same revision and newer offset checkpoint refresh the full composed dashbo
 });
 
 test('independent change_id dedup survives repeated alert polls and composed dashboard rerenders',async()=>{
- const h=await harness(),base=clone(fixture.alerts[0]);base.change_id='integration-new-change';
- const feed={schema:1,revision:'new-feed',generated_at:'2026-10-12T12:50:00Z',alerts:[base],alert_config:{enabled_channels:[]}};
+ const h=await harness(),base={...clone(fixture.alerts[0]),change_id:'integration-new-change',
+  event_family:'fda_decision',event_outcome:'approval',confirmed_outcome:true,needs_review:false,
+  issuer_verified:true,popup_eligible:true,evidence_basis:'source_text',semantic_version:'alert-evidence-v1',priority:'P1'};
+ const feed={schema:1,revision:'new-feed',generated_at:'2026-10-12T12:50:00Z',alerts:[base,...clone(fixture.alerts)],alert_config:{enabled_channels:[]}};
  h.setFeed(feed);await h.run('checkForAlerts()');assert.equal(h.notifications.length,1);
  const popup=h.popup().innerHTML;assert.equal(h.popup().hidden,false);assertComposed(h);
  h.setFeed({...feed,revision:'same-change-other-revision'});await h.run('checkForAlerts()');h.run('render()');
  assert.equal(h.notifications.length,1);assert.equal(h.popup().innerHTML,popup);
  assert.equal((h.html().match(/<h3>התראות אחרונות<\/h3>/g)||[]).length,1);assertComposed(h);
+});
+
+test('Oct13 changes remain visible on Oct14 through final wrappers, reload and checkpoint refresh',async()=>{
+ const cp={checkpoint_at:'2026-10-14T09:00:00Z',source_run_id:'13',artifact_id:13,db_sha256:'a'.repeat(64)};
+ const data={...payload(),today:'2026-10-14',generated_at:cp.checkpoint_at,checkpoint_at:cp.checkpoint_at,consumer_checkpoint:cp};
+ const change={change_id:'CHG-oct13-history',ticker:'TEST',change_type:'company_release_signal',severity:'high',
+  detected_at:'2026-10-13T12:00:00Z',new_value:{headline:'October 13 source record'},verification_state:'primary_source'};
+ data.changes=[change];data.news=[change];
+ const h=await harness(data,'2026-10-14T09:10:00Z');assert.match(h.html(),/October 13 source record/);
+ h.run("page='changes';render()");assert.match(h.html(),/October 13 source record/);
+ const newer={...cp,checkpoint_at:'2026-10-14T09:05:00Z',source_run_id:'14',artifact_id:14,db_sha256:'b'.repeat(64)};
+ const next={...clone(data),generated_at:newer.checkpoint_at,checkpoint_at:newer.checkpoint_at,consumer_checkpoint:newer};
+ h.responses.push({schema:1,revision:'same',checkpoint:newer},next);await h.run('checkForUpdates()');
+ assert.match(h.html(),/October 13 source record/);assert.equal(h.snapshot().changes[0].change_id,change.change_id);
+ const reload=await harness(next,'2026-10-14T09:10:00Z');assert.match(reload.html(),/October 13 source record/);
+ assert.equal(h.notifications.length,0);assert.equal(reload.notifications.length,0);
 });
 
 test('B1 financing details preserve currency, period and receipt limitations in the production chain',async()=>{

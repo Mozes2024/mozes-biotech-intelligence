@@ -13,7 +13,10 @@ const storage={getItem:()=>saved,setItem:(_,v)=>{saved=v}};
 const lock=fn=>{const next=queue.then(fn);queue=next.catch(()=>{});return next};
 const options={storage,lock,show:rows=>shown.push(rows.map(x=>x.change_id)),system:a=>system.push(a.change_id),now:()=>1000};
 const first=context.createAlertNotifier(options),second=context.createAlertNotifier(options);
-const old={change_id:'old',polarity:'positive'},negative={change_id:'negative',polarity:'negative'},halt={change_id:'halt',polarity:'unknown'};
+const eligibility={popup_eligible:true,issuer_verified:true,confirmed_outcome:true,needs_review:false,
+ semantic_version:'alert-evidence-v1',evidence_basis:'source_text',priority:'P1',event_family:'clinical_outcome',event_outcome:'primary_endpoint_failed'};
+const old={...eligibility,change_id:'old',polarity:'positive'},negative={...eligibility,change_id:'negative',polarity:'negative'},
+ halt={...eligibility,change_id:'halt',polarity:'unknown',event_family:'market_halt',event_outcome:'halt'};
 (async()=>{
  await first.observe([old],true);await second.observe([old],true);
  assert.strictEqual(shown.length,0);
@@ -38,18 +41,18 @@ const context={D:{alerts:[],alert_config:{feed_url:'https://clock.example/alerts
  document:{hidden:false},window:{localStorage:storage},navigator:{},render:()=>rendered++,
  showAlertPopup:()=>{},showSystemAlert:()=>{},
  fetch:async url=>{fetched.push(url);return {ok:true,json:async()=>({schema:1,revision:'a',generated_at:'2026-10-07T18:00:00Z',
-  alerts:[{change_id:'CHG-1',priority:'P1',polarity:'negative'}],alert_config:{feed_url:'https://clock.example/alerts'}})}}};
+  alerts:[{change_id:'CHG-1',created_at:'2026-09-30T12:00:00Z',priority:'P1',polarity:'negative'}],alert_config:{feed_url:'https://clock.example/alerts'}})}}};
 vm.createContext(context);vm.runInContext(fs.readFileSync('web/alerts_ui.js','utf8'),context);
 (async()=>{
  await context.checkForAlerts();assert.strictEqual(context.D.alerts[0].change_id,'CHG-1');
- assert.deepStrictEqual(fetched,['https://clock.example/alerts']);assert.strictEqual(rendered,1);
+ assert.deepStrictEqual(fetched,['https://clock.example/alerts?client=alert-evidence-v1']);assert.strictEqual(rendered,1);
  context.fetch=async url=>{fetched.push(url);if(url.startsWith('https'))throw Error('offline');
   return {ok:true,json:async()=>({schema:1,revision:'older',generated_at:'2026-10-07T17:00:00Z',alerts:[],alert_config:{}})}};
  await context.checkForAlerts();assert.strictEqual(context.D.alerts.length,1);assert.strictEqual(rendered,1);
  context.fetch=async url=>{fetched.push(url);if(url.startsWith('https'))throw Error('offline');
   return {ok:true,json:async()=>({schema:1,revision:'newer',generated_at:'2026-10-07T19:00:00Z',alerts:[],alert_config:{}})}};
  await context.checkForAlerts();assert.strictEqual(context.D.alerts.length,0);
- await context.checkForAlerts();assert.strictEqual(fetched[5],'https://clock.example/alerts');
+ await context.checkForAlerts();assert.strictEqual(fetched[5],'https://clock.example/alerts?client=alert-evidence-v1');
  context.document.hidden=true;await context.checkForAlerts();assert.strictEqual(fetched.length,7);
 })().catch(e=>{console.error(e);process.exitCode=1});
 """
@@ -63,7 +66,9 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const source=fs.readFileSync('web/alerts_ui.js','utf8');let saved=null;
 const storage={getItem:()=>saved,setItem:(_,value)=>{saved=value}};
 const old={change_id:'CHG-old',ticker:'OLD',headline:'Existing',priority:'P2'};
-const fresh={change_id:'CHG-new',ticker:'NEW',headline:'New verified event',priority:'P1'};
+const fresh={change_id:'CHG-new',ticker:'NEW',headline:'New verified event',priority:'P1',
+ event_family:'fda_decision',event_outcome:'approval',confirmed_outcome:true,needs_review:false,
+ issuer_verified:true,popup_eligible:true,evidence_basis:'source_text',semantic_version:'alert-evidence-v1'};
 function browser(){
  const open={},dismiss={},popup={hidden:true,innerHTML:'',querySelector:key=>key==='[data-open-alerts]'?open:dismiss};
  const context={D:{alerts:[],alert_config:{}},apiMode:false,page:'dash',document:{hidden:false},
