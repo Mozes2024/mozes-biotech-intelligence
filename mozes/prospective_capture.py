@@ -173,9 +173,15 @@ def _sources(conn, ids, captured_at, exclusions):
 
 def _checked(row):
     body = json.loads(row['payload'])
+    request = {key: body[key] for key in ('analysis', 'forecast', 'selection_rule', 'code_sha',
+                                         'price_reference', 'announcement_session')}
+    request['source_ids'] = sorted(source['source_id'] for source in body['sources'])
     if (digest(body) != row['payload_hash'] or body['capture_id'] != row['capture_id']
             or body['captured_at'] != row['captured_at'] or body['event_id'] != row['event_id']
-            or body['input_hash'] != row['input_hash'] or body['eligible'] is not False or body['executable'] is not False):
+            or body['observation_key'] != row['observation_key'] or body['schema'] != 1
+            or body['capture_id'] != 'PROSPECTIVE-' + digest([body['event_id'], body['observation_key']])
+            or digest(request) != body['input_hash'] or body['input_hash'] != row['input_hash']
+            or body['eligible'] is not False or body['executable'] is not False):
         raise ValueError('prospective_evidence_integrity_failure')
     return body
 
