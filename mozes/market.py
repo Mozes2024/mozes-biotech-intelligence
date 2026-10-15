@@ -3,6 +3,9 @@ from __future__ import annotations
 
 from bisect import bisect_left
 from datetime import date
+import math
+
+from .price_validation import validated_prices
 
 
 def _sorted(rows):
@@ -46,24 +49,36 @@ def event_return(rows, event_date: str, session: str = "unknown") -> dict:
     intraday: prior close -> same-day close
     unknown: prior close -> next trading-day close and timing_uncertain=True
     """
+    try:
+        rows = validated_prices(rows)
+        if len({row['date'] for row in rows}) != len(rows):
+            return {'available': False, 'reason': 'duplicate market dates'}
+    except ValueError:
+        return {'available': False, 'reason': 'invalid market prices'}
+    if session not in {'premarket', 'intraday', 'afterhours', 'unknown'}:
+        return {'available': False, 'reason': 'unsupported session'}
     before = prior_close(rows, event_date)
     if session == "afterhours":
-        before = next((row for row in _sorted(rows) if row["date"] == event_date), before)
+        before = next((row for row in _sorted(rows) if row["date"] == event_date), None)
     if not before:
         return {"available": False, "reason": "no prior close"}
     if session in {"premarket", "intraday"}:
-        after = close_on_or_after(rows, event_date)
+        after = next((row for row in rows if row['date'] == event_date), None)
     else:
         after = next_close(rows, event_date)
     if not after:
         return {"available": False, "reason": "no post-event close"}
+    gross = after['close'] / before['close'] - 1
+    if not math.isfinite(gross) or gross <= -1:
+        return {'available': False, 'reason': 'invalid event return'}
     return {
         "available": True,
         "from_date": before["date"],
         "to_date": after["date"],
-        "return": after["close"] / before["close"] - 1,
+        "return": gross,
         "session": session,
         "timing_uncertain": session == "unknown",
+        "performance_kind": "descriptive_event_study", "executable": False,
     }
 
 
