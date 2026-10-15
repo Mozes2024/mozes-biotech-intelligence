@@ -109,3 +109,26 @@ test outcomes, small samples, frozen data and disabled gates.
 Run `python -m pytest -q tests/test_d1_backtest_credibility.py`, full pytest and
 repository CI. Only PR-triggered CI is authorized. No production experiment or
 performance claim follows from passing tests.
+
+## Final review — benchmark arithmetic boundary
+
+The review at `468cff33afe709f4024743d553b96289a2a7a039` identified a remaining
+gap: `abnormal_return` used raw series after `event_return` normalized a copy,
+and `excess_return` did not independently validate its inputs. Zero denominators
+crashed; nonfinite/negative prices and duplicate benchmark dates were not safely
+rejected. Regression-first execution recorded 24 failing cases and one valid-data
+control passing before correction.
+
+Both calculations now validate copied stock and benchmark series, reject duplicate
+dates, and check derived returns and model intermediates for numeric overflow.
+`excess_return` returns `None` when unavailable. `abnormal_return` returns
+`available=false`, a reason and null benchmark-relative/beta/CAR fields, while
+preserving the independently valid `stock_return`. No invalid value becomes zero.
+Valid relative-return, OLS beta and CAR formulas are unchanged.
+
+Tests cover zero/negative/NaN/infinite/malformed values in estimation and event
+windows, duplicate dates, numeric-string normalization, division/variance overflow,
+and a real HOLD evaluator using an already-dirty **synthetic local** attachment.
+The direct calculation preserves the entire DB; the evaluator retains frozen
+sources/prices/snapshots/labels and existing gate settings/OOS counts while updating
+its ordinary reporting metrics. No stored price is repaired, rewritten or replayed.

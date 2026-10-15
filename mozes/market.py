@@ -89,36 +89,71 @@ def pre_event_prices(rows, event_date, session):
             (session == "afterhours" and row["date"] == event_date)]
 
 
+def _checked_series(rows):
+    prices = validated_prices(rows)
+    if len({row['date'] for row in prices}) != len(prices):
+        raise ValueError('duplicate market dates')
+    return prices
+
+
 def abnormal_return(stock, benchmark, event_date, session, min_estimation=30):
     """Daily descriptive market model; beta estimated strictly before the event window."""
     move = event_return(stock, event_date, session)
     if session == "unknown" or not move.get("available"):
         return {"available": False, "reason": "session_or_prices_unavailable"}
+    unavailable = {'available': False, 'stock_return': move['return'],
+                   'xbi_relative_return': None, 'beta': None, 'car': None,
+                   'estimation_n': None, 'research_only': True}
+    try:
+        # event_return normalizes a copy; never resume arithmetic on raw strings
+        # or silently let a duplicate benchmark date overwrite another record.
+        stock, benchmark = _checked_series(stock), _checked_series(benchmark)
+    except ValueError:
+        return {**unavailable, 'reason': 'invalid_market_model_prices'}
+    if not benchmark:
+        return {**unavailable, 'reason': 'benchmark_prices_unavailable'}
     pairs = join_on_dates(stock, benchmark)
     estimation = [(s, b) for s, b in pairs if s["date"] < move["from_date"]][-121:]
     returns = [(estimation[i][0]["close"] / estimation[i-1][0]["close"] - 1,
                 estimation[i][1]["close"] / estimation[i-1][1]["close"] - 1) for i in range(1, len(estimation))]
+    if any(not math.isfinite(value) or value <= -1 for pair in returns for value in pair):
+        return {**unavailable, 'reason': 'nonfinite_market_model'}
     simple = excess_return(stock, benchmark, move["from_date"], move["to_date"])
     out = {"available": True, "stock_return": move["return"], "xbi_relative_return": simple,
            "beta": None, "car": None, "estimation_n": len(returns), "research_only": True}
-    if len(returns) < min_estimation:
+    if not returns or len(returns) < min_estimation:
         return out
     mean_s = sum(s for s, b in returns) / len(returns)
     mean_b = sum(b for s, b in returns) / len(returns)
-    variance = sum((b - mean_b) ** 2 for s, b in returns)
+    if not math.isfinite(mean_s) or not math.isfinite(mean_b):
+        return {**unavailable, 'reason': 'nonfinite_market_model'}
+    try:
+        variance = sum((b - mean_b) ** 2 for s, b in returns)
+    except OverflowError:
+        return {**unavailable, 'reason': 'nonfinite_market_model'}
+    if not math.isfinite(variance):
+        return {**unavailable, 'reason': 'nonfinite_market_model'}
     if variance <= 1e-15:
         return out
     beta = sum((s - mean_s) * (b - mean_b) for s, b in returns) / variance
     alpha = mean_s - beta * mean_b
+    if not math.isfinite(beta) or not math.isfinite(alpha):
+        return {**unavailable, 'reason': 'nonfinite_market_model'}
     period = [(s, b) for s, b in pairs if move["from_date"] <= s["date"] <= move["to_date"]]
     if len(period) < 2 or period[0][0]["date"] != move["from_date"] or period[-1][0]["date"] != move["to_date"]:
         return out
     car = sum((period[i][0]["close"] / period[i-1][0]["close"] - 1) - alpha -
               beta * (period[i][1]["close"] / period[i-1][1]["close"] - 1) for i in range(1, len(period)))
+    if not math.isfinite(car):
+        return {**unavailable, 'reason': 'nonfinite_market_model'}
     return {**out, "beta": beta, "car": car}
 
 
 def excess_return(stock_rows, benchmark_rows, start_date: str, end_date: str):
+    try:
+        stock_rows, benchmark_rows = _checked_series(stock_rows), _checked_series(benchmark_rows)
+    except ValueError:
+        return None
     pairs = join_on_dates(stock_rows, benchmark_rows)
     if not pairs:
         return None
@@ -127,4 +162,10 @@ def excess_return(stock_rows, benchmark_rows, start_date: str, end_date: str):
         return None
     s0, b0 = d[start_date]
     s1, b1 = d[end_date]
-    return (s1["close"] / s0["close"] - 1) - (b1["close"] / b0["close"] - 1)
+    stock_return = s1['close'] / s0['close'] - 1
+    benchmark_return = b1['close'] / b0['close'] - 1
+    result = stock_return - benchmark_return
+    if (not all(math.isfinite(value) for value in (stock_return, benchmark_return, result))
+            or stock_return <= -1 or benchmark_return <= -1):
+        return None
+    return result
