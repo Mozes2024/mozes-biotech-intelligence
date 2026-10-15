@@ -8,6 +8,7 @@ from statistics import mean, stdev
 from .dates import days_between
 from .pit import snapshot_at
 from .scenarios import REG_TYPES, quantile
+from .backtest_v2 import assumed_net_stats, runup_one
 RUNUP_EDGE_VALIDATED = False  # legacy report only; active gates live in model_validation
 
 GRID = [(e, x) for e in (60, 45, 30, 21, 14, 7) for x in (14, 7, 3, 1) if x < e]
@@ -46,15 +47,11 @@ def wilson(k, n, z=1.96):
 
 def run_up_return(snap, entry, exit_):
     """Return from T-entry close to T-exit close (trading-day offsets, T-1 = last close before T)."""
-    p, b = snap["prices"], snap["bench"]
-    n = len(p)
-    if n < entry or days_between(p[-1]["date"], snap["as_of"]) > 5:
+    p = snap['prices']
+    if not p or days_between(max(row['date'] for row in p), snap['as_of']) > 5:
         return None
-    r = p[n - exit_]["close"] / p[n - entry]["close"] - 1
-    ex = None
-    if len(b) >= entry:
-        ex = r - (b[len(b) - exit_]["close"] / b[len(b) - entry]["close"] - 1)
-    return {"ret": r, "excess": ex}
+    result = runup_one(p, snap['bench'], entry, exit_)
+    return {**result, 'ret': result['return']} if result else None
 
 
 def run_up_backtest(events, entry, exit_):
@@ -65,29 +62,45 @@ def run_up_backtest(events, entry, exit_):
             rows.append({"id": e["id"], "date": e["date"], **r})
     ex = [r["excess"] for r in rows if r["excess"] is not None]
     return {"entry": entry, "exit": exit_, "n": len(rows), "ret": stats(r["ret"] for r in rows),
-            "excess": stats(ex), "max_drawdown": max_drawdown([r["ret"] for r in rows]), "rows": rows}
+            "excess": stats(ex), "max_drawdown": None, "rows": rows,
+            "performance_kind": "descriptive_event_study", "validated": False,
+            "net_assumed": assumed_net_stats(r['ret'] for r in rows),
+            "drawdown_limitation": "overlapping event returns are not a funded portfolio equity curve"}
 
 
 def walk_forward(events, grid=GRID, min_train=5):
+    grid = tuple(grid)
     years = sorted({e["date"][:4] for e in events})
     folds = []
     for y in years:
         train = [e for e in events if e["date"][:4] < y]
         test = [e for e in events if e["date"][:4] == y]
+        entries = [r['from'] for e in test for entry, exit_ in grid
+                   if (r := run_up_return(snapshot_at(e, e['date']), entry, exit_))]
+        if not entries:
+            folds.append({'year': y, 'skipped': True, 'reason': 'no test price windows', 'oos_n': 0})
+            continue
+        cutoff = min(entries)
+        train = [e for e in train if e['date'] < cutoff]
         best = None
         for entry, exit_ in grid:
             bt = run_up_backtest(train, entry, exit_)
             if bt["n"] < min_train:
                 continue
-            key = bt["excess"] if bt["excess"]["n"] else bt["ret"]
+            key = bt["excess"]
+            if key['n'] < min_train:
+                continue
             if best is None or key["median"] > best[1]:
-                best = ((entry, exit_), key["median"])
+                best = ((entry, exit_), key["median"], key['n'])
         if best is None:
-            folds.append({"year": y, "skipped": True, "reason": "insufficient training events with price windows"})
+            folds.append({"year": y, "skipped": True, "reason": "insufficient prior-available benchmark-matched training windows",
+                          "training_cutoff": cutoff, "train_n": len(train), "oos_n": 0})
             continue
         te = run_up_backtest(test, *best[0])
         folds.append({"year": y, "skipped": False, "chosen": best[0], "train_median": best[1],
-                      "test": {k: te[k] for k in ("n", "ret", "excess", "max_drawdown")}})
+                      "training_cutoff": cutoff, "train_n": best[2], "train_cases_considered": len(train),
+                      "evaluation": "descriptive_purged_walk_forward", "oos_n": 0,
+                      "test": {k: te[k] for k in ("n", "ret", "excess", "max_drawdown", "net_assumed")}})
     return folds
 
 
@@ -140,7 +153,14 @@ def full_report(hist_analyses, historical, outcomes):
     by_outcome = {}
     for r in rows:
         by_outcome[str(r["clinical"])] = by_outcome.get(str(r["clinical"]), 0) + 1
+    folds = walk_forward(historical)
+    selections = {}
+    for fold in folds:
+        if not fold['skipped']:
+            key = f"{fold['chosen'][0]}/{fold['chosen'][1]}"
+            selections[key] = selections.get(key, 0) + 1
     return {
+        "performance_kind": "descriptive_event_study", "executable_strategy_supported": False,
         "coverage": {"n_events": len(rows), "date_min": min(r["date"] for r in rows) if rows else None,
                      "date_max": max(r["date"] for r in rows) if rows else None, "by_outcome": by_outcome,
                      "n_with_move": sum(1 for r in rows if r["move"] is not None),
@@ -149,7 +169,8 @@ def full_report(hist_analyses, historical, outcomes):
         "hold_through": hold, "calibration": calib, "class_vs_outcome": cvo,
         "run_up": {"validated": RUNUP_EDGE_VALIDATED, "n_with_price_window": len(eligible),
                    "status": "computed" if eligible else "not computable: no verified pre-event price windows ingested",
-                   "walk_forward": walk_forward(historical)},
+                   "walk_forward": folds, "parameter_selection_counts": selections,
+                   "oos_n": 0, "selection_basis": "purged prior-available years; descriptive only"},
         "events": sorted(rows, key=lambda r: r["date"]),
         "caveats": [
             "n is tiny; results are illustrative, not evidence of an edge",
