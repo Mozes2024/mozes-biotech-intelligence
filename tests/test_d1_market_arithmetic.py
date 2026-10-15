@@ -93,6 +93,16 @@ def test_finite_inputs_with_overflow_do_not_publish_infinite_model_results(small
         assert excess_return(stock, bench, bench[0]['date'], bench[1]['date']) is None
 
 
+def test_event_window_underflow_cannot_publish_car_when_relative_return_is_unavailable():
+    stock, bench = series()
+    bench[-2]['close'] = 1e300; bench[-1]['close'] = 1e-300
+    assert excess_return(stock, bench, stock[-2]['date'], stock[-1]['date']) is None
+    result = abnormal_return(stock, bench, stock[-2]['date'], 'afterhours')
+    assert result['available'] is False
+    assert result['stock_return'] is not None
+    assert result['beta'] is None and result['car'] is None
+
+
 def test_hold_evaluator_handles_already_dirty_synthetic_frozen_benchmark(tmp_path):
     conn = db.connect(tmp_path/'synthetic.db'); bootstrap_database(conn)
     db.archive_source(conn, 'pre', 'https://example.test/pre', 'company_ir', '2024-07-01T00:00:00Z',

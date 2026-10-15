@@ -142,8 +142,11 @@ def abnormal_return(stock, benchmark, event_date, session, min_estimation=30):
     period = [(s, b) for s, b in pairs if move["from_date"] <= s["date"] <= move["to_date"]]
     if len(period) < 2 or period[0][0]["date"] != move["from_date"] or period[-1][0]["date"] != move["to_date"]:
         return out
-    car = sum((period[i][0]["close"] / period[i-1][0]["close"] - 1) - alpha -
-              beta * (period[i][1]["close"] / period[i-1][1]["close"] - 1) for i in range(1, len(period)))
+    period_returns = [(period[i][0]['close'] / period[i-1][0]['close'] - 1,
+                       period[i][1]['close'] / period[i-1][1]['close'] - 1) for i in range(1, len(period))]
+    if any(not math.isfinite(value) or value <= -1 for pair in period_returns for value in pair):
+        return {**unavailable, 'reason': 'nonfinite_market_model'}
+    car = sum(s - alpha - beta * b for s, b in period_returns)
     if not math.isfinite(car):
         return {**unavailable, 'reason': 'nonfinite_market_model'}
     return {**out, "beta": beta, "car": car}
