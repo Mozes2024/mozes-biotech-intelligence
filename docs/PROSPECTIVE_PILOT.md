@@ -38,7 +38,9 @@ is created. Date-only model output is not an intraday executable decision.
 time. It is explicitly an **observed excerpt**, not a complete HTTP response or proof
 of historical availability. Original claimed retrieval time remains in metadata;
 archive retrieval is the actual local observation time. Existing source/archive rows
-are not replaced. Missing excerpts are reported as `source_gaps`; missing/future
+are not replaced. Missing excerpts are reported as `source_gaps` and private capture
+status `INCOMPLETE`; captured evidence remains durable and ordinary monitoring,
+publication and alert status is unchanged. Missing/future
 timestamps remain unknown/refused under the library rules. Unsafe references are
 refused, including when an excerpt is absent. No API credentials/URLs are fetched.
 

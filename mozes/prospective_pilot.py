@@ -178,6 +178,8 @@ def _archive(conn, event_id, sources, remaining_bytes, deadline):
 
 
 def _report(conn, report):
+    if report.get('source_gaps', 0) > 0:
+        report = {**report, 'status': 'INCOMPLETE'}
     report = {**report, 'owner_run_id': os.environ.get('GITHUB_RUN_ID'),
               'at': capture._utc(capture.utcnow()), 'rule': RULE}
     try:

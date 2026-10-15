@@ -252,6 +252,13 @@ def test_missing_quote_is_explicit_and_future_source_cannot_be_certified(owner, 
         conn.execute('UPDATE event_sources SET statement=NULL WHERE event_id=?', (event['id'],))
     report = pilot.after_monitor(conn, monitor_status='OK')
     assert report['captured'] == 1 and report['source_gaps'] == 1
+    assert report['status'] == 'INCOMPLETE'
+    assert state_get(conn, pilot.HEALTH)['status'] == 'INCOMPLETE'
+    assert json.loads((owner[0].parent / 'prospective-pilot.json').read_text())['status'] == 'INCOMPLETE'
+    saved = capture.as_of(conn, event['id'], '2026-10-15T13:00:00Z')
+    assert saved[0]['analysis']['prospective_pilot_context']['source_scope'] == 'missing'
+    assert pilot.after_monitor(conn, monitor_status='OK')['retried'] == 1
+    assert capture.as_of(conn, event['id'], '2026-10-15T13:00:00Z') == saved
     monkeypatch.setenv('GITHUB_RUN_ID', '101')
     with conn:
         conn.execute('UPDATE event_sources SET statement=?,retrieved_at=? WHERE event_id=?',
@@ -260,11 +267,14 @@ def test_missing_quote_is_explicit_and_future_source_cannot_be_certified(owner, 
     assert report['status'] == 'INCOMPLETE' and report['captured'] == 0
 
 
-@pytest.mark.parametrize('failure', [None, 'observer', 'refused_export', 'unrelated_export'])
+@pytest.mark.parametrize('failure', [None, 'observer', 'source_gaps', 'refused_export', 'unrelated_export'])
 def test_real_monitor_hook_order_durability_and_failure_isolation(owner, monkeypatch, tmp_path, failure):
     from mozes import pipeline_v2c as pipeline, edge_enrichment
     from mozes.intelligence_store import state_put
     pilot, conn, event = prepared(owner, monkeypatch)
+    if failure == 'source_gaps':
+        with conn:
+            conn.execute('UPDATE event_sources SET statement=NULL WHERE event_id=?', (event['id'],))
     path = owner[0]
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(pipeline, 'DB_PATH', path)
@@ -294,7 +304,7 @@ def test_real_monitor_hook_order_durability_and_failure_isolation(owner, monkeyp
         assert pipeline.main(['monitor', '--priority-only']) == 0
         result = json.loads((tmp_path / 'result.json').read_text())
         assert result['status'] == 'OK' and result['manifest']['runtime_status'] == 'OK'
-        assert result['details']['prospective_capture']['status'] == ('INCOMPLETE' if failure == 'observer' else 'OK')
+        assert result['details']['prospective_capture']['status'] == ('INCOMPLETE' if failure in {'observer', 'source_gaps'} else 'OK')
         assert result['manifest']['data_publishable'] is (failure != 'refused_export')
     receipt = edge_enrichment.checkpoint(path)
     assert receipt['db_sha256'] == pilot.file_hash(path)
