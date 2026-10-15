@@ -107,6 +107,10 @@ jobs:
       SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
       # Separately authorized opt-in; same lock, DB, checkpoint and publisher.
       MOZES_B1_FINANCING_OBSERVATION: ${{ vars.MOZES_B1_FINANCING_OBSERVATION }}
+      # Separate pilot approval required; no schema initialization on ordinary capture.
+      MOZES_PROSPECTIVE_CAPTURE: ${{ vars.MOZES_PROSPECTIVE_CAPTURE || '0' }}
+      MOZES_PROSPECTIVE_EVENT_IDS: ${{ vars.MOZES_PROSPECTIVE_EVENT_IDS || '[]' }}
+      MOZES_PROSPECTIVE_PREPARE: ${{ vars.MOZES_PROSPECTIVE_PREPARE }}
       MOZES_DB_PATH: .monitor/mozes-live.db
       MOZES_NEWS_ENABLED: '1'
       MOZES_HTTP_CACHE: .monitor/http-cache
@@ -160,6 +164,14 @@ jobs:
           else
             python scripts/restore_monitor_state.py
           fi
+      - name: Prepare optional private evidence schema from verified retained backup
+        if: vars.MOZES_PROSPECTIVE_PREPARE != '' && vars.MOZES_PROSPECTIVE_CAPTURE != '1'
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          # Initializer process only; the job observer remains disabled.
+          MOZES_PROSPECTIVE_CAPTURE: '1'
+        run: python -m mozes.prospective_pilot prepare
       - name: Synchronize verified issuer universe to hot edge
         env:
           EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
@@ -211,6 +223,7 @@ jobs:
             .monitor/manifest.json
             .monitor/edge-checkpoint.json
             .monitor/recovery-proof.json
+            .monitor/prospective-pilot.json
           include-hidden-files: true
           # Runs are minute-frequent; restore only needs the newest successful lineage.
           retention-days: 3

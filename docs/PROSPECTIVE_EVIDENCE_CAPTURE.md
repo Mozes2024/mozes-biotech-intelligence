@@ -1,5 +1,8 @@
 # Prospective evidence capture — inactive, review-only increment
 
+This describes PR50's standalone library. Its separately reviewed, disabled monitor
+caller and production preparation/rollback procedure are in `PROSPECTIVE_PILOT.md`.
+
 Production baseline: `828245bab4981dd66e0597d2d0d653af74f0f247` (PR47 merged).
 No production migration/activation, source scan, historical backfill or notification.
 No strategy or gate eligibility is granted by this capture mechanism.

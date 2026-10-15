@@ -405,6 +405,15 @@ def main(argv=None):
         conn.close()
         return 0
     result = run_priority_pipeline(conn) if args.priority_only else run_pipeline(conn, deep=args.deep)
+    if os.environ.get('MOZES_PROSPECTIVE_CAPTURE') == '1':
+        # Private best-effort observation after source processing and alert queueing.
+        # No schema initialization, publication eligibility or gate changes here.
+        try:
+            from .prospective_pilot import after_monitor
+            observation = after_monitor(conn, monitor_status=result['status'])
+        except Exception as exc:
+            observation = {'status': 'INCOMPLETE', 'error_type': type(exc).__name__}
+        result.setdefault('details', {})['prospective_capture'] = observation
     try:
         payload = export_payload(conn, args.output)
     except ValueError as exc:
