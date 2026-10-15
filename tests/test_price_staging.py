@@ -1,7 +1,9 @@
 """Synthetic provenance contracts; never use production data or network feeds."""
 import json
 import hashlib
+import importlib.util
 import sqlite3
+from pathlib import Path
 
 import pytest
 
@@ -437,7 +439,10 @@ def test_caller_transaction_is_not_committed_and_can_rollback_staging():
 
 
 def test_offline_cli_requires_gate_and_imports_without_touching_legacy(tmp_path, monkeypatch, capsys):
-    from scripts import stage_price_response
+    loader = importlib.util.spec_from_file_location('stage_price_response',
+        Path(__file__).resolve().parents[1] / 'scripts/stage_price_response.py')
+    stage_price_response = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(stage_price_response)
     stage, _ = api()
     source = tmp_path / 'source.csv'
     source.write_bytes(b'date,close\n2026-01-02,100\n')
