@@ -5,10 +5,94 @@ import json
 import pytest
 
 from mozes import db
+from mozes import backtest, backtest_v2
 from mozes.historical import attach_price_coverage, attached_price_rows
-from mozes.market import abnormal_return, event_return, excess_return
+from mozes.market import abnormal_return, event_return, excess_return, pre_event_prices
 from mozes.radar import bootstrap_database
 from mozes.validation_evaluator import evaluate_walk_forward
+
+
+@pytest.mark.parametrize('large,small', [(1e300, 1e-300), (1e100, 1e-100)])
+def test_runup_benchmark_underflow_is_unavailable_without_losing_stock_return(large, small):
+    stock = [{'date': '2025-01-01', 'close': 100}, {'date': '2025-01-02', 'close': 101}]
+    benchmark = [{'date': '2025-01-01', 'close': large}, {'date': '2025-01-02', 'close': small}]
+    frozen = json.dumps([stock, benchmark])
+    result = backtest_v2.runup_one(stock, benchmark, 2, 1)
+    legacy = backtest.run_up_return({'prices': stock, 'bench': benchmark, 'as_of': '2025-01-03'}, 2, 1)
+    for row in (result, legacy):
+        assert row['return'] == pytest.approx(.01)
+        assert row['excess'] is None
+        assert row['performance_kind'] == 'descriptive_event_study'
+        assert row['executable'] is False
+    assert excess_return(stock, benchmark, stock[0]['date'], stock[-1]['date']) is None
+    assert json.dumps([stock, benchmark]) == frozen
+
+
+def test_runup_grids_exclude_underflowed_benchmark_without_fabricated_excess():
+    stock, benchmark = series(65)
+    for row in benchmark[:-1]:
+        row['close'] = 1e300
+    benchmark[-1]['close'] = 1e-300
+    grid = next(row for row in backtest_v2.all_runup_grids([{'stock': stock, 'benchmark': benchmark}])
+                if row['entry'] == 30 and row['exit'] == 1)
+    assert grid['gross_return']['n'] == 1
+    assert grid['excess']['n'] == 0
+    assert grid['missing_benchmark_windows'] == 1
+    assert grid['net_assumed'][0]['stats']['n'] == 1
+
+
+def test_runup_ordinary_benchmark_formula_is_identical_and_read_only():
+    stock, benchmark = series(40)
+    frozen = json.dumps([stock, benchmark])
+    result = backtest_v2.runup_one(stock, benchmark, 30, 7)
+    expected = ((stock[-7]['close'] / stock[-30]['close'] - 1)
+                - (benchmark[-7]['close'] / benchmark[-30]['close'] - 1))
+    assert result['excess'] == expected
+    assert result['from'] == stock[-30]['date'] and result['to'] == stock[-7]['date']
+    assert json.dumps([stock, benchmark]) == frozen
+
+
+def test_runup_report_and_evaluator_preserve_frozen_history_and_disabled_gates(tmp_path):
+    conn = db.connect(tmp_path / 'synthetic-runup.db')
+    bootstrap_database(conn)
+    db.archive_source(conn, 'pre', 'https://example.test/pre', 'company_ir',
+                      '2024-07-01T00:00:00Z', '2024-07-02T00:00:00Z', 'pre-event evidence')
+    db.archive_source(conn, 'post', 'https://example.test/post', 'company_ir',
+                      '2025-01-10T13:00:00Z', '2025-01-11T00:00:00Z', 'outcome evidence')
+    db.upsert_historical_case(conn, 'RUNUP', 'AAA', 'P3_TOPLINE', '2025-01-10T13:00:00Z',
+                              announcement_session='premarket', provenance=['pre', 'post'])
+    db.store_feature_snapshot(conn, 'F', 'RUNUP', '2025-01-09T00:00:00Z', {'fact': True},
+                              provenance=['pre'], blinded=True)
+    db.store_outcome_label(conn, 'L', 'RUNUP', '2025-01-11T00:00:00Z',
+                           {'clinical': 'success', 'event_return': .1}, provenance=['post'], verified=True)
+    stock, bench = series(220)
+    pre = pre_event_prices(stock, '2025-01-10', 'premarket')
+    for row in bench:
+        if row['date'] == pre[-30]['date']:
+            row['close'] = 1e300
+        elif row['date'] == pre[-7]['date']:
+            row['close'] = 1e-300
+    db.store_prices(conn, 'AAA', stock, 'csv')
+    db.store_prices(conn, 'XBI', bench, 'csv')
+    attach_price_coverage(conn, 'RUNUP', 'csv')
+    frozen = {table: list(conn.execute('SELECT * FROM ' + table)) for table in
+              ('historical_cases', 'historical_case_prices', 'historical_price_attachments',
+               'feature_snapshots', 'outcome_labels', 'source_archive')}
+    before = list(conn.iterdump())
+    report = backtest_v2.report(conn)
+    assert list(conn.iterdump()) == before
+    grid = next(row for row in report['runup_all_grids'] if row['entry'] == 30 and row['exit'] == 7)
+    assert grid['gross_return']['n'] == 1 and grid['excess']['n'] == 0
+    assert report['executable_strategy']['n'] == 0
+    evaluation = evaluate_walk_forward(conn)
+    assert evaluation['runup']['descriptive_n'] == evaluation['runup']['oos_n'] == 0
+    assert evaluation['gates_auto_enabled'] is False
+    for table, records in frozen.items():
+        assert list(conn.execute('SELECT * FROM ' + table)) == records
+    for name in ('runup', 'hold_through'):
+        assert db.validation_row(conn, name)['enabled'] == 0
+        assert db.validation_row(conn, name)['oos_n'] == 0
+    conn.close()
 
 
 def series(n=50):

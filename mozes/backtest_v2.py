@@ -11,7 +11,7 @@ from statistics import mean, median, stdev
 
 from . import db
 from .historical import attached_price_rows, market_event_date, readiness_for_case
-from .market import event_return, join_on_dates, pre_event_prices
+from .market import event_return, excess_return, pre_event_prices
 from .price_validation import validated_prices
 from .backtest_research import DEFAULT_COSTS, cost_sensitivity, entry_audit
 
@@ -65,20 +65,9 @@ def runup_one(stock, bench, entry, exit_):
     a, b, r = sr
     if not math.isfinite(r) or r <= -1:
         return None
-    try:
-        bench = validated_prices(bench)
-        if len({row['date'] for row in bench}) != len(bench):
-            bench = []
-    except ValueError:
-        bench = []
-    pairs = {s["date"]: (s, x) for s, x in join_on_dates(stock, bench)}
-    ex = None
-    if a["date"] in pairs and b["date"] in pairs:
-        sa, ba = pairs[a["date"]]
-        sb, bb = pairs[b["date"]]
-        ex = r - (bb["close"] / ba["close"] - 1)
-        if not math.isfinite(ex):
-            ex = None
+    # Share the reviewed endpoint/duplicate/numeric checks, including returns
+    # rounded to -100% by underflow. A valid stock return remains available.
+    ex = excess_return(stock, bench, a['date'], b['date'])
     return {"from": a["date"], "to": b["date"], "return": r, "excess": ex,
             "performance_kind": "descriptive_event_study", "executable": False,
             "session_basis": "observed_bars_calendar_unverified"}
