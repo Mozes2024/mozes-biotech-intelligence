@@ -182,3 +182,13 @@ def test_research_report_keeps_frozen_data_and_gates_and_labels_gross_net(tmp_pa
     assert not db.validation_row(conn, 'runup')['enabled']
     assert not db.validation_row(conn, 'hold_through')['enabled']
     conn.close()
+
+
+def test_selected_training_n_counts_matched_windows_not_candidate_events():
+    train = [make_price_event(f'T{i}', f'2020-0{i+1}-15', .01) for i in range(5)]
+    unmatched = make_price_event('NO-BENCH', '2020-06-15', .1)
+    unmatched['bench'] = []
+    test = make_price_event('X', '2021-05-15', -.01)
+    fold = next(f for f in backtest.walk_forward(train + [unmatched, test]) if f['year'] == '2021')
+    assert fold['train_n'] == 5
+    assert fold['train_cases_considered'] == 6

@@ -91,14 +91,14 @@ def walk_forward(events, grid=GRID, min_train=5):
             if key['n'] < min_train:
                 continue
             if best is None or key["median"] > best[1]:
-                best = ((entry, exit_), key["median"])
+                best = ((entry, exit_), key["median"], key['n'])
         if best is None:
             folds.append({"year": y, "skipped": True, "reason": "insufficient prior-available benchmark-matched training windows",
                           "training_cutoff": cutoff, "train_n": len(train), "oos_n": 0})
             continue
         te = run_up_backtest(test, *best[0])
         folds.append({"year": y, "skipped": False, "chosen": best[0], "train_median": best[1],
-                      "training_cutoff": cutoff, "train_n": len(train),
+                      "training_cutoff": cutoff, "train_n": best[2], "train_cases_considered": len(train),
                       "evaluation": "descriptive_purged_walk_forward", "oos_n": 0,
                       "test": {k: te[k] for k in ("n", "ret", "excess", "max_drawdown", "net_assumed")}})
     return folds
