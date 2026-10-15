@@ -19,6 +19,7 @@ def api():
 def ledger(tmp_path, monkeypatch):
     capture = api()
     conn = db.connect(tmp_path / 'synthetic.db')
+    monkeypatch.setattr(db, 'utcnow', lambda: '2026-10-15T09:00:00+00:00')
     bootstrap_database(conn)
     monkeypatch.setenv('MOZES_PROSPECTIVE_CAPTURE', '1')
     monkeypatch.setattr(capture, 'utcnow', lambda: '2026-10-15T12:00:00+00:00')
@@ -345,3 +346,35 @@ def test_corrupted_payload_fails_closed_instead_of_silently_hiding_a_record(ledg
         conn.execute("UPDATE prospective_evidence SET payload=json_set(payload,'$.eligible',1)")
     with pytest.raises(ValueError, match='integrity_failure'):
         capture.as_of(conn, 'EVENT-1', '2026-10-15T13:00:00Z')
+
+
+@pytest.mark.parametrize('late_fact', ['publication', 'retrieval', 'forecast', 'gate'])
+def test_capture_lag_cannot_borrow_evidence_after_the_aware_decision(ledger, late_fact):
+    capture, conn = ledger
+    # Capture is at12:00, but this hypothetical decision was at11:59. Data arriving
+    # at11:59:30 must not be attached to that earlier decision, even within5 minutes.
+    changes = {'analysis': analysis(as_of='2026-10-15T11:59:00Z')}
+    if late_fact in {'publication', 'retrieval'}:
+        db.archive_source(conn, 'late', 'https://example.org/late', 'company_ir',
+            '2026-10-15T11:59:30Z' if late_fact == 'publication' else '2026-10-15T10:00:00Z',
+            '2026-10-15T11:59:30Z', 'Evidence arriving after the decision')
+        changes['source_ids'] = ['late']
+    elif late_fact == 'forecast':
+        changes['forecast'] = {'origin': 'issuer_announced', 'window': None,
+                                'available_at': '2026-10-15T11:59:30Z'}
+    else:
+        with conn:
+            conn.execute("UPDATE model_validation SET updated_at='2026-10-15T11:59:30Z'")
+    before = list(conn.iterdump())
+    with pytest.raises(ValueError):
+        observe(capture, conn, **changes)
+    assert list(conn.iterdump()) == before
+
+
+def test_capture_time_is_after_materializing_the_observation_not_before_reads(ledger, monkeypatch):
+    capture, conn = ledger
+    clock = iter(['2026-10-15T12:00:00Z', '2026-10-15T12:00:05Z'])
+    monkeypatch.setattr(capture, 'utcnow', lambda: next(clock))
+    row = observe(capture, conn)
+    assert capture.as_of(conn, 'EVENT-1', '2026-10-15T12:00:03Z') == []
+    assert row['captured_at'].startswith('2026-10-15T12:00:05')

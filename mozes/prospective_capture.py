@@ -242,16 +242,31 @@ def record(conn, *, observation_key, analysis, forecast, source_ids, selection_r
         # No historical imports disguised as new forward decisions. A date-only
         # current-day analysis can be observed, but cannot prove an intraday fill.
         if 'T' in at:
-            age = (datetime.fromisoformat(captured_at) - datetime.fromisoformat(_utc(at))).total_seconds()
+            knowledge_cutoff = _utc(at)
+            age = (datetime.fromisoformat(captured_at) - datetime.fromisoformat(knowledge_cutoff)).total_seconds()
             if not 0 <= age <= MAX_ANALYSIS_AGE_SECONDS:
                 raise ValueError('historical_capture_unsupported')
         elif at != captured_at[:10]:
             raise ValueError('historical_capture_unsupported')
-        _analysis_times(analysis, captured_at)
-        sources = _sources(conn, source_ids, captured_at, exclusions)
+        else:
+            knowledge_cutoff = captured_at
+        _analysis_times(analysis, knowledge_cutoff)
+        for field in ('created_at', 'discovered_at', 'modified_at', 'available_at'):
+            if forecast[field] and forecast[field] > knowledge_cutoff:
+                raise ValueError('forecast_after_decision')
+        sources = _sources(conn, source_ids, knowledge_cutoff, exclusions)
         gates = {name: db.validation_row(conn, name) for name in ('runup', 'hold_through')}
         if any(gate is None for gate in gates.values()):
             exclusions.append('gate_state_unknown')
+        for gate in gates.values():
+            if gate:
+                try:
+                    gate_at = _utc(gate['updated_at'])
+                except (TypeError, ValueError):
+                    exclusions.append('gate_state_timestamp_unknown')
+                else:
+                    if gate_at > knowledge_cutoff:
+                        raise ValueError('gate_state_after_decision')
         inputs = dict(event_id=event_id, ticker=analysis['ticker'], event_type=analysis['type'],
                       analysis=analysis, forecast=forecast, sources=sources, selection_rule=selection_rule,
                       code_sha=code_sha, price_reference=request['price_reference'],
@@ -259,6 +274,17 @@ def record(conn, *, observation_key, analysis, forecast, source_ids, selection_r
         # Bound even the input before loading/writing the ledger; no silent truncation.
         if len(encode(inputs).encode('utf-8')) > MAX_RECORD_BYTES:
             raise ValueError('capture_byte_budget')
+        # The observation was not available before its source/gate reads completed.
+        # Keep the earlier knowledge cutoff, but stamp actual materialization now.
+        materialized_at = _utc(utcnow())
+        if materialized_at < captured_at:
+            raise ValueError('capture_clock_moved_backwards')
+        if 'T' in at:
+            if (datetime.fromisoformat(materialized_at) - datetime.fromisoformat(knowledge_cutoff)).total_seconds() > MAX_ANALYSIS_AGE_SECONDS:
+                raise ValueError('historical_capture_unsupported')
+        elif at != materialized_at[:10]:
+            raise ValueError('historical_capture_unsupported')
+        captured_at = materialized_at
         previous = conn.execute('SELECT capture_id,captured_at FROM prospective_evidence WHERE event_id=? '
                                 'ORDER BY captured_at DESC,rowid DESC LIMIT 1', (event_id,)).fetchone()
         if previous and previous['captured_at'] > captured_at:
@@ -266,6 +292,7 @@ def record(conn, *, observation_key, analysis, forecast, source_ids, selection_r
         payload = {**inputs, 'schema': 1, 'capture_id': capture_id, 'input_hash': input_hash,
                    'observation_key': observation_key, 'captured_at': captured_at,
                    'previous_capture_id': previous['capture_id'] if previous else None,
+                   'decision_evidence_cutoff': knowledge_cutoff,
                    'eligible': False, 'executable': False, 'authoritative': False,
                    'availability': {'observed_by_bio_at': captured_at, 'historical_first_available_at': None},
                    'execution': {'status': 'unobserved', 'actual_fills': None},

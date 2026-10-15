@@ -65,11 +65,21 @@ code SHA reference, source IDs/URLs/content hashes/publication/retrieval timesta
 selection-rule ID/definition, actual gate rows and explicit exclusions.
 
 Capture UTC is generated internally, never supplied by an importer. New observations
+are timestamped after their source/gate inputs have been materialized, so a slow read
+cannot make an observation appear available before it was captured. A regression was
+shown failing before this boundary was corrected.
+New observations
 require a current-UTC-day analysis or an aware analysis within the prior five minutes.
 No historical backdating is accepted. Known future source/feature knowledge clocks,
 future last-close dates and structured outcome fields are rejected. Future forecast
 windows are permitted because a prediction is not a future observation. Date-only
 analysis time remains insufficient for an intraday decision or close fill.
+When analysis supplies an aware decision instant, source publication/retrieval,
+forecast metadata, feature knowledge clocks and gate-update times must not exceed
+that instant, even if capture happens a few minutes later. The envelope records both
+`decision_evidence_cutoff` and actual capture time. Four adversarial lag-window tests
+failed before this guard and pass after it; capture lag cannot justify borrowing later
+information or reconstructing a gate state overwritten after the decision.
 
 `availability.observed_by_bio_at` describes this capture; historical first availability
 is always explicitly unknown. Source publication/retrieval and caller-declared forecast
