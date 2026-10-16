@@ -21,7 +21,7 @@ SCOPE = 'single-event-scheduled-attempt-v1'
 JOB = 'prospective-pilot-claim'
 STEP = 'Acquire one-shot prospective claim '
 PERMIT_STEP = 'Verify one-shot prospective permit'
-WINDOW = timedelta(hours=1)
+WINDOW = timedelta(hours=12)
 utcnow = lambda: datetime.now(timezone.utc)
 
 

@@ -134,11 +134,18 @@ runtime status. The private DB remains authoritative if the small sidecar is abs
    capture off. Obtain explicit approval for the exact **post-merge main SHA** and
    this single event/window. Do not use this PR's branch SHA as production approval.
 2. Generate a new authorization ID offline: `YYYYMMDDTHHMMSSZ.<approved-SHA>.<32-hex-nonce>`.
-   The UTC issue time is fixed; the ID is valid for one hour. Only a `schedule` run
+   The UTC issue time is fixed; the ID is valid for 12 hours, including the issue
+   instant and excluding the exact expiry instant. Only a `schedule` run
    created in that interval may claim it. Generate the nonce with `uuid.uuid4().hex`.
    Set `MOZES_PROSPECTIVE_AUTHORIZATION` first, then
    `MOZES_PROSPECTIVE_EVENT_IDS='["PHAR-SNDA-LOWER-WEIGHT"]'`, then
-   `MOZES_PROSPECTIVE_CAPTURE=1`. Never auto-generate or renew a production ID. No B1,
+   `MOZES_PROSPECTIVE_CAPTURE=1`. This is scheduling tolerance for one attempt,
+   not permission for 12 hours of collection. Keep operator supervision/cleanup
+   active until the designated run completes or expiry; then disable capture and
+   clear the authorization even if no eligible run arrived. Claim, permit and
+   capture-consumption entry checks each enforce expiry. Never auto-generate or
+   renew a production ID. A new post-merge code SHA requires fresh explicit approval;
+   never reuse an expired or previously attempted ID. No B1,
    M8, A5, Stage-0, notification, schedule, Worker or gate configuration changes.
 3. Wait for the next ordinary scheduled main monitor. Edge/manual `workflow_dispatch`
    runs cannot claim this authorization. Do not dispatch a schedule or alter its cron.
@@ -194,7 +201,16 @@ and permit steps succeeded. Checking a green workflow alone is insufficient.
 3. A complete, bounded inventory of scheduled runs for the ID's embedded code/time
    also rejects a prior started claim step. Thus a crash/timeout with **no ref** cannot
    cause a later run to retry an ambiguous request. Missing/incomplete history is a
-   denial. The fixed one-hour expiry prevents reuse after normal Actions retention;
+   denial. The query covers the entire fixed 12-hour interval, not a rolling recent
+   subset. Both run and per-run job inventories retain the existing 100-row cap:
+   reported totals must equal received rows, IDs must be unique, and the current
+   owner must occur exactly once. More than 100 rows, truncation, missing owners,
+   ambiguous jobs or an unfinished audit deny the claim; there is no partial-page
+   acceptance or fallback. The current quarter-hour schedule contributes 48 nominal
+   ticks in 12 hours, plus the existing extra schedules; no schedule is changed.
+   API timeouts and the isolated claim job's existing two-minute timeout remain in
+   force, so a slow/oversized audit may consume the opportunity without capture.
+   The fixed 12-hour expiry prevents reuse after normal Actions retention;
    modifying issue time or code changes the ID, requiring new approval.
 4. Only a successful **new** claim step exposes its commit SHA as a job output. A
    read-only monitor step rechecks the permanent ref, exact commit/parent/tree and
@@ -209,7 +225,7 @@ and permit steps succeeded. Checking a green workflow alone is insufficient.
 
 Trust boundary: GitHub's atomic create-ref and run/attempt/job execution identities,
 the reviewed main workflow and its isolated runner filesystem are trusted. Retain
-claim-attempt Actions records throughout the one-hour window and permanent refs
+claim-attempt Actions records throughout the 12-hour window and permanent refs
 indefinitely. An administrator deleting/reforging refs or claim-attempt history,
 tampering with runner permits, or executing modified code is outside the guarantee.
 Unavailable API evidence, permission restrictions or an expired/delayed schedule

@@ -74,7 +74,7 @@ def test_unapproved_identity_never_reaches_git_writes(candidate, monkeypatch, ke
     assert not [body for _, body in server.calls if body is not None]
 
 
-@pytest.mark.parametrize('delta', [timedelta(hours=-1), timedelta(hours=1), timedelta(days=4)])
+@pytest.mark.parametrize('delta', [timedelta(hours=-1), timedelta(hours=12), timedelta(days=4)])
 def test_same_authorization_cannot_be_extended_or_reused_after_history_expiry(candidate, delta):
     server, _ = candidate
     server.now += delta
@@ -82,6 +82,135 @@ def test_same_authorization_cannot_be_extended_or_reused_after_history_expiry(ca
     with pytest.raises(auth.AuthorizationError, match='expired_or_future'):
         auth.claim()
     assert not server.calls
+
+
+@pytest.mark.parametrize('elapsed', [timedelta(0), timedelta(hours=1),
+    timedelta(hours=11, minutes=59, seconds=59, microseconds=999999)])
+def test_twelve_hour_window_accepts_issue_time_and_delayed_first_attempt(candidate, monkeypatch, elapsed):
+    server, _ = candidate
+    record, issued = auth.identity('prospective_claim')
+    server.now = issued + elapsed
+    server.runs['100']['created_at'] = server.now.isoformat()
+    sha = auth.claim()
+    server.completed_claim('100')
+    monkeypatch.setenv('GITHUB_JOB', 'monitor')
+    monkeypatch.setenv('MOZES_PROSPECTIVE_CLAIM_SHA', sha)
+    auth.permit()
+    assert auth.consume()['record']['authorization_id'] == record['authorization_id']
+    with pytest.raises(auth.AuthorizationError, match='already_used'):
+        auth.consume()
+    assert len(server.refs) == 1
+
+
+@pytest.mark.parametrize('elapsed', [timedelta(microseconds=-1), timedelta(hours=12),
+    timedelta(hours=12, microseconds=1)])
+def test_twelve_hour_window_rejects_before_issue_and_at_or_after_expiry(candidate, elapsed):
+    server, _ = candidate
+    _, issued = auth.identity('prospective_claim')
+    server.now = issued + elapsed
+    with pytest.raises(auth.AuthorizationError, match='expired_or_future'):
+        auth.claim()
+    assert not server.calls and not server.refs
+
+
+@pytest.mark.parametrize('phase', ['permit', 'consume'])
+def test_expiry_after_claim_never_grants_or_consumes_a_permit(candidate, monkeypatch, phase):
+    server, _ = candidate
+    _, issued = auth.identity('prospective_claim')
+    server.now = issued + timedelta(hours=12, seconds=-1)
+    server.runs['100']['created_at'] = server.now.isoformat()
+    sha = auth.claim()
+    server.completed_claim('100')
+    monkeypatch.setenv('GITHUB_JOB', 'monitor')
+    monkeypatch.setenv('MOZES_PROSPECTIVE_CLAIM_SHA', sha)
+    if phase == 'consume':
+        auth.permit()
+    before = list(server.calls)
+    server.now = issued + timedelta(hours=12)
+    with pytest.raises(auth.AuthorizationError, match='expired_or_future'):
+        getattr(auth, phase)()
+    assert server.calls == before and len(server.refs) == 1
+
+
+def test_early_ambiguous_attempt_is_still_consumed_near_twelve_hour_expiry(candidate, monkeypatch, tmp_path):
+    server, identifier = candidate
+    _, issued = auth.identity('prospective_claim')
+    server.fail = ('before', 'git/refs')
+    with pytest.raises(auth.AuthorizationError, match='ambiguous'):
+        auth.claim()
+    assert not server.refs
+    server.fail = None
+    successor(server, identifier, monkeypatch, tmp_path)
+    server.now = issued + timedelta(hours=11, minutes=59)
+    server.runs['101']['created_at'] = server.now.isoformat()
+    with pytest.raises(auth.AuthorizationError, match='prior_claim_attempted'):
+        auth.claim()
+    from urllib.parse import parse_qs, urlsplit
+    queries = [parse_qs(urlsplit(p).query) for p, _ in server.calls if p.startswith('actions/workflows/')]
+    assert all(q['created'] == [issued.isoformat() + '..' + (issued + timedelta(hours=12)).isoformat()]
+               for q in queries)
+    assert len([p for p, body in server.calls if p == 'git/refs' and body]) == 1
+
+
+@pytest.mark.parametrize('count', [52, 100])
+def test_complete_twelve_hour_history_remains_bounded_and_checks_every_run(candidate, count):
+    server, identifier = candidate
+    _, issued = auth.identity('prospective_claim')
+    server.now = issued + timedelta(hours=11, minutes=59)
+    server.runs['100']['created_at'] = server.now.isoformat()
+    for run_id in range(1, count):
+        server.add_run(str(run_id), identifier)
+        server.runs[str(run_id)]['status'] = 'completed'
+        for job in server.jobs[str(run_id)]:
+            job.update(status='completed', conclusion='skipped', steps=[])
+    assert auth.claim()
+    jobs = [p for p, _ in server.calls if '/jobs?' in p]
+    assert len(jobs) == count and len(set(jobs)) == count
+    assert len(server.calls) <= 110
+
+
+@pytest.mark.parametrize('problem', ['truncated', 'over_bound', 'duplicate', 'missing_current'])
+def test_twelve_hour_history_never_truncates_or_guesses_at_inventory(candidate, monkeypatch, problem):
+    server, _ = candidate
+    _, issued = auth.identity('prospective_claim')
+    server.now = issued + timedelta(hours=11)
+    original = server.api
+    def incomplete(path, **kwargs):
+        value = original(path, **kwargs)
+        if path.startswith('actions/workflows/'):
+            rows = [{**server.runs['100'], 'id': n} for n in range(1, 102)]
+            if problem == 'truncated': return {'total_count': 101, 'workflow_runs': rows[:100]}
+            if problem == 'over_bound': return {'total_count': 101, 'workflow_runs': rows}
+            if problem == 'duplicate': return {'total_count': 2, 'workflow_runs': [rows[99], rows[99]]}
+            return {'total_count': 99, 'workflow_runs': rows[:99]}
+        return value
+    monkeypatch.setattr(auth, 'api', incomplete)
+    reason = 'current_run_missing' if problem == 'missing_current' else 'inventory_incomplete'
+    with pytest.raises(auth.AuthorizationError, match=reason):
+        auth.claim()
+    assert not server.refs and not [body for _, body in server.calls if body is not None]
+
+
+@pytest.mark.parametrize('problem', ['truncated', 'over_bound', 'duplicate'])
+def test_prior_job_inventory_is_complete_and_bounded_across_twelve_hours(candidate, monkeypatch, problem):
+    server, identifier = candidate
+    _, issued = auth.identity('prospective_claim')
+    server.now = issued + timedelta(hours=11)
+    server.add_run('99', identifier)
+    server.runs['99']['status'] = 'completed'
+    original = server.api
+    def incomplete(path, **kwargs):
+        value = original(path, **kwargs)
+        if path.startswith('actions/runs/99/jobs?'):
+            if problem == 'truncated': value['total_count'] += 1
+            elif problem == 'duplicate': value['jobs'] = [value['jobs'][0]] * 2
+            else:
+                value = {'total_count': 101, 'jobs': [{**value['jobs'][0], 'id': n} for n in range(1, 102)]}
+        return value
+    monkeypatch.setattr(auth, 'api', incomplete)
+    with pytest.raises(auth.AuthorizationError, match='inventory_incomplete'):
+        auth.claim()
+    assert not server.refs and not [body for _, body in server.calls if body is not None]
 
 
 @pytest.mark.parametrize('field', ['head_sha', 'head_branch', 'run_attempt', 'event', 'path', 'created_at'])
@@ -119,10 +248,13 @@ def test_ambiguous_ref_creation_burns_authorization_even_without_a_ref(candidate
     assert len([p for p, body in server.calls if p == 'git/refs' and body]) == 1
 
 
-def test_confirmed_claim_is_never_adopted_by_queued_successor(candidate, monkeypatch, tmp_path):
+@pytest.mark.parametrize('delay', [timedelta(0), timedelta(hours=11)])
+def test_confirmed_claim_is_never_adopted_by_queued_successor(candidate, monkeypatch, tmp_path, delay):
     server, identifier = candidate
     auth.claim()
     successor(server, identifier, monkeypatch, tmp_path)
+    server.now += delay
+    server.runs['101']['created_at'] = server.now.isoformat()
     with pytest.raises(auth.AuthorizationError):
         auth.claim()
     assert len(server.refs) == 1
