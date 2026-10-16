@@ -1,8 +1,9 @@
-# Prospective evidence pilot — prepared code, inactive production
+# Prospective evidence pilot — disabled-by-default, one-shot authorization
 
-This increment is stacked on PR50 (`3b98dda63e1299ac64e27bc0fe7ea54e2b67e8e7`),
-from production main `828245bab4981dd66e0597d2d0d653af74f0f247`. It does not require
-PR48, PR49 or A5. No production schema, variable, scan or deployment was changed.
+The one-shot safeguard is based on production main
+`c38e85b770c65b1c190accd3ab84ca4f8a79e4c2`, following merged PR50/PR51.
+It changes no production schema, variable, claim, scan or deployment during review.
+It does not activate PR48 or A5. The global capture flag alone now fails closed.
 The baseline library contract is in `PROSPECTIVE_EVIDENCE_CAPTURE.md`; this document
 adds its first optional monitor caller and the explicit preparation procedure.
 
@@ -24,7 +25,7 @@ do not call it. Missing/exactly-off flag skips even importing the caller. An opt
 observer exception cannot change the monitor result, prevent export/checkpoint, or
 make an unrelated export failure successful. A failed/partial source monitor is skipped.
 
-Only up to three explicitly allowlisted **live event IDs** are read and scored using
+The one-shot scope permits only **PHAR-SNDA-LOWER-WEIGHT**, read and scored using
 the existing current-day engine, without writing a score or changing its policies.
 The full analysis freezes model versions, classification/selection decisions, features,
 gate state and source metadata. A forecast window, when available, is copied from
@@ -44,9 +45,10 @@ publication and alert status is unchanged. Missing/future
 timestamps remain unknown/refused under the library rules. Unsafe references are
 refused, including when an excerpt is absent. No API credentials/URLs are fetched.
 
-One observation key per workflow run/event makes retries return the original capture.
-New runs capture substantive analysis/source/rule changes, or an unchanged heartbeat
-after six hours. Volatile observation clocks alone do not cause a new record. Multiple
+The standalone immutable library preserves retry identities; the production monitor
+now rejects reentry rather than retrying an authorized attempt. A distinct future
+authorization requires fresh explicit approval. Its bounded observer still skips an
+unchanged heartbeat within six hours. Volatile clocks alone do not cause a new record. Multiple
 revisions within a run, changes between scans, changes outside the allowlist, partial
 source scans and budget-exhausted revisions are **not complete coverage**. Coverage
 cannot be retrospectively repaired by backdating or replaying this mechanism.
@@ -60,7 +62,7 @@ All records remain `eligible=false`, `executable=false`, `authoritative=false`.
 
 | Resource | Fixed pilot bound | Failure behavior |
 | --- | --- | --- |
-| Allowlist | 1–3 unique event IDs, required | Reject invalid configuration |
+| Allowlist | Exactly `PHAR-SNDA-LOWER-WEIGHT` for this one-shot scope | Reject invalid configuration |
 | New captures | 24 per UTC day, across all events/runs | INCOMPLETE, explicit skipped count |
 | Unchanged heartbeat | Six hours per event | Report unchanged; no new row |
 | Per-event inputs | 128 KiB event JSON; 32 source rows; 64 KiB combined excerpts | Refuse event, retain previous captures |
@@ -88,10 +90,12 @@ runtime status. The private DB remains authoritative if the small sidecar is abs
 
 ## Explicit preparation — separate production authorization required
 
-1. Review/merge PR50 and then this stacked PR under separate authorization. A merge
+1. Review/merge the one-shot safeguard under separate authorization; the original
+   library and monitor integration are already merged. A merge
    starts ordinary CI/possibly Pages but leaves capture and preparation disabled.
    Recheck authoritative main, CI, normal monitor/Pages and checkpoint lineage first.
-2. Select 1–3 verified live IDs and retain their inclusion rationale **before outcomes**.
+2. Reverify `PHAR-SNDA-LOWER-WEIGHT` is live and retain its inclusion rationale
+   **before outcomes**; no other event is authorized by this scope.
    Verify their sources/forecast interpretation manually. Record main SHA and budgets.
 3. Independently download the **latest authoritative existing** `mozes-live-monitor`
    artifact, verify its producer run/source SHA, manifest, `edge-checkpoint.json` and
@@ -123,33 +127,98 @@ runtime status. The private DB remains authoritative if the small sidecar is abs
    rows/identifiers/attachment hashes and disabled gates are preserved. Clear only the
    preparation variable. Its value persisting would suppress capture intentionally.
 
-## One ordinary run pilot — separate activation authorization required
+## One ordinary scheduled run — separate activation authorization required
 
-1. Authorize repository `MOZES_PROSPECTIVE_EVENT_IDS='["<verified-live-ID>"]'` (start
-   with one), then `MOZES_PROSPECTIVE_CAPTURE=1`; preparation must be clear. No B1,
+1. Complete the backup/restore, live-event and normal Pages/ACK gates above, including
+   recovery after any publication-preflight failure. Preparation must be clear and
+   capture off. Obtain explicit approval for the exact **post-merge main SHA** and
+   this single event/window. Do not use this PR's branch SHA as production approval.
+2. Generate a new authorization ID offline: `YYYYMMDDTHHMMSSZ.<approved-SHA>.<32-hex-nonce>`.
+   The UTC issue time is fixed; the ID is valid for one hour. Only a `schedule` run
+   created in that interval may claim it. Generate the nonce with `uuid.uuid4().hex`.
+   Set `MOZES_PROSPECTIVE_AUTHORIZATION` first, then
+   `MOZES_PROSPECTIVE_EVENT_IDS='["PHAR-SNDA-LOWER-WEIGHT"]'`, then
+   `MOZES_PROSPECTIVE_CAPTURE=1`. Never auto-generate or renew a production ID. No B1,
    M8, A5, Stage-0, notification, schedule, Worker or gate configuration changes.
-2. Wait for the next ordinary scheduled main monitor. Record run ID/SHA and source
+3. Wait for the next ordinary scheduled main monitor. Edge/manual `workflow_dispatch`
+   runs cannot claim this authorization. Do not dispatch a schedule or alter its cron.
+   Record authorization ID, claim commit/ref, actual run ID/attempt and code SHA. A
+   denied/failed claim, expiry, or ambiguous API response means HOLD: disable capture,
+   retain the evidence and do not retry/reuse the authorization. Record source
    scan status. A partial/failed scan or skipped/incomplete observer is not successful
-   prospective collection. First-run acceptance requires at least one sourced capture,
+   prospective collection. First-run acceptance requires exactly one sourced capture,
    no source gaps/errors, private health persisted, budgets satisfied and gates off.
-3. Download the successful uploaded authoritative checkpoint. Verify DB SHA matches
+4. Download the successful uploaded authoritative checkpoint. Verify DB SHA matches
    the run's checkpoint, preparation proof persists and each capture's run/event/key,
    request/payload hash, model/code/rule versions, forecast window/unknown metadata,
    actual captured UTC, source excerpt SHA/URLs/publication/retrieval and previous-link
    chain are consistent. Run the read-only verifier above. It checks SQLite integrity,
    triggers, bounded whole ledger, request/payload metadata, chain and source content.
-4. Make a scratch copy, reopen it, and use `prospective_capture.as_of` to prove the
+5. Make a scratch copy, reopen it, and use `prospective_capture.as_of` to prove the
    same frozen records survive restore. Compare the pre-pilot durable inventory: no
    deletions/rewrites of immutable historical rows, IDs, attachments, ACKs or receipts.
    Ordinary real source activity may add legitimate alerts: reconcile those changes
    to their primary-source IDs; prospective IDs must never enter any public payload,
    outbox, paper signal or delivery receipt. Verify normal Pages publish/ACK/lineage.
-5. Observe an ordinary later retry/tick for no duplicate, and an actual subsequent
-   revision/heartbeat when available. Never invent a production revision to test it.
-   The offline tests cover those paths; one run alone does not prove long-term capture.
-6. Initially disable capture after the approved observation window unless sustained
-   collection was explicitly authorized. Review real growth/runtime/source coverage
-   before extending duration/allowlist. Do not increase fixed limits opportunistically.
+6. Disable capture immediately after the designated run completes, even if it failed:
+   `MOZES_PROSPECTIVE_CAPTURE=0`/remove; clear the authorization variable afterward.
+   Verify capture off. Never delete/update the permanent Git ref or its commit.
+   An already queued successor cannot adopt the claim even if the global flag stayed
+   enabled. Later denied runs may replace private health with SKIPPED; retain the
+   designated run's artifact/health and verify its immutable observation directly.
+   No automatic retries, second activation, revised forecast capture or sustained
+   collection is authorized by this window. A fresh ID requires separate approval.
+
+## One-shot mechanism and at-most-once argument
+
+`prospective_claim` is the only new Git writer, inside the existing workflow lock.
+It has `contents: write` and `actions: read`, no DB or notification credentials.
+The monitor explicitly retains `contents: read` and its existing publication permission.
+The grant step in the monitor performs only Git/Actions reads. No scheduler, worker,
+DB writer, production migration or incident-recovery claim is added or reused.
+The optional claim job and permit step are nonfatal, including setup/timeouts; ordinary
+monitor success/checkpoint selection must not become a failed producer because an
+optional claim failed. A capture SHA reaches the observer only when **both** claim
+and permit steps succeeded. Checking a green workflow alone is insufficient.
+
+1. The canonical ID binds a fixed issue time, approved code and unique nonce. The
+   claim binds that ID, repository/workflow, scheduled run ID, attempt **1**, event,
+   fixed single-attempt scope and claim-job ID. Main, run and job identities are
+   verified against GitHub. A different event, code, dispatch or rerun is refused.
+2. Following the incident's **pattern**, a new commit keeps the approved code tree
+   and records only authorization metadata. A confirmed HTTP **201** create-ref at
+   `refs/tags/prospective-pilot-<ID>` is the durable latch. There is no PATCH, DELETE,
+   adoption or retry. Git's atomic create permits at most one winner. This namespace
+   is independent of `monitor-recovery-*`. The Git metadata is repository-visible;
+   it contains no forecast, source excerpt, model decision, database data or secret.
+3. A complete, bounded inventory of scheduled runs for the ID's embedded code/time
+   also rejects a prior started claim step. Thus a crash/timeout with **no ref** cannot
+   cause a later run to retry an ambiguous request. Missing/incomplete history is a
+   denial. The fixed one-hour expiry prevents reuse after normal Actions retention;
+   modifying issue time or code changes the ID, requiring new approval.
+4. Only a successful **new** claim step exposes its commit SHA as a job output. A
+   read-only monitor step rechecks the permanent ref, exact commit/parent/tree and
+   both job owners before creating a local permit. The observer atomically consumes
+   it in `RUNNER_TEMP` before touching its DB. Files are not in checkpoints, restores
+   or uploaded artifacts. Same-run process reentry, failure and permit-step restart
+   are refused; a GitHub job rerun has attempt >1 and cannot use old claim outputs.
+5. Exactly one allowlisted event can enter that attempt. Failure after consumption,
+   partial archiving, failed checkpoint upload or an older restored DB cannot release
+   the Git latch or authorize another run. There may be **zero successful records**;
+   this guarantees at most one attempt, not successful delivery or automatic recovery.
+
+Trust boundary: GitHub's atomic create-ref and run/attempt/job execution identities,
+the reviewed main workflow and its isolated runner filesystem are trusted. Retain
+claim-attempt Actions records throughout the one-hour window and permanent refs
+indefinitely. An administrator deleting/reforging refs or claim-attempt history,
+tampering with runner permits, or executing modified code is outside the guarantee.
+Unavailable API evidence, permission restrictions or an expired/delayed schedule
+fail closed without changing normal monitoring. No claim of successful collection
+can be made from a green monitor alone.
+
+The existing stale-recovery audit accepts the auxiliary job only when entirely
+skipped with no steps. A started prospective claim still requires manual recovery
+audit; the original incident claim and all its prior-attempt guards are unchanged.
 
 ## Rollback and stopping conditions
 
@@ -165,6 +234,5 @@ existing monitor/Pages exclusion/recovery flow.
 
 GO for inactive code review only after exact-head CI. Production schema preparation
 and collection remain HOLD until separately authorized steps above are satisfied.
-PR49 is independent and ready for a separately authorized controlled merge on its
-unchanged green exact HEAD. PR35 stays HOLD; PR46 remains excluded. No claim of alpha,
+PR35 stays HOLD; PR46 remains excluded. No claim of alpha,
 validated strategy, complete historical knowledge or executable investment eligibility.

@@ -553,6 +553,31 @@ def test_changed_pending_claim_evidence_is_not_inferred_safe():
         monitor_recovery.audit_producers("Owner/Repo", gate_time(), gh, full_history=True)
 
 
+@pytest.mark.parametrize('status', ['completed', 'pending'])
+@pytest.mark.parametrize('claim_started', [False, True])
+def test_optional_prospective_job_only_preserves_recovery_when_completely_skipped(status, claim_started):
+    def gh(*args):
+        if 'workflows/' in args[1]:
+            return json.dumps({'workflow_runs': [{'id': 901, 'status': status, 'run_attempt': 1,
+                'updated_at': '2026-10-11T00:10:00Z', 'head_branch': 'main',
+                'name': 'lightweight-live-monitor', 'head_repository': {'full_name': 'Owner/Repo'}}]})
+        monitor = {'name': 'monitor', 'status': 'queued' if status == 'pending' else 'completed',
+            'steps': [] if status == 'pending' else [{'name': n, 'conclusion': 'skipped'} for n in
+                (*monitor_recovery.DELIVERY_STEPS, 'Enrich the correlated Edge event')]}
+        prospective = {'name': 'prospective-pilot-claim', 'status': 'completed',
+            'conclusion': 'success' if claim_started else 'skipped',
+            'steps': [{'name': 'Acquire one-shot prospective claim synthetic', 'conclusion': 'success'}]
+                     if claim_started else []}
+        return json.dumps({'total_count': 3, 'jobs': [
+            {'name': 'incident-eligibility', 'conclusion': 'skipped', 'steps': []}, prospective, monitor]})
+    if claim_started:
+        with pytest.raises(RuntimeError):
+            monitor_recovery.audit_producers('Owner/Repo', gate_time(), gh, full_history=True)
+    else:
+        result = monitor_recovery.audit_producers('Owner/Repo', gate_time(), gh, full_history=True)
+        assert result['audited_producers'] == (['901'] if status == 'completed' else [])
+
+
 @pytest.mark.parametrize("change", [{"enrichment_ack_at": "done"}, {"material": 0},
     {"enrichment_delivery_json": "{}"}, {"analysis_status": "pending"}])
 def test_pending_event_changes_fail_closed(gate, monkeypatch, change):
@@ -569,7 +594,7 @@ def test_pending_event_changes_fail_closed(gate, monkeypatch, change):
 def test_workflow_lock_covers_gate_and_processing_without_downstream_dispatch():
     text = (Path(__file__).parents[1] / ".github/workflows/lightweight-monitor.yml").read_text()
     assert "group: mozes-hot-monitor" in text
-    assert "needs: incident_eligibility" in text
+    assert "needs: [incident_eligibility, prospective_claim]" in text
     assert "MOZES_INCIDENT_RECOVERY_ENABLED == '20261011'" in text
     gate_block = text.split("  incident_eligibility:", 1)[1].split("  monitor:", 1)[0]
     assert "contents: write" in gate_block

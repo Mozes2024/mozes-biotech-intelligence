@@ -211,6 +211,11 @@ def _observe(conn, *, monitor_status):
         owner = _owner()
     except ValueError:
         return {'status': 'SKIPPED', 'reason': 'serialized_ordinary_owner_required'}
+    from . import prospective_authorization as authorization
+    try:
+        one_shot = authorization.consume()
+    except authorization.AuthorizationError as exc:
+        return _report(conn, {'status': 'SKIPPED', 'reason': str(exc), 'captured': 0})
     if conn.in_transaction:
         return {'status': 'SKIPPED', 'reason': 'caller_transaction_open'}
     report = {'status': 'OK', 'captured': 0, 'retried': 0, 'unchanged': 0, 'source_gaps': 0, 'errors': 0,
@@ -288,7 +293,8 @@ def _observe(conn, *, monitor_status):
                     forecast['window'] = {**window, 'precision': 'day' if precision == 'exact' else
                         precision if precision in {'month', 'quarter', 'half', 'year', 'range'} else 'range'}
                 analysis['prospective_pilot_context'] = {'semantic_fingerprint': fingerprint,
-                    'source_scope': 'excerpt_only' if ids else 'missing', 'producer_run_id': owner}
+                    'source_scope': 'excerpt_only' if ids else 'missing', 'producer_run_id': owner,
+                    'one_shot_claim': one_shot}
                 capture.record(conn, observation_key=key, analysis=analysis, forecast=forecast, source_ids=ids,
                     selection_rule={'id': RULE, 'definition': {'allowlist': sorted(events), 'heartbeat_seconds': HEARTBEAT_SECONDS,
                         'daily_limit': MAX_DAILY_RECORDS, 'capture_on_semantic_change': True}},

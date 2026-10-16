@@ -93,8 +93,47 @@ jobs:
           EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
           CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
         run: python scripts/incident_recovery.py claim
-  monitor:
+  prospective_claim:
+    name: prospective-pilot-claim
+    continue-on-error: true # Setup/API/timeout failures must not invalidate monitor checkpoints.
     needs: incident_eligibility
+    if: >-
+      always() && github.event_name == 'schedule' &&
+      vars.MOZES_PROSPECTIVE_CAPTURE == '1' && vars.MOZES_PROSPECTIVE_AUTHORIZATION != '' &&
+      vars.MOZES_PROSPECTIVE_PREPARE == '' && inputs.source_run_id == '' &&
+      inputs.incident_recovery_authorization == '' &&
+      (needs.incident_eligibility.result == 'skipped' ||
+      (needs.incident_eligibility.result == 'success' && needs.incident_eligibility.outputs.mode == 'ordinary'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write # Permanent pilot latch only; no DB, publisher or incident claim.
+      actions: read
+    outputs:
+      claim_sha: ${{ steps.claim.outcome == 'success' && steps.claim.outputs.claim_sha || '' }}
+    env:
+      MOZES_PROSPECTIVE_CAPTURE: ${{ vars.MOZES_PROSPECTIVE_CAPTURE || '0' }}
+      MOZES_PROSPECTIVE_EVENT_IDS: ${{ vars.MOZES_PROSPECTIVE_EVENT_IDS || '[]' }}
+      MOZES_PROSPECTIVE_AUTHORIZATION: ${{ vars.MOZES_PROSPECTIVE_AUTHORIZATION }}
+      MOZES_PROSPECTIVE_PREPARE: ${{ vars.MOZES_PROSPECTIVE_PREPARE }}
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      INCIDENT_MODE: ${{ needs.incident_eligibility.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e .
+      - name: Acquire one-shot prospective claim ${{ vars.MOZES_PROSPECTIVE_AUTHORIZATION }}
+        id: claim
+        continue-on-error: true # A denied/failed pilot must not stop ordinary monitoring.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m mozes.prospective_authorization claim
+  monitor:
+    needs: [incident_eligibility, prospective_claim]
     if: >-
       always() && ((needs.incident_eligibility.result == 'skipped' &&
       inputs.incident_recovery_authorization == '') ||
@@ -103,6 +142,9 @@ jobs:
       needs.incident_eligibility.outputs.mode == 'ordinary')))
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    permissions:
+      contents: read
+      actions: write # Existing publication dispatch; no Git write permission.
     env:
       SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
       # Separately authorized opt-in; same lock, DB, checkpoint and publisher.
@@ -111,6 +153,7 @@ jobs:
       MOZES_PROSPECTIVE_CAPTURE: ${{ vars.MOZES_PROSPECTIVE_CAPTURE || '0' }}
       MOZES_PROSPECTIVE_EVENT_IDS: ${{ vars.MOZES_PROSPECTIVE_EVENT_IDS || '[]' }}
       MOZES_PROSPECTIVE_PREPARE: ${{ vars.MOZES_PROSPECTIVE_PREPARE }}
+      MOZES_PROSPECTIVE_AUTHORIZATION: ${{ vars.MOZES_PROSPECTIVE_AUTHORIZATION }}
       MOZES_DB_PATH: .monitor/mozes-live.db
       MOZES_NEWS_ENABLED: '1'
       MOZES_HTTP_CACHE: .monitor/http-cache
@@ -152,6 +195,15 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
       - run: pip install -e .
+      - name: Verify one-shot prospective permit
+        id: pilot_permit
+        if: needs.prospective_claim.outputs.claim_sha != ''
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MOZES_PROSPECTIVE_CLAIM_SHA: ${{ needs.prospective_claim.outputs.claim_sha }}
+        run: python -m mozes.prospective_authorization permit
       - name: Restore the single monitor-state lineage
         id: restore
         env:
@@ -192,6 +244,8 @@ jobs:
         run: python -m mozes.hot_monitor --once --no-sec --allow-partial
       - name: Hot priority observe + alert outbox
         id: data
+        env:
+          MOZES_PROSPECTIVE_CLAIM_SHA: ${{ steps.pilot_permit.outcome == 'success' && needs.prospective_claim.outputs.claim_sha || '' }}
         run: |
           if [ "$RUN_PRIORITY" = 'true' ]; then
             python -m mozes.pipeline_v2c monitor --priority-only

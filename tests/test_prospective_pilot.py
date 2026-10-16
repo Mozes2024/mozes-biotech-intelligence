@@ -10,6 +10,7 @@ import pytest
 from mozes import db, prospective_capture as capture
 from mozes.intelligence_store import ensure_schema, state_get
 from mozes.radar import bootstrap_database
+from prospective_claim_support import issue_permit
 
 
 def api():
@@ -33,7 +34,7 @@ def owner(tmp_path, monkeypatch):
     conn = db.connect(path)
     bootstrap_database(conn)
     ensure_schema(conn)
-    event = db.load_events(conn, 'live')[0]
+    event = next(e for e in db.load_events(conn, 'live') if e['id'] == 'PHAR-SNDA-LOWER-WEIGHT')
     db.add_event_source(conn, event['id'], 'https://example.org/source', 'company_ir',
                         url='https://example.org/source', published_at='2026-10-15T10:00:00Z',
                         statement='Issuer expects a Q4 2026 readout', retrieved_at='2026-10-15T10:01:00Z')
@@ -52,6 +53,7 @@ def prepared(owner, monkeypatch):
     monkeypatch.setenv('MOZES_PROSPECTIVE_CAPTURE', '1')  # initializer process only
     assert pilot.prepare(path)['status'] == 'PREPARED'
     monkeypatch.delenv('MOZES_PROSPECTIVE_PREPARE')
+    issue_permit(monkeypatch, path.parent)
     return pilot, conn, event
 
 
@@ -59,6 +61,44 @@ def test_disabled_observer_does_not_access_the_database(monkeypatch):
     pilot = api()
     monkeypatch.delenv('MOZES_PROSPECTIVE_CAPTURE', raising=False)
     assert pilot.after_monitor(None, monitor_status='OK')['status'] == 'DISABLED'
+
+
+def test_legacy_global_flag_without_claim_cannot_archive_or_capture(owner, monkeypatch):
+    pilot, conn, _ = prepared(owner, monkeypatch)
+    monkeypatch.delenv('MOZES_PROSPECTIVE_AUTHORIZATION', raising=False)
+    monkeypatch.delenv('MOZES_PROSPECTIVE_CLAIM_SHA', raising=False)
+    archives = list(conn.execute('SELECT * FROM source_archive'))
+    report = pilot.after_monitor(conn, monitor_status='OK')
+    assert report.get('captured', 0) == 0
+    assert conn.execute('SELECT count(*) FROM prospective_evidence').fetchone()[0] == 0
+    assert list(conn.execute('SELECT * FROM source_archive')) == archives
+
+
+def test_two_sequential_runs_cannot_capture_under_one_authorization(owner, monkeypatch):
+    pilot, conn, event = prepared(owner, monkeypatch)
+    assert pilot.after_monitor(conn, monitor_status='OK')['captured'] == 1
+    # Real source changes must not turn a queued successor into another authorized run.
+    db.add_event_source(conn, event['id'], 'https://example.org/second', 'company_ir',
+        url='https://example.org/second', statement='A new issuer statement',
+        published_at='2026-10-15T11:00:00Z', retrieved_at='2026-10-15T11:01:00Z')
+    archives = list(conn.execute('SELECT * FROM source_archive'))
+    monkeypatch.setenv('GITHUB_RUN_ID', '101')
+    report = pilot.after_monitor(conn, monitor_status='OK')
+    assert report.get('captured', 0) == 0
+    assert conn.execute('SELECT count(*) FROM prospective_evidence').fetchone()[0] == 1
+    assert list(conn.execute('SELECT * FROM source_archive')) == archives
+
+
+def test_capture_failure_cannot_reenter_archive_or_capture_in_same_run(owner, monkeypatch):
+    pilot, conn, _ = prepared(owner, monkeypatch)
+    attempts = []
+    def crash(*args, **kwargs):
+        attempts.append(True)
+        raise RuntimeError('synthetic failure after source archiving')
+    monkeypatch.setattr(capture, 'record', crash)
+    assert pilot.after_monitor(conn, monitor_status='OK')['status'] == 'INCOMPLETE'
+    pilot.after_monitor(conn, monitor_status='OK')
+    assert len(attempts) == 1
 
 
 def test_prepare_requires_matching_durable_backup_and_never_overwrites_old_data(owner, monkeypatch):
@@ -75,14 +115,18 @@ def test_prepare_requires_matching_durable_backup_and_never_overwrites_old_data(
     assert state_get(conn, 'prospective_pilot_preparation')['backup']['source_run_id'] == '99'
 
 
-def test_monitor_capture_archives_excerpt_and_retries_do_not_duplicate(owner, monkeypatch):
+def test_monitor_capture_archives_excerpt_and_reentry_is_denied(owner, monkeypatch):
     pilot, conn, event = prepared(owner, monkeypatch)
     report = pilot.after_monitor(conn, monitor_status='OK')
     assert report['status'] == 'OK' and report['captured'] == 1
-    assert pilot.after_monitor(conn, monitor_status='OK')['retried'] == 1
+    assert pilot.after_monitor(conn, monitor_status='OK')['status'] == 'SKIPPED'
     assert conn.execute('SELECT count(*) FROM prospective_evidence').fetchone()[0] == 1
     row = capture.as_of(conn, event['id'], '2026-10-15T13:00:00Z')[0]
     assert row['eligible'] is False and row['executable'] is False
+    claim = row['analysis']['prospective_pilot_context']['one_shot_claim']
+    assert claim['record']['run_id'] == '100' and claim['record']['run_attempt'] == 1
+    assert claim['record']['event_id'] == event['id']
+    assert len(claim['claim_sha']) == 40
     assert row['sources'][0]['source_type'] == 'prospective_excerpt'
     source = db.source_archive_row(conn, row['sources'][0]['source_id'])
     assert source['content'] == 'Issuer expects a Q4 2026 readout'
@@ -93,6 +137,7 @@ def test_unchanged_tick_is_skipped_but_forecast_revision_is_captured(owner, monk
     pilot, conn, event = prepared(owner, monkeypatch)
     assert pilot.after_monitor(conn, monitor_status='OK')['captured'] == 1
     monkeypatch.setenv('GITHUB_RUN_ID', '101')
+    issue_permit(monkeypatch, owner[0].parent, run_id='101')
     assert pilot.after_monitor(conn, monitor_status='OK')['unchanged'] == 1
     row = conn.execute('SELECT payload FROM events WHERE id=?', (event['id'],)).fetchone()
     value = json.loads(row[0])
@@ -100,6 +145,7 @@ def test_unchanged_tick_is_skipped_but_forecast_revision_is_captured(owner, monk
     with conn:
         conn.execute('UPDATE events SET payload=? WHERE id=?', (json.dumps(value), event['id']))
     monkeypatch.setenv('GITHUB_RUN_ID', '102')
+    issue_permit(monkeypatch, owner[0].parent, run_id='102')
     assert pilot.after_monitor(conn, monitor_status='OK')['captured'] == 1
     assert conn.execute('SELECT count(*) FROM prospective_evidence').fetchone()[0] == 2
 
@@ -199,8 +245,10 @@ def test_heartbeat_and_explicit_daily_coverage_gap(owner, monkeypatch):
     assert pilot.after_monitor(conn, monitor_status='OK')['captured'] == 1
     monkeypatch.setenv('GITHUB_RUN_ID', '101')
     monkeypatch.setattr(capture, 'utcnow', lambda: '2026-10-15T18:00:01+00:00')
+    issue_permit(monkeypatch, owner[0].parent, run_id='101', now=capture.utcnow())
     assert pilot.after_monitor(conn, monitor_status='OK')['captured'] == 1
     monkeypatch.setenv('GITHUB_RUN_ID', '102')
+    issue_permit(monkeypatch, owner[0].parent, run_id='102', now=capture.utcnow())
     monkeypatch.setattr(pilot, 'MAX_DAILY_RECORDS', 2)
     report = pilot.after_monitor(conn, monitor_status='OK')
     assert report['status'] == 'INCOMPLETE' and report['skipped'] == 1
@@ -233,6 +281,7 @@ def test_source_revision_and_integrity_check_preserve_previous_evidence(owner, m
         url='https://example.org/revision', statement='Updated primary-source statement',
         published_at='2026-10-15T11:00:00Z', retrieved_at='2026-10-15T11:01:00Z')
     monkeypatch.setenv('GITHUB_RUN_ID', '101')
+    issue_permit(monkeypatch, owner[0].parent, run_id='101')
     assert pilot.after_monitor(conn, monitor_status='OK')['captured'] == 1
     rows = capture.as_of(conn, event['id'], '2026-10-15T13:00:00Z')
     assert rows[0] == original and rows[1]['previous_capture_id'] == original['capture_id']
@@ -257,9 +306,10 @@ def test_missing_quote_is_explicit_and_future_source_cannot_be_certified(owner, 
     assert json.loads((owner[0].parent / 'prospective-pilot.json').read_text())['status'] == 'INCOMPLETE'
     saved = capture.as_of(conn, event['id'], '2026-10-15T13:00:00Z')
     assert saved[0]['analysis']['prospective_pilot_context']['source_scope'] == 'missing'
-    assert pilot.after_monitor(conn, monitor_status='OK')['retried'] == 1
+    assert pilot.after_monitor(conn, monitor_status='OK')['status'] == 'SKIPPED'
     assert capture.as_of(conn, event['id'], '2026-10-15T13:00:00Z') == saved
     monkeypatch.setenv('GITHUB_RUN_ID', '101')
+    issue_permit(monkeypatch, owner[0].parent, run_id='101')
     with conn:
         conn.execute('UPDATE event_sources SET statement=?,retrieved_at=? WHERE event_id=?',
                      ('Future quote', '2026-10-16T12:00:00Z', event['id']))
@@ -312,7 +362,14 @@ def test_real_monitor_hook_order_durability_and_failure_isolation(owner, monkeyp
 
 
 def test_real_public_export_never_exposes_private_capture(owner, monkeypatch, tmp_path):
+    from datetime import datetime
+    from mozes import payload_v3
     from mozes.pipeline_v2c import export_payload
+    class FixedDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 10, 15, 12, tzinfo=tz)
+    monkeypatch.setattr(payload_v3, 'datetime', FixedDatetime)
     pilot, conn, _ = prepared(owner, monkeypatch)
     before = export_payload(conn, str(tmp_path / 'before.json'))
     alerts = list(conn.execute('SELECT * FROM alert_outbox'))
