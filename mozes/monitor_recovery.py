@@ -155,7 +155,7 @@ def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run
             if (jobs.get("total_count", len(jobs["jobs"])) != len(jobs["jobs"])
                     or any((job.get("status") != "queued" or job.get("started_at")
                             or job.get("completed_at") or job.get("steps"))
-                           and not (job.get("name") in {"incident-eligibility", "prospective-pilot-claim"}
+                           and not (job.get("name") in {"incident-eligibility", "prospective-pilot-claim", "prospective-pilot-cleanup"}
                                     and job.get("conclusion") == "skipped" and not job.get("steps"))
                            for job in jobs["jobs"])):
                 raise RuntimeError("pending producer has started or incomplete job evidence")
@@ -163,8 +163,10 @@ def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run
         if jobs.get("total_count", len(jobs["jobs"])) != len(jobs["jobs"]):
             raise RuntimeError("incomplete or unexpected producer jobs")
         monitor_jobs = jobs["jobs"]
-        prospective = [job for job in monitor_jobs if job.get("name") == "prospective-pilot-claim"]
-        if len(prospective) > 1 or any(job.get("conclusion") != "skipped" or job.get("steps") for job in prospective):
+        prospective = [job for job in monitor_jobs if job.get("name") in
+                       {"prospective-pilot-claim", "prospective-pilot-cleanup"}]
+        if (len({job.get("name") for job in prospective}) != len(prospective)
+                or any(job.get("conclusion") != "skipped" or job.get("steps") for job in prospective)):
             raise RuntimeError("prospective claim requires manual recovery audit")
         monitor_jobs = [job for job in monitor_jobs if job not in prospective]
         gates = [job for job in monitor_jobs if job.get("name") == "incident-eligibility"]

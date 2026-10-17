@@ -555,7 +555,8 @@ def test_changed_pending_claim_evidence_is_not_inferred_safe():
 
 @pytest.mark.parametrize('status', ['completed', 'pending'])
 @pytest.mark.parametrize('claim_started', [False, True])
-def test_optional_prospective_job_only_preserves_recovery_when_completely_skipped(status, claim_started):
+@pytest.mark.parametrize('job_name', ['prospective-pilot-claim', 'prospective-pilot-cleanup', 'both'])
+def test_optional_prospective_job_only_preserves_recovery_when_completely_skipped(status, claim_started, job_name):
     def gh(*args):
         if 'workflows/' in args[1]:
             return json.dumps({'workflow_runs': [{'id': 901, 'status': status, 'run_attempt': 1,
@@ -564,12 +565,14 @@ def test_optional_prospective_job_only_preserves_recovery_when_completely_skippe
         monitor = {'name': 'monitor', 'status': 'queued' if status == 'pending' else 'completed',
             'steps': [] if status == 'pending' else [{'name': n, 'conclusion': 'skipped'} for n in
                 (*monitor_recovery.DELIVERY_STEPS, 'Enrich the correlated Edge event')]}
-        prospective = {'name': 'prospective-pilot-claim', 'status': 'completed',
+        prospective = {'name': 'prospective-pilot-claim' if job_name == 'both' else job_name, 'status': 'completed',
             'conclusion': 'success' if claim_started else 'skipped',
             'steps': [{'name': 'Acquire one-shot prospective claim synthetic', 'conclusion': 'success'}]
                      if claim_started else []}
-        return json.dumps({'total_count': 3, 'jobs': [
-            {'name': 'incident-eligibility', 'conclusion': 'skipped', 'steps': []}, prospective, monitor]})
+        extra = [{'name': 'prospective-pilot-cleanup', 'status': 'completed',
+                  'conclusion': 'skipped', 'steps': []}] if job_name == 'both' else []
+        return json.dumps({'total_count': 3 + len(extra), 'jobs': [
+            {'name': 'incident-eligibility', 'conclusion': 'skipped', 'steps': []}, prospective, monitor, *extra]})
     if claim_started:
         with pytest.raises(RuntimeError):
             monitor_recovery.audit_producers('Owner/Repo', gate_time(), gh, full_history=True)
