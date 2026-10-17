@@ -64,7 +64,7 @@ jobs:
       - name: Build the hot-lane worker image
         run: docker build -t mozes-hot:ci .
       - name: Prospective capture is packaged and inactive
-        run: docker run --rm mozes-hot:ci python -c "import os, mozes.prospective_capture, mozes.prospective_pilot, mozes.prospective_authorization; assert os.environ.get('MOZES_PROSPECTIVE_CAPTURE') != '1'; print('prospective capture, pilot and one-shot guard packaged; disabled by default')"
+        run: docker run --rm mozes-hot:ci python -c "import os, mozes.prospective_capture, mozes.prospective_pilot, mozes.prospective_authorization, mozes.prospective_cleanup; assert os.environ.get('MOZES_PROSPECTIVE_CAPTURE') != '1'; print('prospective capture, pilot, one-shot guard and cleanup packaged; disabled by default')"
       - name: Worker imports and data files are packaged
         run: |
           docker run --rm mozes-hot:ci python -c "import sys, ssl, sqlite3; assert sys.version_info[:3] == (3, 11, 17); import mozes.hot_monitor, mozes.ir_registry as r; assert r.load_aliases()['GMAB']; print('ok')"

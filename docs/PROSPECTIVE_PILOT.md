@@ -129,6 +129,18 @@ runtime status. The private DB remains authoritative if the small sidecar is abs
 
 ## One ordinary scheduled run — separate activation authorization required
 
+Before another activation, separately provision repository secret
+`MOZES_PROSPECTIVE_CLEANUP_TOKEN`: a fine-grained PAT restricted to **this repository**,
+with **Variables: write** (and mandatory Metadata: read), no contents/Actions/DB/
+deployment permissions. Confirm its scope, expiry and variable-write access privately;
+never paste it into a command/log, artifact, variable or report. Review/merge does not
+authorize provisioning this secret or another pilot. `GITHUB_TOKEN`'s `actions: write`
+is not Variables-write permission ([GitHub API](https://docs.github.com/en/rest/actions/variables#update-a-repository-variable)).
+The secret is passed only to the final cleanup step in `prospective-pilot-cleanup`.
+The claim step receives only a boolean that it exists and refuses before any Git
+write when it is absent. Presence is not proof that the token is valid: operator
+preflight must verify credentials and retain a separate authorized OFF-only fallback.
+
 1. Complete the backup/restore, live-event and normal Pages/ACK gates above, including
    recovery after any publication-preflight failure. Preparation must be clear and
    capture off. Obtain explicit approval for the exact **post-merge main SHA** and
@@ -140,9 +152,11 @@ runtime status. The private DB remains authoritative if the small sidecar is abs
    Set `MOZES_PROSPECTIVE_AUTHORIZATION` first, then
    `MOZES_PROSPECTIVE_EVENT_IDS='["PHAR-SNDA-LOWER-WEIGHT"]'`, then
    `MOZES_PROSPECTIVE_CAPTURE=1`. This is scheduling tolerance for one attempt,
-   not permission for 12 hours of collection. Keep operator supervision/cleanup
-   active until the designated run completes or expiry; then disable capture and
-   clear the authorization even if no eligible run arrived. Claim, permit and
+   not permission for 12 hours of collection. The final GitHub cleanup job runs
+   after the designated monitor, including failed/cancelled monitor results, inside
+   the same workflow lock. Verify it reports `prospective_cleanup=off_attempt_finished`,
+   or `off_expired` if no attempt arrived before expiry. Do not rely on a local
+   long-running process or this chat remaining open. Claim, permit and
    capture-consumption entry checks each enforce expiry. Never auto-generate or
    renew a production ID. A new post-merge code SHA requires fresh explicit approval;
    never reuse an expired or previously attempted ID. No B1,
@@ -167,14 +181,46 @@ runtime status. The private DB remains authoritative if the small sidecar is abs
    Ordinary real source activity may add legitimate alerts: reconcile those changes
    to their primary-source IDs; prospective IDs must never enter any public payload,
    outbox, paper signal or delivery receipt. Verify normal Pages publish/ACK/lineage.
-6. Disable capture immediately after the designated run completes, even if it failed:
-   `MOZES_PROSPECTIVE_CAPTURE=0`/remove; clear the authorization variable afterward.
-   Verify capture off. Never delete/update the permanent Git ref or its commit.
+6. Verify the final GitHub cleanup job disabled capture (`MOZES_PROSPECTIVE_CAPTURE=0`)
+   and removed the allowlist and authorization. It reads exact run/job ownership and
+   a complete bounded 12-hour claim history, closes failed setup/claim/permit/upload
+   attempts even without a ref/checkpoint, and never acquires/retries a claim.
+   It changes OFF first, removes the allowlist next and authorization last, then
+   re-reads all three. Partial cleanup is resumable OFF-only by later ordinary runs.
+   Never delete/update the permanent Git ref or its commit.
    An already queued successor cannot adopt the claim even if the global flag stayed
    enabled. Later denied runs may replace private health with SKIPPED; retain the
    designated run's artifact/health and verify its immutable observation directly.
    No automatic retries, second activation, revised forecast capture or sustained
    collection is authorized by this window. A fresh ID requires separate approval.
+
+### Cleanup failure and expiry limits
+
+The optional cleanup job has read-only `GITHUB_TOKEN` permissions and no installation,
+DB, source, alert or publication work. Its failure is explicit in the step/log but
+nonfatal to ordinary monitoring/checkpoint selection. No new schedule or dispatcher
+is added. Every existing ordinary run with a remaining authorization checks cleanup;
+unexpired, unconsumed IDs remain pending, while expired IDs are disabled even if no
+scheduled attempt arrived. A later ordinary run can also close a completed/cancelled
+claim attempt if the original cleanup job never started (including a lost runner).
+Only entirely skipped, step-free cleanup jobs are accepted by the existing stale
+recovery audit; started cleanup or claim jobs still require manual recovery audit.
+
+This removes dependency on the operator computer, not GitHub availability. Workflow
+cancellation, unavailable runners, API/credential failure or an incomplete history
+can delay physical variable cleanup. With no ordinary run at expiry, no code can
+execute exactly at that instant: eligibility still expires at 12 hours, and the
+permanent claim still prevents a second attempt. Do not claim cleanup success from a
+green workflow alone. Missing/failed/ambiguous cleanup means **HOLD**: perform the
+separately authorized OFF-only fallback, preserve evidence, never renew or recapture.
+Recovery of cleanup may only remove the old settings, not reactivate the observer.
+
+GitHub has no atomic transaction/CAS across these variables. Cleanup checks exact
+values/metadata again before writes and refuses observed ownership changes. Operators
+must not replace an authorization, edit its allowlist or activate another window
+until OFF and removal are verified. Concurrent administrator writes between a final
+read and API mutation are outside this guarantee. Keep the credential unexpired until
+cleanup is verified; revoke/rotate it separately under operator control afterward.
 
 ## One-shot mechanism and at-most-once argument
 

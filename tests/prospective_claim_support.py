@@ -95,7 +95,8 @@ def issue_permit(monkeypatch, root, *, run_id='100', now='2026-10-15T12:00:00Z',
         'GITHUB_WORKFLOW': auth.WORKFLOW, 'GITHUB_REF': 'refs/heads/main',
         'GITHUB_EVENT_NAME': 'schedule', 'GITHUB_RUN_ID': run_id, 'GITHUB_RUN_ATTEMPT': '1',
         'GITHUB_SHA': CODE, 'GITHUB_JOB': 'prospective_claim',
-        'MOZES_PROSPECTIVE_CAPTURE': '1', 'MOZES_PROSPECTIVE_EVENT_IDS': json.dumps([auth.EVENT]),
+        'MOZES_PROSPECTIVE_CAPTURE': '1', 'MOZES_PROSPECTIVE_CLEANUP_READY': 'true',
+        'MOZES_PROSPECTIVE_EVENT_IDS': json.dumps([auth.EVENT]),
         'MOZES_PROSPECTIVE_AUTHORIZATION': identifier}.items():
         monkeypatch.setenv(name, value)
     monkeypatch.delenv('SOURCE_RUN_ID', raising=False)

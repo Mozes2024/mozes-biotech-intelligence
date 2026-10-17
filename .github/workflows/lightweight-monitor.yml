@@ -131,6 +131,8 @@ jobs:
         continue-on-error: true # A denied/failed pilot must not stop ordinary monitoring.
         env:
           GH_TOKEN: ${{ github.token }}
+          # Boolean only: the variable-write credential never reaches this job.
+          MOZES_PROSPECTIVE_CLEANUP_READY: ${{ secrets.MOZES_PROSPECTIVE_CLEANUP_TOKEN != '' }}
         run: python -m mozes.prospective_authorization claim
   monitor:
     needs: [incident_eligibility, prospective_claim]
@@ -303,3 +305,34 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python -m mozes.publication_control dispatch
+  prospective_cleanup:
+    name: prospective-pilot-cleanup
+    needs: [incident_eligibility, prospective_claim, monitor]
+    if: >-
+      always() && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      vars.MOZES_PROSPECTIVE_AUTHORIZATION != '' &&
+      inputs.source_run_id == '' && inputs.incident_recovery_authorization == '' &&
+      (needs.incident_eligibility.result == 'skipped' ||
+      (needs.incident_eligibility.result == 'success' && needs.incident_eligibility.outputs.mode == 'ordinary'))
+    # A failed cleanup remains visible, without invalidating a durable monitor checkpoint.
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Disable completed or expired one-shot authorization
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MOZES_PROSPECTIVE_CLEANUP_TOKEN: ${{ secrets.MOZES_PROSPECTIVE_CLEANUP_TOKEN }}
+          MOZES_PROSPECTIVE_AUTHORIZATION: ${{ vars.MOZES_PROSPECTIVE_AUTHORIZATION }}
+        # No installation, DB, source, publisher, notification or Git-write credential.
+        run: python -m mozes.prospective_cleanup

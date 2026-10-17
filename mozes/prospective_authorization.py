@@ -202,6 +202,8 @@ def ref_name(record):
 
 
 def claim():
+    require(os.environ.get('MOZES_PROSPECTIVE_CLEANUP_READY') == 'true',
+            'one_shot_cleanup_not_configured')
     record, issued = identity('prospective_claim')
     exclusive(record, 'claim-attempt', record)
     record = context(record, issued, claiming=True)

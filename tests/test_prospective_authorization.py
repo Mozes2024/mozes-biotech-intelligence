@@ -18,7 +18,8 @@ def candidate(monkeypatch, tmp_path):
         'GITHUB_WORKFLOW': auth.WORKFLOW, 'GITHUB_REF': 'refs/heads/main',
         'GITHUB_EVENT_NAME': 'schedule', 'GITHUB_RUN_ID': '100', 'GITHUB_RUN_ATTEMPT': '1',
         'GITHUB_SHA': CODE, 'GITHUB_JOB': 'prospective_claim', 'RUNNER_TEMP': str(tmp_path),
-        'MOZES_PROSPECTIVE_CAPTURE': '1', 'MOZES_PROSPECTIVE_EVENT_IDS': json.dumps([auth.EVENT]),
+        'MOZES_PROSPECTIVE_CAPTURE': '1', 'MOZES_PROSPECTIVE_CLEANUP_READY': 'true',
+        'MOZES_PROSPECTIVE_EVENT_IDS': json.dumps([auth.EVENT]),
         'MOZES_PROSPECTIVE_AUTHORIZATION': identifier}
     for key, value in values.items():
         monkeypatch.setenv(key, value)
@@ -55,6 +56,26 @@ def test_claim_binds_exact_owner_scope_and_never_updates_incident_ref(candidate)
     writes = [(p, body) for p, body in server.calls if body is not None]
     assert [p for p, _ in writes] == ['git/commits', 'git/refs']
     assert 'monitor-recovery' not in json.dumps(writes)
+
+
+def test_claim_requires_github_cleanup_credential_before_any_git_write(candidate, monkeypatch):
+    server, _ = candidate
+    monkeypatch.delenv('MOZES_PROSPECTIVE_CLEANUP_READY', raising=False)
+    with pytest.raises(auth.AuthorizationError, match='cleanup_not_configured'):
+        auth.claim()
+    assert not server.calls and not server.refs
+
+
+def test_workflow_cleanup_runs_after_monitor_even_if_it_fails_without_local_supervision():
+    text = (Path(__file__).parents[1] / '.github/workflows/lightweight-monitor.yml').read_text()
+    assert '  prospective_cleanup:' in text
+    cleanup = text.split('  prospective_cleanup:', 1)[1]
+    assert 'always()' in cleanup and 'needs: [incident_eligibility, prospective_claim, monitor]' in cleanup
+    assert 'python -m mozes.prospective_cleanup' in cleanup
+    assert 'MOZES_PROSPECTIVE_CLEANUP_TOKEN: ${{ secrets.MOZES_PROSPECTIVE_CLEANUP_TOKEN }}' in cleanup
+    assert 'contents: read' in cleanup and 'actions: read' in cleanup
+    assert 'contents: write' not in cleanup and 'actions: write' not in cleanup
+    assert 'schedule:' not in cleanup and 'workflow_dispatch:' not in cleanup
 
 
 @pytest.mark.parametrize(('key', 'value'), [
