@@ -30,10 +30,11 @@ def classify_clinical(text, outcome=None):
     routine = has("conference") and has("routine") and not has("data") and not has("regulatory")
     management = has("management", sample[:220]) and not has("data", sample[:220]) and not has("milestone", sample[:220])
     catalyst = relevant and future and (has("data") or has("regulatory") or has("milestone")) and not routine and not management
-    actionable = not future and not routine and not management and (bool(outcome["material"]) or has("regulatory_event"))
+    actionable = not future and not routine and not management and bool(outcome["material"])
     material = actionable or catalyst and (has("important") or has("regulatory")) or relevant and has('milestone') and has('important') and not routine and not management
     kind = "routine_conference" if routine else "management_update" if management else "upcoming_catalyst" if catalyst else "confirmed_development" if actionable else "clinical_update" if relevant else "outside_scope"
-    return dict(relevant=relevant, material=material, actionable=actionable, catalyst=catalyst,
+    return dict(outcome, relevant=relevant, material=material, actionable=actionable, catalyst=catalyst,
+                confirmed_outcome=bool(outcome.get('confirmed_outcome')) and not future and not routine and not management,
                 polarity="unknown" if future or routine or management else outcome["polarity"], kind=kind,
                 suppression_reason="routine_conference" if routine else "outside_scope" if not relevant or management else "low_materiality" if not material else None,
                 method=RULES["version"])
@@ -151,7 +152,7 @@ def ingest_clinical(conn, *, headline, summary="", source_url, published_at, sou
             conn.execute("INSERT INTO clinical_events(event_id,source_url,source_type,published_at,first_seen_at,updated_at,headline,summary,lifecycle,content_hash,edge_event_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                 (event_id, source_url, source_type, published_at, now, now, headline[:500], summary[:8000], "DISCOVERED", content_hash, edge_event_id))
             conn.execute("INSERT INTO clinical_event_history(event_id,lifecycle,recorded_at) VALUES(?,'DISCOVERED',?)", (event_id, now))
-    scope = classify_clinical(text)
+    scope = classify_clinical(text, classify_outcome(text, basis='feed_summary' if summary else 'headline_only', as_of=published_at))
     issuer = issuer or resolve_issuer(conn, headline, summary, ticker)
     same_policy = previous and json.loads(previous['classification_json'] or '{}').get('method') == RULES['version']
     if previous and previous['catalyst_id'] and not scope['catalyst']:

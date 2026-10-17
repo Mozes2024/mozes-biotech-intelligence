@@ -6,6 +6,7 @@ import {edgeMetrics} from './edge-metrics.js';
 import {candidateStats,candidates,candidateAck,investigate} from './candidate-contract.js';
 import {acknowledge,eventTrace} from './edge-contract.js';
 import {handleAlertFeed} from './alert-feed.js';
+import {classifyEvidence} from './alert-semantics.js';
 const WIRES = [
   ["businesswire", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGFNXXw=="],
   ["globenewswire", "https://rss.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"],
@@ -23,16 +24,8 @@ const tag = (xml, name) => text(xml.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\
 const hash = async value => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))))
   .map(x => x.toString(16).padStart(2, "0")).join("");
 
-export function fastOutcome(raw) {
-  const value = text(raw).slice(0, 4000);
-  const holdLifted = /\b(?:lifted|lifts|removed|removes)\b.{0,35}\bclinical hold\b|\bclinical hold\b.{0,35}\b(?:lifted|removed)\b/i.test(value);
-  const negative = /\b(?:did not meet|failed to meet|missed)\b.{0,45}\bprimary\s+end\s*-?point\b|\b(?:complete response letter|CRL|futility|not statistically significant)\b/i.test(value) ||
-    (!holdLifted && /\bclinical hold\b/i.test(value));
-  const positiveText = value.replace(/\bnot statistically significant\b/gi, "");
-  const positive = holdLifted || /\b(?:met|meets|achieved)\b.{0,45}\bprimary\s+end\s*-?point\b|\bpositive\s+(?:topline|top-line|results|phase)|\bstatistically significant\b|\b(?:FDA|EMA)\s+approv(?:es|ed|al)\b/i.test(positiveText);
-  const materialEvent = /\b(?:topline|top-line)\b.{0,70}\b(?:results|data)\b|\bphase\s*[23]\b.{0,60}\b(?:results|analysis|data)\b|\bpivotal\b.{0,40}\bresults\b|\binterim\b.{0,35}\banalysis\b|\b(?:FDA|PDUFA)\b.{0,50}\b(?:decision|extension|extended|approval|CRL)\b|\b(?:trial|study)\b.{0,35}\b(?:discontinu|terminat)\w*\b|\b(?:merger|acquisition|acquires|to acquire)\b/i.test(value);
-  return { polarity: positive && negative ? "mixed" : negative ? "negative" : positive ? "positive" : "unknown",
-    material: positive || negative || materialEvent };
+export function fastOutcome(raw, basis='headline_only', asOf=null) {
+  return classifyEvidence(raw, basis, asOf);
 }
 
 export function parseSecAtom(xml) {
@@ -381,7 +374,7 @@ export class HotEdge {
           throw Error("invalid primary SEC URL");
         if (!href && /-index\.html?$/i.test(candidate.pathname)) throw Error("primary filing document missing");
         const content = href ? await get(candidate.href, this.env, true) : index;
-        const outcome = {...classifyClinical(content,fastOutcome(content)),policy_digest:await this.secPolicyDigest()};
+        const outcome = {...classifyClinical(content,fastOutcome(content,'source_text',event.accepted_at||event.published_at)),policy_digest:await this.secPolicyDigest()};
         const record=await this.candidateRecord({...event,source_url:candidate.href,summary:content.slice(0,8000)},outcome,{ticker:event.ticker,cik:event.cik},now);
         const sourceHash=await hash(content);
         successes.push(record);
@@ -471,7 +464,7 @@ export class HotEdge {
       const matches = issuers.filter(row => companyKey(row.company).length >= 6 &&
         (symbols.length===1&&symbols[0]===row.ticker&&lead.includes(` ${companyKey(row.company)} `)||symbols.length===0&&headline.startsWith(` ${companyKey(row.company)} `)));
       const issuer = matches.length===1?matches[0]:null;
-      const outcome = classifyClinical(item.headline + " " + item.summary,fastOutcome(item.headline+" "+item.summary));
+      const outcome = classifyClinical(item.headline + " " + item.summary,fastOutcome(item.headline+" "+item.summary,item.summary?'feed_summary':'headline_only',item.published_at));
       let sourceUrl;
       try {sourceUrl=new URL(item.url);}catch{continue;}
       const allowed=name==='businesswire'?['businesswire.com','www.businesswire.com']:['www.globenewswire.com','globenewswire.com','rss.globenewswire.com'];
@@ -588,7 +581,7 @@ export class HotEdge {
     const prior=await this.db.prepare('SELECT * FROM edge_candidates WHERE candidate_id=?').bind(event.event_id).first();
     if(prior){
       const samePolicy=prior.classification_json===JSON.stringify(scope);
-      if(samePolicy&&prior.content_hash===digest&&prior.ticker===(issuer?.ticker||null)&&prior.cik===(issuer?.cik||null)&&prior.source_url===event.source_url){
+      if((samePolicy||prior.completed_at)&&prior.content_hash===digest&&prior.ticker===(issuer?.ticker||null)&&prior.cik===(issuer?.cik||null)&&prior.source_url===event.source_url){
         this.candidateCache.set(event.event_id,{fingerprint,expires:Date.now()+48*3600000});return;
       }
       const reassess=prior.completed_at&&(prior.content_hash!==digest||!samePolicy);
@@ -673,7 +666,11 @@ export class HotEdge {
     allowDispatch = allowDispatch && this.env.EDGE_ENRICHMENT_ENABLED !== "0";
     const db = this.db;
     let failed = false;
-    if (event.material && event.actionable!==0 && !event.stage0_sent_at && this.env.NTFY_URL) {
+    let evidence={};try{evidence=JSON.parse(event.classification_json||'{}')}catch(_){}
+    const interruptive = evidence.semantic_version==='alert-evidence-v1' && evidence.confirmed_outcome===true &&
+      evidence.needs_review===false && ['source_text','feed_summary'].includes(evidence.evidence_basis) &&
+      ['fda_decision','material_safety','clinical_outcome'].includes(evidence.event_family) && event.ticker && event.cik;
+    if (interruptive && event.material && event.actionable!==0 && !event.stage0_sent_at && this.env.NTFY_URL) {
       try {
         const response = await fetch(this.env.NTFY_URL, { method: "POST",
           signal: AbortSignal.timeout(8000),

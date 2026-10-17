@@ -17,7 +17,7 @@ def test_listing_type_not_ticker_suffix_determines_verified_equity(tmp_path):
     for ticker in ["BBW", "DOYU", "BMR"]:
         assert verified_issuer_identity(conn, ticker), ticker
         change = record_change(conn, ticker=ticker, change_type="wire_release_signal", previous_value=None,
-            new_value={"headline": "Phase 2 trial met its primary endpoint"}, source_type="wire",
+            new_value={"headline": "Phase 2 trial results", "summary": "The trial met its primary endpoint."}, source_type="wire",
             source_url="https://www.businesswire.com/example/" + ticker, severity="high")
         assert build_stage1_payload(conn, change)["priority"] == "P1"
     for ticker in ["XYZW", "XYZU", "XYZR"]:

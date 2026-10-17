@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {execFileSync} from 'node:child_process';
+import {publicFeed,handleAlertFeed} from '../cloudflare/src/alert-feed.js';
 
 // Execute every production script, including startup and the final coverage wrapper.
 // Only the browser DOM, clock, timers and network boundary are doubled.
@@ -42,9 +44,20 @@ test('changed dashboard assets use one new compatible version while checkpoint h
  assert.equal(versions.get('/checkpoint_health.js'),'checkpoint-timezone-v1');
 });
 
+test('omitted display excerpts do not imply missing verification or invent eligibility',async()=>{
+ const h=await harness();
+ const confirmed={popup_eligible:true,issuer_verified:true,confirmed_outcome:true,needs_review:false,
+  semantic_version:'alert-evidence-v1',priority:'P1',event_family:'fda_decision',event_outcome:'approval',evidence_basis:'source_text'};
+ h.run(`globalThis.probe=${JSON.stringify(confirmed)}`);
+ assert.equal(h.run('interruptiveAlertEligible(probe)'),true);
+ assert.match(h.run('alertAnalysisHtml(probe)'),/ציטוט המקור אינו מוצג/);
+ assert.equal(h.run('interruptiveAlertEligible({...probe,evidence_basis:null})'),false);
+ assert.doesNotMatch(h.run('alertAnalysisHtml({...probe,evidence_basis:null})'),/זהות המנפיק ותוצאה מהותית מבוססת מקור אומתו/);
+});
+
 async function harness(initial=payload(),now='2026-10-12T13:00:00Z'){
  const elements=new Map(),storage=new Map(),requests=[],responses=[],notifications=[],timers=[];
- let renders=0,feed={schema:1,revision:'baseline',generated_at:initial.generated_at,
+ let renders=0,workerMode='normal',feed={schema:1,sequence:1,revision:'0'.repeat(64),generated_at:initial.generated_at,
   alerts:clone(initial.alerts),alert_config:initial.alert_config};
  function element(id){if(!elements.has(id)){
   let html='';const node={hidden:true,dataset:{},textContent:'',outerHTML:'',
@@ -62,6 +75,11 @@ async function harness(initial=payload(),now='2026-10-12T13:00:00Z'){
   setInterval:(fn,ms)=>timers.push({fn,ms}),setTimeout:(fn,ms)=>timers.push({fn,ms}),
   fetch:async url=>{requests.push(url);
    if(url==='/api/radar')return {ok:false,status:404};
+   if(url.startsWith('https://clock.example/alerts')){
+    if(workerMode==='offline')throw Error('controlled Worker outage');
+    return handleAlertFeed(new Request(workerMode==='legacy'?url.split('?')[0]:url),
+     {ALERTS_DB:{prepare:()=>({first:async()=>({payload:JSON.stringify(feed),received_at:feed.generated_at})})}});
+   }
    if(url==='alerts-evidence-v1.json')return {ok:true,json:async()=>clone(feed)};
    if(responses.length)return {ok:true,json:async()=>responses.shift()};
    if(url==='data.json')return {ok:true,json:async()=>clone(initial)};
@@ -73,7 +91,7 @@ async function harness(initial=payload(),now='2026-10-12T13:00:00Z'){
  await flush();await flush();
  return {run:code=>vm.runInContext(code,c),html:()=>element('main').innerHTML,
   popup:()=>element('alertPopups'),renders:()=>renders,elements,requests,responses,notifications,
-  setFeed:value=>{feed=value;},snapshot:()=>vm.runInContext('D',c),timers};
+  setFeed:value=>{feed=value;},setWorkerMode:value=>{workerMode=value;},snapshot:()=>vm.runInContext('D',c),timers};
 }
 const ids=html=>Array.from(html.matchAll(/<article class="focus-card [^"]+" data-event="([^"]+)"/g),m=>m[1]);
 function research(html){return html.match(/<section class="[^"]*research-priority"[\s\S]*?<\/section>/)?.[0]||'';}
@@ -150,15 +168,57 @@ test('same revision and newer offset checkpoint refresh the full composed dashbo
 });
 
 test('independent change_id dedup survives repeated alert polls and composed dashboard rerenders',async()=>{
- const h=await harness(),base={...clone(fixture.alerts[0]),change_id:'integration-new-change',
-  event_family:'fda_decision',event_outcome:'approval',confirmed_outcome:true,needs_review:false,
-  issuer_verified:true,popup_eligible:true,evidence_basis:'source_text',semantic_version:'alert-evidence-v1',priority:'P1'};
+ const h=await harness(),base=clone(fixture.alerts[0]);base.change_id='integration-new-change';
+ Object.assign(base,{headline:'FDA issued a Complete Response Letter for the NDA.',priority:'P1',polarity:'negative',
+   event_family:'fda_decision',event_outcome:'crl',confirmed_outcome:true,needs_review:false,
+   issuer_verified:true,popup_eligible:true,evidence_basis:'source_text',semantic_version:'alert-evidence-v1'});
  const feed={schema:1,revision:'new-feed',generated_at:'2026-10-12T12:50:00Z',alerts:[base,...clone(fixture.alerts)],alert_config:{enabled_channels:[]}};
  h.setFeed(feed);await h.run('checkForAlerts()');assert.equal(h.notifications.length,1);
  const popup=h.popup().innerHTML;assert.equal(h.popup().hidden,false);assertComposed(h);
  h.setFeed({...feed,revision:'same-change-other-revision'});await h.run('checkForAlerts()');h.run('render()');
  assert.equal(h.notifications.length,1);assert.equal(h.popup().innerHTML,popup);
  assert.equal((h.html().match(/<h3>התראות אחרונות<\/h3>/g)||[]).length,1);assertComposed(h);
+});
+
+test('Python outbox -> Python feed -> serialized Worker feed -> actual index script chain',async()=>{
+ const generated=JSON.parse(execFileSync(process.env.PYTHON||'python',['-m','tests.a5_pipeline_fixture'],{encoding:'utf8'}));
+ const feed=JSON.parse(JSON.stringify(publicFeed(generated.feed)));
+ const byId=new Map(feed.alerts.map(a=>[a.change_id,a]));
+ for(const name of ['approval','failure'])assert.equal(byId.get(generated.ids[name]).popup_eligible,true,name);
+ for(const name of ['milestone','cvr','mixed'])assert.equal(byId.get(generated.ids[name]).popup_eligible,false,name);
+ assert.equal(byId.get(generated.legacy_id).popup_eligible,false);
+ assert.equal(byId.get(generated.legacy_id).polarity,'positive','immutable legacy display preserved');
+ const cvr=byId.get(generated.ids.cvr).explanation;
+ assert.ok(cvr.evidence[0].quote.startsWith('No '));assert.match(cvr.source_hash,/^[a-f0-9]{64}$/);
+ assert.equal(cvr.evidence[0].source_hash,cvr.source_hash);
+ const initial=payload();initial.alerts=[];initial.alert_config={feed_url:'https://clock.example/alerts'};
+ const h=await harness(initial);h.setFeed({...feed,generated_at:'2026-10-12T13:01:00Z'});await h.run('checkForAlerts()');
+ assert.ok(h.requests.includes('https://clock.example/alerts?client=alert-evidence-v1'));
+ assert.equal(h.notifications.length,2);assert.equal(h.popup().hidden,false);
+ assert.match(h.popup().innerHTML,/approval/);assert.match(h.popup().innerHTML,/failure/);
+ assert.doesNotMatch(h.popup().innerHTML,/Legacy CVR filing|milestone|mixed/);
+ assert.equal(h.snapshot().alerts.length,6,'suppressed popups remain listed');assertComposed(h);
+ h.setFeed({...feed,revision:'f'.repeat(64),generated_at:'2026-10-12T13:02:00Z'});await h.run('checkForAlerts()');
+ assert.equal(h.notifications.length,2,'no repeat from another revision');
+ h.run("page='alerts';render()");assert.match(h.html(),/Legacy CVR filing/);assert.match(h.html(),/No product/);
+});
+
+test('A5 activation cannot reproduce Oct14 list erasure through legacy projection or Worker outage',async()=>{
+ const generated=JSON.parse(execFileSync(process.env.PYTHON||'python',['-m','tests.a5_pipeline_fixture'],{encoding:'utf8'}));
+ const full=JSON.parse(JSON.stringify(publicFeed(generated.feed)));
+ for(const rows of [full.alerts,full.alerts.filter(a=>!a.popup_eligible)]){
+  const initial=payload();initial.alerts=clone(rows);initial.generated_at=full.generated_at;
+  initial.alert_config={feed_url:'https://clock.example/alerts'};
+  const h=await harness(initial,new Date(Date.parse(full.generated_at)+60000).toISOString());
+  const complete={...full,alerts:clone(rows)};h.setFeed(complete);
+  h.setWorkerMode('legacy');await h.run('checkForAlerts()');
+  assert.ok(h.requests.includes('alerts-evidence-v1.json'),'filtered same-revision Worker response uses complete fallback');
+  assert.deepEqual(h.snapshot().alerts.map(a=>a.change_id).sort(),rows.map(a=>a.change_id).sort());
+  assert.equal(h.snapshot().alerts.length,rows.length,'zero legacy rows cannot erase the modern list');
+  h.setWorkerMode('offline');await h.run('checkForAlerts()');await h.run('checkForAlerts()');
+  assert.equal(h.snapshot().alerts.length,rows.length);assert.equal(h.notifications.length,0);assert.equal(h.popup().hidden,true);
+  h.run("page='alerts';render()");assert.match(h.html(),/Legacy CVR filing/);
+ }
 });
 
 test('Oct13 changes remain visible on Oct14 through final wrappers, reload and checkpoint refresh',async()=>{

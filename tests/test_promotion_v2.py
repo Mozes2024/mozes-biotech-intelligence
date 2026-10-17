@@ -201,3 +201,94 @@ def test_rejected_new_evidence_preserves_existing_event_and_receipts(conn):
     assert promote_candidate(conn, c, primary_statement("NCT12345678 data in December 2026."), "ZZZZ") == eid
     for table, rows in before.items():
         assert [tuple(r) for r in conn.execute(f"SELECT * FROM {table}")] == rows
+
+
+@pytest.mark.parametrize('retrieval', ['2026-10-05T12:00:00Z', None])
+def test_identical_promotion_is_no_write_across_distinct_instants(conn, monkeypatch, retrieval):
+    clock = ['2026-10-13T12:00:00+00:00']
+    monkeypatch.setattr(db, 'utcnow', lambda: clock[0])
+    statement = primary_statement('NCT12345678 data in December 2026.')
+    statement['retrieved_at'] = retrieval
+    candidate = registered_candidate(sponsor='Novel Bio')
+    event_id = promote_candidate(conn, candidate, statement, 'ZZZZ')
+    change_id = conn.execute('SELECT change_id FROM change_events').fetchone()[0]
+    with conn:
+        conn.execute("INSERT INTO edge_event_links VALUES(?,?,?,?,?)",
+                     ('immutable-edge', change_id, 'receipt-run', clock[0], 'immutable-source-hash'))
+        conn.execute("UPDATE alert_outbox SET status='sent',sent_at=?,attempts=1", (clock[0],))
+        conn.execute("UPDATE event_state SET event_timestamp=?,event_session='PRE_MARKET',resolved_at=?",
+                     ('2026-12-01T08:00:00Z', '2026-10-01T00:00:00Z'))
+        conn.execute("UPDATE watch_universe SET cik='000123'")
+    before = list(conn.iterdump())
+    changes = conn.total_changes
+    clock[0] = '2026-10-13T12:00:02+00:00'
+    sql = []
+    conn.set_trace_callback(sql.append)
+    assert promote_candidate(conn, candidate, statement, 'ZZZZ') == event_id
+    conn.set_trace_callback(None)
+    assert list(conn.iterdump()) == before
+    assert conn.total_changes == changes
+    assert not any(command.lstrip().split()[0].upper() in {'INSERT', 'UPDATE', 'DELETE', 'REPLACE'} for command in sql)
+
+
+@pytest.mark.parametrize('field,value', [('status', 'CANDIDATE'), ('verification_state', 'QUARANTINED'),
+                                        ('verification_confidence', 50), ('note', None)])
+def test_changed_effective_verification_state_is_not_suppressed(conn, monkeypatch, field, value):
+    clock = ['2026-10-13T12:00:00+00:00']
+    monkeypatch.setattr(db, 'utcnow', lambda: clock[0])
+    candidate = registered_candidate()
+    statement = primary_statement('NCT12345678 data in December 2026.')
+    event_id = promote_candidate(conn, candidate, statement, 'ZZZZ')
+    expected = db.event_state(conn, event_id)[field]
+    with conn:
+        conn.execute(f'UPDATE event_state SET {field}=? WHERE event_id=?', (value, event_id))
+    clock[0] = '2026-10-13T12:00:02+00:00'
+    assert promote_candidate(conn, candidate, statement, 'ZZZZ') == event_id
+    state = db.event_state(conn, event_id)
+    assert state[field] == expected and state['updated_at'] == clock[0]
+
+
+def test_rejected_evidence_preserves_records_and_repeated_rejection_is_stable(conn, monkeypatch):
+    clock = ['2026-10-13T12:00:00+00:00']
+    monkeypatch.setattr(db, 'utcnow', lambda: clock[0])
+    candidate = registered_candidate(sponsor='Novel Bio')
+    promote_candidate(conn, candidate, primary_statement('NCT12345678 data in December 2026.'), 'ZZZZ')
+    tables = ('events', 'event_state', 'event_sources', 'change_events', 'alert_outbox', 'edge_event_links', 'watch_universe')
+    before = {t: [tuple(r) for r in conn.execute(f'SELECT * FROM {t}')] for t in tables}
+    rejected = primary_statement('Unrelated safety efficacy programs in December 2026.')
+    clock[0] = '2026-10-13T12:00:02+00:00'
+    assert promote_candidate(conn, candidate, rejected, 'ZZZZ') is None
+    for table, rows in before.items():
+        assert [tuple(r) for r in conn.execute(f'SELECT * FROM {table}')] == rows
+    # First rejection keeps its existing audit contract; repeated evidence adds nothing.
+    audit = list(conn.iterdump())
+    clock[0] = '2026-10-13T12:00:04+00:00'
+    assert promote_candidate(conn, candidate, rejected, 'ZZZZ') is None
+    assert list(conn.iterdump()) == audit
+
+
+def test_new_verified_guidance_updates_state_and_preserves_old_receipts(conn, monkeypatch):
+    clock = ['2026-10-13T12:00:00+00:00']
+    monkeypatch.setattr(db, 'utcnow', lambda: clock[0])
+    candidate = registered_candidate(sponsor='Novel Bio')
+    statement = primary_statement('NCT12345678 data in December 2026.')
+    event_id = promote_candidate(conn, candidate, statement, 'ZZZZ')
+    with conn:
+        conn.execute("UPDATE alert_outbox SET status='sent',sent_at=?,attempts=1", (clock[0],))
+    receipts = [tuple(r) for r in conn.execute('SELECT * FROM alert_outbox')]
+    sources = [tuple(r) for r in conn.execute('SELECT * FROM event_sources')]
+    clock[0] = '2026-10-13T12:00:02+00:00'
+    changed = {**statement, 'statement': 'NCT12345678 data on December 15, 2026.',
+               'published_at': '2026-10-06', 'retrieved_at': clock[0],
+               'window': {'start': '2026-12-15', 'end': '2026-12-15', 'precision': 'exact', 'original': 'December 15'}}
+    assert promote_candidate(conn, candidate, changed, 'ZZZZ') == event_id
+    state = db.event_state(conn, event_id)
+    assert state['status'] == 'SCHEDULED' and state['updated_at'] == clock[0]
+    for row in receipts:
+        assert tuple(conn.execute('SELECT * FROM alert_outbox WHERE alert_id=?', (row[0],)).fetchone()) == row
+    for row in sources:
+        assert row in [tuple(r) for r in conn.execute('SELECT * FROM event_sources')]
+    before = list(conn.iterdump())
+    clock[0] = '2026-10-13T12:00:04+00:00'
+    assert promote_candidate(conn, candidate, changed, 'ZZZZ') == event_id
+    assert list(conn.iterdump()) == before
