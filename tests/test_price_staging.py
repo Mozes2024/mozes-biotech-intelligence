@@ -285,7 +285,8 @@ def test_different_stock_and_benchmark_providers_are_independently_traceable():
     assert [r['date'] for r in result['stock']['rows']] == [r['date'] for r in result['benchmark']['rows']]
 
 
-def test_legacy_file_and_frozen_history_remain_byte_for_byte_unchanged(tmp_path):
+@pytest.mark.parametrize('analyze', [False, True])
+def test_legacy_file_and_frozen_history_remain_byte_for_byte_unchanged(tmp_path, analyze):
     stage, _ = api()
     path = tmp_path / 'legacy.db'
     conn = db.connect(path)
@@ -296,6 +297,9 @@ def test_legacy_file_and_frozen_history_remain_byte_for_byte_unchanged(tmp_path)
     db.archive_source(conn, 'source-id', 'https://example.org/filing', 'SEC',
                       '2026-01-01', '2026-01-02', 'immutable evidence')
     db.set_validation(conn, 'runup', False, 0, 150)
+    if analyze:
+        conn.execute('ANALYZE')
+        conn.commit()
     conn.close()
     before = path.read_bytes()
     with pytest.raises(ValueError, match='separate_staging_database_required'):
@@ -377,6 +381,83 @@ def test_retry_after_reopen_and_second_connection_preserves_run_identity(tmp_pat
     assert stage.select_series(conn, **spec(), enabled=True)['rows'][0]['close'] == 100
     second.close()
     conn.close()
+
+
+def test_reopen_after_analyze_preserves_staging_statistics_and_immutable_history(tmp_path):
+    stage, _ = api()
+    path = tmp_path / 'analyzed-staging.db'
+    conn = stage.connect(path, enabled=True)
+    imports = [batch(), batch('xbi', ticker='XBI', instrument_id='isin:US78464A8707')]
+    stock, benchmark = spec(), spec(instrument_id='isin:US78464A8707')
+    stage.stage_imports(conn, imports, enabled=True)
+    manifest = stage.freeze_attachment(conn, 'frozen', 'case', stock, benchmark, enabled=True)
+    conn.execute('ANALYZE')
+    conn.commit()
+    assert conn.execute('SELECT count(*) FROM sqlite_stat1').fetchone()[0] > 0
+    before = list(conn.iterdump())
+    conn.close()
+    before_bytes = path.read_bytes()
+
+    conn = stage.connect(path, enabled=True)
+    stage.stage_imports(conn, imports, enabled=True)
+    assert stage.select_series(conn, **stock, enabled=True)['rows'][0]['close'] == 100
+    assert stage.freeze_attachment(conn, 'frozen', 'case', stock, benchmark, enabled=True) == manifest
+    changed = batch(body=b'date,close\n2026-01-02,90\n')
+    with pytest.raises(stage.Conflict):
+        stage.stage_imports(conn, [changed], enabled=True)
+    for table in ('staged_price_runs', 'staged_price_observations', 'staged_price_attachments'):
+        for sql in (f'UPDATE {table} SET payload=payload', f'DELETE FROM {table}',
+                    f'INSERT OR REPLACE INTO {table} SELECT * FROM {table}'):
+            with pytest.raises(sqlite3.IntegrityError, match='immutable_price_staging'):
+                conn.execute(sql)
+            conn.rollback()
+    assert list(conn.iterdump()) == before
+    conn.close()
+    assert path.read_bytes() == before_bytes
+
+
+@pytest.mark.parametrize('extra_sql', [
+    ('CREATE TABLE unrelated (value TEXT)', "INSERT INTO unrelated VALUES ('retain')"),
+    ('CREATE TABLE unrelated (id INTEGER PRIMARY KEY AUTOINCREMENT)', 'DROP TABLE unrelated'),
+])
+def test_analyzed_staging_still_refuses_unrecognized_tables_without_writing(tmp_path, extra_sql):
+    stage, _ = api()
+    path = tmp_path / 'foreign-staging.db'
+    conn = stage.connect(path, enabled=True)
+    stage.stage_imports(conn, [batch()], enabled=True)
+    for sql in extra_sql:
+        conn.execute(sql)
+    conn.execute('ANALYZE')
+    conn.commit()
+    conn.close()
+    before = path.read_bytes()
+    with pytest.raises(ValueError, match='separate_staging_database_required'):
+        stage.connect(path, enabled=True)
+    assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize('table,accepted', [('sqlite_stat4', True), ('sqlite_stat99', False)])
+def test_optional_statistics_require_an_exact_table_name(tmp_path, table, accepted):
+    stage, _ = api()
+    path = tmp_path / 'statistics-fixture.db'
+    conn = stage.connect(path, enabled=True)
+    # Synthetic file-format fixture: not every supported SQLite build enables STAT4.
+    # writable_schema permits the reserved names only while constructing this fixture.
+    conn.execute('PRAGMA writable_schema=ON')
+    conn.execute(f'CREATE TABLE {table}(tbl,idx,nEq,nLt,nDLt,sample)')
+    conn.execute('PRAGMA writable_schema=OFF')
+    conn.close()
+    before = path.read_bytes()
+    if accepted:
+        conn = stage.connect(path, enabled=True)
+        assert conn.execute(f'SELECT count(*) FROM {table}').fetchone()[0] == 0
+        assert not conn.execute('SELECT 1 FROM sqlite_master WHERE type=? AND tbl_name=?',
+                                ('trigger', table)).fetchall()
+        conn.close()
+    else:
+        with pytest.raises(ValueError, match='separate_staging_database_required'):
+            stage.connect(path, enabled=True)
+    assert path.read_bytes() == before
 
 
 def test_manifest_budget_refusal_is_atomic(monkeypatch):
