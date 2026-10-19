@@ -1,14 +1,21 @@
 # META-M8: read-only shadow bridge, no production cutover
 
-Reviewed against main `33a737d3f7450f0e00466a9425787b77d5306de2` and
-PR48 `bcd3ad7e97226d0623aaa56ebfd95fb8a8ce6554`. This dependent draft
-contains PR48's inactive library as a prerequisite, integrated locally with
-current main. It does not merge PR48 on GitHub. Review the new shadow files
-separately from the prerequisite. This draft is stacked on PR56's registry-fix
-branch for image validation: its diff excludes PR56's Dockerfile/runbook changes.
-PR56 must be approved/merged independently, then this draft can be retargeted
-to main without changing its code. The initial shadow image job hit the same
-ECR quota; no retry or alternative-image fallback is used to hide that failure.
+Reviewed against main `7c0a2676407ec1a9576e6bfa23d028f1b54a40c4` after
+the owner-approved PR56 squash merge and refreshed PR48
+`c4786586e0598e2f8df10a355ec73654aaae980f`. This draft targets PR48's
+`codex/meta-m8-price-provenance` branch. The refreshed PR48 commit is an ancestor
+of this branch; its six prerequisite files match byte-for-byte and are excluded
+from the incremental diff. No force push or duplicate staging rollout is used.
+Both PR48 and this shadow increment remain Draft and unmerged. After an
+independently approved PR48 merge, retarget this draft to main and verify the
+new merge tree and CI before any further merge approval.
+
+The initial historical unstacked image run hit ECR quota; PR56 resolved that
+dependency without changing the pinned image. The sequential review reproduced
+a shadow defect: when selection was unavailable, the comparator returned before
+rechecking snapshot hashes. The new regression fails on the old code; the fix
+also refuses changed snapshots on this early-return path. Neither path writes
+inputs. CI now verifies the shadow module is packaged with its control OFF.
 
 ## Implemented increment
 
@@ -30,6 +37,9 @@ bytes. It reports `cutover=HOLD` even if all numbers match: legacy rows do not
 prove instrument identity, adjustment basis, vintage or availability. Caller
 declarations in staging remain attestations, not independent certification.
 No investment return/performance claim or strategy eligibility is calculated.
+
+The current actionable approval/evidence gates are tracked in
+`META_M8_PRODUCTION_READINESS.md`; none is a live activation instruction.
 
 Offline use (local paths; never point at the running monitor DB):
 

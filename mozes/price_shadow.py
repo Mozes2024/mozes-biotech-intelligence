@@ -62,6 +62,8 @@ def compare(legacy_path, staging_path, stock, benchmark, *, enabled=None):
         staged.execute('BEGIN')
         pair = staging.select_pair(staged, stock['selection'], benchmark['selection'], enabled=True)
         if not pair['available']:
+            if snapshot_hashes != [_snapshot_hash(p) for p in (legacy_path, staging_path)]:
+                raise ValueError('snapshot_changed_during_comparison')
             return {**report, 'available': False, 'reason': pair['reason']}
         result = {}
         for name, request in (('stock', stock), ('benchmark', benchmark)):

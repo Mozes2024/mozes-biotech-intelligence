@@ -1,6 +1,9 @@
 """Offline boundary tests using synthetic snapshot files only."""
 import hashlib
+import importlib.util
+import json
 import sqlite3
+from pathlib import Path
 
 import pytest
 
@@ -136,3 +139,58 @@ def test_readonly_connection_cannot_mutate_or_initialize(tmp_path):
             conn.execute('DELETE FROM prices')
     finally:
         conn.close()
+
+
+def test_refused_selection_still_verifies_snapshot_stability(tmp_path, monkeypatch):
+    legacy, staged, stock, benchmark = fixture(tmp_path)
+    stock['selection']['vintage'] = 'unavailable'
+    select_pair = stage.select_pair
+
+    def changed_snapshot(*args, **kwargs):
+        result = select_pair(*args, **kwargs)
+        assert not result['available']
+        # An independent writer changes the synthetic input, never the comparator.
+        with sqlite3.connect(legacy) as writer:
+            writer.execute("UPDATE prices SET close=99 WHERE ticker='TEST'")
+        return result
+
+    monkeypatch.setattr(stage, 'select_pair', changed_snapshot)
+    with pytest.raises(ValueError, match='snapshot_changed_during_comparison'):
+        price_shadow.compare(legacy, staged, stock, benchmark, enabled=True)
+
+
+def test_offline_cli_default_off_then_reports_pinned_readonly_result(tmp_path, monkeypatch, capsys):
+    legacy, staged, stock, benchmark = fixture(tmp_path)
+    request = tmp_path / 'request.json'
+    request.write_text(json.dumps(dict(stock=stock, benchmark=benchmark)))
+    loader = importlib.util.spec_from_file_location('compare_price_shadow',
+        Path(__file__).resolve().parents[1] / 'scripts/compare_price_shadow.py')
+    cli = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(cli)
+    monkeypatch.setattr('sys.argv', ['compare_price_shadow', '--legacy', str(legacy),
+                                   '--staging', str(staged), '--request', str(request)])
+    before = hashes((legacy, staged))
+    monkeypatch.delenv('MOZES_PRICE_SHADOW_ENABLED', raising=False)
+    with pytest.raises(stage.Disabled):
+        cli.main()
+    monkeypatch.setenv('MOZES_PRICE_SHADOW_ENABLED', '1')
+    cli.main()
+    result = json.loads(capsys.readouterr().out)
+    assert result['numeric_equal'] and result['cutover'] == 'HOLD'
+    assert result['snapshot_sha256'] == dict(zip(('legacy', 'staging'), before))
+    assert hashes((legacy, staged)) == before
+
+
+def test_cli_refuses_oversized_request_before_opening_databases(tmp_path, monkeypatch):
+    request = tmp_path / 'request.json'
+    request.write_bytes(b' ' * 65537)
+    loader = importlib.util.spec_from_file_location('compare_price_shadow',
+        Path(__file__).resolve().parents[1] / 'scripts/compare_price_shadow.py')
+    cli = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(cli)
+    missing = tmp_path / 'absent.db'
+    monkeypatch.setattr('sys.argv', ['compare_price_shadow', '--legacy', str(missing),
+                                   '--staging', str(missing), '--request', str(request)])
+    with pytest.raises(ValueError, match='request_byte_budget'):
+        cli.main()
+    assert not missing.exists()
