@@ -68,4 +68,4 @@ jobs:
       - name: Worker imports and data files are packaged
         run: |
           docker run --rm mozes-hot:ci python -c "import sys, ssl, sqlite3; assert sys.version_info[:3] == (3, 11, 17); import mozes.hot_monitor, mozes.ir_registry as r; assert r.load_aliases()['GMAB']; print('ok')"
-          docker run --rm mozes-hot:ci python -c "import mozes.price_staging, mozes.ingest.price_provenance; print('price staging imports ok; no database opened')"
+          docker run --rm mozes-hot:ci python -c "import os, mozes.price_staging, mozes.ingest.price_provenance; assert all(os.environ.get('MOZES_PRICE_' + kind + '_ENABLED') != '1' for kind in ('STAGING', 'SELECTION')); print('price staging imports ok; controls disabled; no database opened')"
