@@ -5,6 +5,33 @@ Implements the reviewed `C2_PRICE_SOURCE_STAGING_DESIGN.md`; that document's
 implementation-authorization gate is superseded by the owner's implementation
 request. Production activation, migration and historical rewriting remain prohibited.
 
+## Sequential integration review — October 19
+
+Refreshed against main `7c0a2676407ec1a9576e6bfa23d028f1b54a40c4`
+after the separately approved PR56 squash merge. The six-file staging diff
+remains isolated from legacy writers, schemas, monitors, backup/restore,
+publication, notifications and investment gates. The refresh preserves all
+current-main pilot safeguards. No production variable is set by this branch.
+
+Review covered immutable run/observation/manifest identities, explicit provider
+field/basis and independent vintages, source availability versus capture,
+matched stock/XBI sessions and cutoffs, duplicate/conflicting imports and atomic
+retries, separate SQLite storage, ANALYZE reopen, DML append-only guards, bounded
+inputs/storage, safe references, unchanged legacy/frozen checkpoint bytes and
+default-OFF controls. Existing focused regressions exercise these boundaries.
+The image packaging check now also asserts both staging/selection controls are
+inactive; import alone never opens storage. No new staging implementation
+defect was established in this review, and no production writer is replaced.
+
+GO for review/merge of dormant code only after final-head full hosted CI passes.
+PR48 remains Draft and requires separate owner merge approval. HOLD for live
+observation, migration, backfill, consumer cutover or investment use. Provider
+policies, instrument/calendar mapping and availability evidence remain caller
+attestations requiring independent review. Privileged SQLite schema/trigger
+tampering, filesystem quotas and paired durable backup/restore are not certified
+by the library's normal-DML protections. STAT4 generation depends on SQLite
+build options; its optional empty-schema fixture is not real sample generation.
+
 ## Verified fault and current production boundary
 
 Both `db.store_prices` and `ingest.prices.store` replace `(ticker,date)` in the
