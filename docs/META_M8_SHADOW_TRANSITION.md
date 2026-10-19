@@ -1,14 +1,15 @@
 # META-M8: read-only shadow bridge, no production cutover
 
-Reviewed against main `7c0a2676407ec1a9576e6bfa23d028f1b54a40c4` after
-the owner-approved PR56 squash merge and refreshed PR48
-`c4786586e0598e2f8df10a355ec73654aaae980f`. This draft targets PR48's
-`codex/meta-m8-price-provenance` branch. The refreshed PR48 commit is an ancestor
-of this branch; its six prerequisite files match byte-for-byte and are excluded
-from the incremental diff. No force push or duplicate staging rollout is used.
-Both PR48 and this shadow increment remain Draft and unmerged. After an
-independently approved PR48 merge, retarget this draft to main and verify the
-new merge tree and CI before any further merge approval.
+Reviewed against main `2569ad87e18d66d162ccc9e22ef970800e63d65e` after
+the owner-approved PR48 squash merge at `2026-10-19T15:52:52Z`. Its tree
+`769a48ea16ac4a0a30d2b5123f75599898cb29ee` exactly matches the reviewed
+staging merge result. This shadow draft now targets main. A normal merge of
+main preserves the reviewed shadow HEAD `09baff8a85c354b79c69a070596043cb4a9e8b7c`
+and its history; the sole CI text conflict retains both inactive packaging checks.
+The staging prerequisites match main byte-for-byte and are excluded from the
+incremental six-file shadow diff. No force push or duplicate staging rollout is
+used. PR48 is merged but dormant; PR57 remains Draft and unmerged, requiring
+exact-head CI and a separate owner merge decision. Production rollout remains HOLD.
 
 The initial historical unstacked image run hit ECR quota; PR56 resolved that
 dependency without changing the pinned image. The sequential review reproduced

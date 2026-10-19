@@ -1,7 +1,8 @@
 # META-M8 production readiness: evidence and owner decisions
 
-Sequential review baseline: main `7c0a2676407ec1a9576e6bfa23d028f1b54a40c4`;
-PR48 `c4786586e0598e2f8df10a355ec73654aaae980f`. This is a transition plan,
+Sequential review baseline: main `2569ad87e18d66d162ccc9e22ef970800e63d65e`,
+the owner-approved PR48 squash merge of reviewed HEAD
+`c4786586e0598e2f8df10a355ec73654aaae980f`. This is a transition plan,
 not permission or an executable rollout. PR35 remains HOLD; PR46 is excluded.
 
 ## What exists, what is merged, what is active
@@ -9,7 +10,7 @@ not permission or an executable rollout. PR35 remains HOLD; PR46 is excluded.
 | Component | Implemented/tested | Merged | Production use |
 | --- | --- | --- | --- |
 | Official pinned Python registry source (PR56) | Image and full CI | Yes, main above | Build source only; application behavior unchanged |
-| Immutable offline adapters, separate staging DB, selection and frozen manifests (PR48) | Focused and full exact-head CI recorded in PR | No, Draft | Inactive; no live caller or production schema hook |
+| Immutable offline adapters, separate staging DB, selection and frozen manifests (PR48) | Focused and full exact-head CI recorded in PR | Yes, squash `2569ad87e18d66d162ccc9e22ef970800e63d65e`; tree matches reviewed result | Inactive; no live caller or production schema hook |
 | Read-only offline shadow comparison and CLI (dependent shadow PR) | Synthetic regression/CLI tests and exact-head CI recorded in PR | No, Draft | Inactive; no workflow invokes it on live data |
 | Both legacy price writers and existing consumers | Existing production path | Already in main | Still active; the overwrite collision boundary remains unresolved |
 | Durable staging storage, producer/consumer switch, historical migration | Not implemented/authorized by these drafts | No | HOLD |
@@ -38,10 +39,11 @@ hashes and source checkpoints. A pending decision is HOLD, never an inferred PAS
 
 ## Evidence bundle and approval sequence
 
-1. Review/approve dormant PR48 separately. It does not authorize any phase above.
-2. Review the dependent shadow-only diff against refreshed PR48. If PR48 is later
-   approved and merged, retarget to main, compare the merge tree and repeat hosted
-   CI before considering this draft's separate merge approval.
+1. PR48 is merged as dormant code only. It does not authorize any phase above.
+2. Review PR57's shadow-only diff against the post-PR48 main. Its normal merge
+   preserves reviewed history and staging prerequisites. Verify the merge tree
+   and repeat exact-head hosted CI before a separate owner merge approval;
+   PR57 remains Draft and must not be merged under the PR48 authorization.
 3. For each offline scenario retain code SHA, run/declaration/response hashes,
    snapshot DB hashes, explicit session/cutoff requests, selected observation/run
    identities, independently expected field values and the full comparison/refusal
@@ -54,3 +56,6 @@ hashes and source checkpoints. A pending decision is HOLD, never an inferred PAS
 5. Scoring, public exports/Pages, alerts and investment eligibility retain existing
    behavior throughout these drafts. Any future change to them is independently
    reviewed and authorized, never an incidental consequence of a price migration.
+
+The prospective one-shot pilot remains closed and OFF. This integration neither
+renews its authorization nor initiates capture.
