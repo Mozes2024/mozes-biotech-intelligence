@@ -1,6 +1,7 @@
 """Read-only consumer of the newest durable lightweight checkpoint, never a producer."""
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -19,6 +20,8 @@ WORKFLOW = 'lightweight-monitor.yml'
 ACTIVE = ('queued', 'in_progress', 'waiting', 'pending', 'requested')
 RESTORE_ATTEMPTS = 3
 RESELECT_WAIT_SECONDS = 20
+AUTOMATIC_RESTORE_ATTEMPTS = 8
+AUTOMATIC_MAX_WAIT_SECONDS = 45
 RESTORE_DEADLINE = None
 
 
@@ -177,25 +180,51 @@ def _restore_once(*, now=None):
     return receipt
 
 
-def restore(*, now=None):
+def _require_current_code(expected_sha):
+    value = json.loads(gh('api', f'repos/{REPO}/git/ref/heads/main', timeout=30))
+    current = value.get('object', {}).get('sha') if isinstance(value, dict) else None
+    require(isinstance(current, str) and re.fullmatch('[a-f0-9]{40}', current),
+            'publication_code_inventory')
+    require(current == expected_sha, 'publication_code_superseded')
+
+
+def restore(*, now=None, automatic=False, expected_sha=None):
     global RESTORE_DEADLINE
+    if automatic:
+        require(isinstance(expected_sha, str) and re.fullmatch('[a-f0-9]{40}', expected_sha),
+                'expected_main_sha_required')
+    attempts = AUTOMATIC_RESTORE_ATTEMPTS if automatic else RESTORE_ATTEMPTS
     RESTORE_DEADLINE = time.monotonic() + 300
     try:
-        for attempt in range(RESTORE_ATTEMPTS):
+        for attempt in range(attempts):
             try:
-                return _restore_once(now=now)
+                require(time.monotonic() < RESTORE_DEADLINE, 'restore_time_budget')
+                if automatic:
+                    _require_current_code(expected_sha)
+                result = _restore_once(now=now)
+                # Local validation/copying also consumes the shared deadline.
+                require(time.monotonic() < RESTORE_DEADLINE, 'restore_time_budget')
+                if automatic:
+                    _require_current_code(expected_sha)
+                require(time.monotonic() < RESTORE_DEADLINE, 'restore_time_budget')
+                return result
             except RuntimeError as exc:
                 if str(exc) not in ('producer_busy', 'checkpoint_changed', 'inventory_changed'):
                     raise
-                if attempt == RESTORE_ATTEMPTS - 1:
-                    print(f'publication_blocked category={exc} attempts={RESTORE_ATTEMPTS}', flush=True)
+                if attempt == attempts - 1:
+                    print(f'publication_blocked category={exc} attempts={attempts}', flush=True)
                     raise
-                require(time.monotonic() + RESELECT_WAIT_SECONDS < RESTORE_DEADLINE, 'restore_time_budget')
-                print(f'pages_consumer_restore WAIT {exc} attempt={attempt + 1}', flush=True)
-                time.sleep(RESELECT_WAIT_SECONDS)
+                wait = min(RESELECT_WAIT_SECONDS + 10 * attempt, AUTOMATIC_MAX_WAIT_SECONDS) if automatic else RESELECT_WAIT_SECONDS
+                require(time.monotonic() + wait < RESTORE_DEADLINE, 'restore_time_budget')
+                print(f'pages_consumer_restore WAIT {exc} attempt={attempt + 1} delay={wait}', flush=True)
+                time.sleep(wait)
     finally:
         RESTORE_DEADLINE = None
 
 
 if __name__ == '__main__':
-    restore()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--automatic', action='store_true')
+    parser.add_argument('--expected-sha')
+    options = parser.parse_args()
+    restore(automatic=options.automatic, expected_sha=options.expected_sha)
