@@ -176,13 +176,13 @@ def _restore_once(*, now=None):
         metadata = Path('.monitor/pages-consumer.json')
         metadata.parent.mkdir(parents=True, exist_ok=True)
         metadata.write_text(json.dumps(receipt), encoding='utf-8')
-    print('pages_consumer_restore PASS')
     return receipt
 
 
 def _require_current_code(expected_sha):
     value = json.loads(gh('api', f'repos/{REPO}/git/ref/heads/main', timeout=30))
-    current = value.get('object', {}).get('sha') if isinstance(value, dict) else None
+    obj = value.get('object') if isinstance(value, dict) else None
+    current = obj.get('sha') if isinstance(obj, dict) else None
     require(isinstance(current, str) and re.fullmatch('[a-f0-9]{40}', current),
             'publication_code_inventory')
     require(current == expected_sha, 'publication_code_superseded')
@@ -207,6 +207,7 @@ def restore(*, now=None, automatic=False, expected_sha=None):
                 if automatic:
                     _require_current_code(expected_sha)
                 require(time.monotonic() < RESTORE_DEADLINE, 'restore_time_budget')
+                print('pages_consumer_restore PASS')
                 return result
             except RuntimeError as exc:
                 if str(exc) not in ('producer_busy', 'checkpoint_changed', 'inventory_changed'):
@@ -214,7 +215,9 @@ def restore(*, now=None, automatic=False, expected_sha=None):
                 if attempt == attempts - 1:
                     print(f'publication_blocked category={exc} attempts={attempts}', flush=True)
                     raise
-                wait = min(RESELECT_WAIT_SECONDS + 10 * attempt, AUTOMATIC_MAX_WAIT_SECONDS) if automatic else RESELECT_WAIT_SECONDS
+                wait = RESELECT_WAIT_SECONDS
+                if automatic:
+                    wait = min(wait + 10 * attempt, AUTOMATIC_MAX_WAIT_SECONDS)
                 require(time.monotonic() + wait < RESTORE_DEADLINE, 'restore_time_budget')
                 print(f'pages_consumer_restore WAIT {exc} attempt={attempt + 1} delay={wait}', flush=True)
                 time.sleep(wait)

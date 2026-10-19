@@ -197,7 +197,7 @@ def test_automatic_policy_requires_a_pinned_sha_before_io(pages, clock, monkeypa
         pages.restore(automatic=True)
 
 
-@pytest.mark.parametrize('value', [{}, {'object':{}}, {'object':{'sha':'unknown'}}, []])
+@pytest.mark.parametrize('value', [{}, {'object':{}}, {'object':None}, {'object':{'sha':'unknown'}}, []])
 def test_current_code_inventory_must_be_complete(pages, clock, monkeypatch, value):
     monkeypatch.setattr(pages, 'gh', lambda *a, **k: json.dumps(value))
     with pytest.raises(RuntimeError, match='publication_code_inventory'):
@@ -226,6 +226,26 @@ def test_subprocess_timeout_is_capped_by_shared_remaining_budget(pages, clock, m
     finally:
         pages.RESTORE_DEADLINE = None
     assert timeouts == [10]
+
+
+def test_code_moving_during_real_restore_never_logs_success(pages, clock, monkeypatch, tmp_path, capsys):
+    incoming = tmp_path/'source'; incoming.mkdir()
+    source, _, _, run, artifact = fixture(incoming)
+    before = source.read_bytes()
+    environment(pages, monkeypatch, tmp_path, incoming)
+    mock_inventory(monkeypatch, pages, run, artifact)
+    transport = pages.gh
+    checks = []
+    def gh(*args, **kwargs):
+        if args[0] == 'api':
+            checks.append(args)
+            return json.dumps({'object':{'sha':SHA if len(checks) == 1 else 'b'*40}})
+        return transport(*args, **kwargs)
+    monkeypatch.setattr(pages, 'gh', gh)
+    with pytest.raises(RuntimeError, match='publication_code_superseded'):
+        pages.restore(now=NOW, automatic=True, expected_sha=SHA)
+    assert 'pages_consumer_restore PASS' not in capsys.readouterr().out
+    assert source.read_bytes() == before
 
 
 def test_workflow_keeps_trigger_lock_preflight_and_ack_order():
