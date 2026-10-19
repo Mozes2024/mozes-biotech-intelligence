@@ -63,7 +63,9 @@ def connect(path, *, enabled=None):
         # Refuse legacy/foreign databases, including production DBs, before DDL.
         tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         allowed = {'staged_price_runs', 'staged_price_observations', 'staged_price_attachments'}
-        if tables - allowed:
+        # ANALYZE adds planner statistics; never exempt the whole sqlite_* namespace.
+        statistics = {'sqlite_stat1', 'sqlite_stat4'}
+        if tables - allowed - statistics:
             raise ValueError('separate_staging_database_required')
         conn.execute('PRAGMA foreign_keys=ON')
         with atomic(conn):
