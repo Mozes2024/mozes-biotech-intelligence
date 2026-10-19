@@ -4,7 +4,11 @@ Reviewed against main `33a737d3f7450f0e00466a9425787b77d5306de2` and
 PR48 `bcd3ad7e97226d0623aaa56ebfd95fb8a8ce6554`. This dependent draft
 contains PR48's inactive library as a prerequisite, integrated locally with
 current main. It does not merge PR48 on GitHub. Review the new shadow files
-separately from the prerequisite. PR56's registry fix is a separate change.
+separately from the prerequisite. This draft is stacked on PR56's registry-fix
+branch for image validation: its diff excludes PR56's Dockerfile/runbook changes.
+PR56 must be approved/merged independently, then this draft can be retargeted
+to main without changing its code. The initial shadow image job hit the same
+ECR quota; no retry or alternative-image fallback is used to hide that failure.
 
 ## Implemented increment
 
