@@ -132,3 +132,35 @@ and a real HOLD evaluator using an already-dirty **synthetic local** attachment.
 The direct calculation preserves the entire DB; the evaluator retains frozen
 sources/prices/snapshots/labels and existing gate settings/OOS counts while updating
 its ordinary reporting metrics. No stored price is repaired, rewritten or replayed.
+
+## Post-merge audit: run-up benchmark precision boundary
+
+Re-audited production `828245bab4981dd66e0597d2d0d653af74f0f247`, which already
+includes PR47. The original request's `bb165fe...` baseline predates those corrections;
+META-M3/META-M4 reporting, entry knowledge, observed-session indexing, costs and
+non-executable status are retained rather than reimplemented. The known limits above
+remain: no verified session calendar/fills, complete schedule revisions or original
+provider/adjustment/vintage provenance. PR48's inactive staging does not change that
+production boundary and is not a dependency of this correction.
+
+One additional inconsistency was confirmed: `runup_one` repeated benchmark arithmetic
+instead of using the reviewed `market.excess_return`. With positive finite benchmark
+endpoints `1e300 -> 1e-300` (or `1e100 -> 1e-100`), the benchmark return rounds to -1;
+the run-up path published excess 1.01 for a valid +1% stock move while the reviewed
+helper correctly returned unavailable. These are adversarial precision fixtures,
+not a claim of real historical contamination. Three new regressions failed before
+correction; a valid-data control passed.
+
+Run-up now delegates only the benchmark-relative calculation to `excess_return`.
+Valid stock returns, T-k endpoint selection and ordinary excess formulas remain
+unchanged. Unavailable benchmark windows are excluded from excess statistics, not
+replaced with zero; independently valid gross/assumed-net stock statistics survive.
+Legacy run-up inherits the same correction through its existing shared call. No
+historical import, attachment, snapshot, identifier or gate policy is changed.
+
+The review CI executes every frontend `.mjs` suite, full Python/Worker/DO/local D1,
+offline smoke and the unchanged Docker image build/import checks. Production rollout
+is not authorized by tests; this remains descriptive analysis and cannot validate an
+investment edge. Next substantive research step is prospective schedule/source
+version capture with verified session calendars, provider provenance and execution
+observations under separately approved scope, not larger retrospective claims.
