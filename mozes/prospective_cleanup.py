@@ -13,6 +13,9 @@ CAPTURE = 'MOZES_PROSPECTIVE_CAPTURE'
 AUTHORIZATION = 'MOZES_PROSPECTIVE_AUTHORIZATION'
 EVENT_IDS = 'MOZES_PROSPECTIVE_EVENT_IDS'
 JOB = 'prospective-pilot-cleanup'
+INVENTORY_PAGE_SIZE = 30
+INVENTORY_LIMIT = 100
+INVENTORY_BYTES = 1024 * 1024
 utcnow = lambda: datetime.now(timezone.utc)
 
 
@@ -24,8 +27,51 @@ class NoRedirect(HTTPRedirectHandler):
 urlopen = build_opener(NoRedirect()).open
 
 
+def confirm_absent(name, token):
+    """A 404 can hide denied access; require a complete same-token inventory."""
+    seen = set()
+    total = None
+    for page in range(1, (INVENTORY_LIMIT + INVENTORY_PAGE_SIZE - 1) // INVENTORY_PAGE_SIZE + 1):
+        request = Request(f'https://api.github.com/repos/{auth.REPO}/actions/variables'
+            f'?per_page={INVENTORY_PAGE_SIZE}&page={page}',
+            headers={'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json',
+                     'X-GitHub-Api-Version': '2022-11-28'})
+        try:
+            with urlopen(request, timeout=10) as response:
+                auth.require(response.status == 200, 'cleanup_absence_not_confirmed')
+                raw = response.read(INVENTORY_BYTES + 1)
+                auth.require(len(raw) <= INVENTORY_BYTES, 'cleanup_inventory_too_large')
+                body = json.loads(raw)
+                links = response.headers.get('Link', '')
+        except (HTTPError, OSError, URLError, ValueError):
+            raise auth.AuthorizationError('cleanup_absence_not_confirmed') from None
+        auth.require(isinstance(body, dict) and type(body.get('total_count')) is int
+            and 0 <= body['total_count'] <= INVENTORY_LIMIT
+            and isinstance(body.get('variables'), list), 'cleanup_inventory_invalid')
+        if total is None:
+            total = body['total_count']
+        auth.require(body['total_count'] == total
+            and len(body['variables']) == min(INVENTORY_PAGE_SIZE, total - len(seen)),
+            'cleanup_inventory_incomplete')
+        for row in body['variables']:
+            auth.require(isinstance(row, dict) and isinstance(row.get('name'), str)
+                and re.fullmatch('[A-Za-z_][A-Za-z0-9_]*', row['name'])
+                and isinstance(row.get('value'), str) and isinstance(row.get('updated_at'), str),
+                'cleanup_inventory_invalid')
+            key = row['name'].upper()
+            auth.require(key not in seen, 'cleanup_inventory_duplicate')
+            seen.add(key)
+            auth.require(key != name, 'cleanup_absence_not_confirmed')
+        if len(seen) == total:
+            auth.require(not re.search(r'\brel\s*=\s*(?:"[^"]*\bnext\b[^"]*"|next(?:\s|;|,|$))',
+                links, re.IGNORECASE),
+                'cleanup_inventory_incomplete')
+            return
+    raise auth.AuthorizationError('cleanup_inventory_incomplete')
+
+
 def variable(name, *, method='GET', value=None):
-    """The dedicated Variables-write token can only reach these three endpoints."""
+    """Only three variable endpoints and their read-only absence inventory."""
     auth.require(name in (CAPTURE, AUTHORIZATION, EVENT_IDS)
         and (method == 'GET' and value is None
              or method == 'PATCH' and name == CAPTURE and value == '0'
@@ -47,6 +93,7 @@ def variable(name, *, method='GET', value=None):
                 return row
     except HTTPError as error:
         if method == 'GET' and error.code == 404:
+            confirm_absent(name, token)
             return None
         raise auth.AuthorizationError('cleanup_API_failed_or_ambiguous_OFF_not_confirmed') from None
     except (OSError, URLError, ValueError):
