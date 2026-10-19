@@ -215,6 +215,16 @@ green workflow alone. Missing/failed/ambiguous cleanup means **HOLD**: perform t
 separately authorized OFF-only fallback, preserve evidence, never renew or recapture.
 Recovery of cleanup may only remove the old settings, not reactivate the observer.
 
+A variable GET returning HTTP 404 does not prove that it is absent:
+[GitHub can mask insufficient credential access](https://docs.github.com/en/rest/authentication/authenticating-to-the-rest-api)
+with that response. Cleanup confirms every missing
+setting against a successful complete variable inventory using the same cleanup
+credential (30 rows per page, at most 100 variables and 1 MiB per response). Failed,
+incomplete, inconsistent or conflicting inventory means HOLD, including when all
+three setting reads return 404. Inventory values are never logged; only the existing
+three pilot settings can be changed. This also applies to final OFF read-back and
+resuming a partially completed cleanup.
+
 GitHub has no atomic transaction/CAS across these variables. Cleanup checks exact
 values/metadata again before writes and refuses observed ownership changes. Operators
 must not replace an authorization, edit its allowlist or activate another window

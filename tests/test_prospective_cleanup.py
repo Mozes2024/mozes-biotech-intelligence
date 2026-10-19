@@ -4,6 +4,7 @@ import io
 import json
 from datetime import timedelta
 from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
@@ -201,7 +202,24 @@ def test_real_api_adapter_requires_token_and_never_exposes_error_or_token(monkey
     assert 'synthetic-private-token' not in str(caught.value) + capsys.readouterr().out
 
 
-def test_api_accepts_only_documented_responses_and_missing_GET(monkeypatch):
+def test_permission_masked_404s_never_confirm_already_off(monkeypatch, capsys):
+    monkeypatch.setattr(cleanup, 'owner', lambda: None)
+    monkeypatch.setenv('MOZES_PROSPECTIVE_CLEANUP_TOKEN', 'synthetic-private-token')
+    monkeypatch.setenv(cleanup.AUTHORIZATION, '20261015T115959Z.' + CODE + '.' + 'c' * 32)
+    methods = []
+    def hidden(request, timeout):
+        methods.append(request.get_method())
+        raise HTTPError(request.full_url, 404, 'synthetic-private-token', {}, None)
+    monkeypatch.setattr(cleanup, 'urlopen', hidden)
+    with pytest.raises(SystemExit) as caught:
+        cleanup.main()
+    assert caught.value.code == 1 and methods and set(methods) == {'GET'}
+    output = capsys.readouterr().out
+    assert 'prospective_cleanup=HOLD' in output
+    assert 'already_off' not in output and 'synthetic-private-token' not in output
+
+
+def test_api_accepts_documented_writes_but_not_unconfirmed_missing_GET(monkeypatch):
     monkeypatch.setenv('MOZES_PROSPECTIVE_CLEANUP_TOKEN', 'synthetic-private-token')
     seen = []
     class Response(io.BytesIO):
@@ -215,8 +233,178 @@ def test_api_accepts_only_documented_responses_and_missing_GET(monkeypatch):
                      'PATCH', b'{"value": "0"}', 10)]
     def missing(*a, **k): raise HTTPError('url', 404, 'missing', {}, None)
     monkeypatch.setattr(cleanup, 'urlopen', missing)
-    assert cleanup.variable(cleanup.AUTHORIZATION) is None
+    with pytest.raises(auth.AuthorizationError): cleanup.variable(cleanup.AUTHORIZATION)
     with pytest.raises(auth.AuthorizationError): cleanup.variable(cleanup.AUTHORIZATION, method='DELETE')
+
+
+def inventory_response(body, *, headers=None):
+    response = io.BytesIO(body if isinstance(body, bytes) else json.dumps(body).encode())
+    response.status = 200
+    response.headers = headers or {}
+    return response
+
+
+def inventory_row(name):
+    return {'name': name, 'value': 'synthetic-private-value', 'updated_at': 'original'}
+
+
+@pytest.mark.parametrize('count', [0, 30, 31, 100])
+def test_missing_variable_requires_complete_same_credential_inventory(monkeypatch, count):
+    monkeypatch.setenv('MOZES_PROSPECTIVE_CLEANUP_TOKEN', 'synthetic-cleanup-token')
+    monkeypatch.setenv('GH_TOKEN', 'different-workflow-token')
+    requests = []
+    rows = [inventory_row(f'OTHER_{i}') for i in range(count)]
+    def opened(request, timeout):
+        requests.append(request)
+        assert request.get_header('Authorization') == 'Bearer synthetic-cleanup-token'
+        assert request.get_method() == 'GET' and request.data is None and timeout == 10
+        url = urlsplit(request.full_url)
+        if url.path.endswith('/' + cleanup.AUTHORIZATION):
+            raise HTTPError(request.full_url, 404, 'missing', {}, None)
+        assert url.netloc == 'api.github.com' and url.path == f'/repos/{auth.REPO}/actions/variables'
+        query = parse_qs(url.query)
+        assert query['per_page'] == ['30']
+        page = int(query['page'][0])
+        return inventory_response({'total_count': count, 'variables': rows[(page - 1) * 30:page * 30]})
+    monkeypatch.setattr(cleanup, 'urlopen', opened)
+    assert cleanup.variable(cleanup.AUTHORIZATION) is None
+    assert len(requests) == 1 + max(1, (count + 29) // 30)
+
+
+@pytest.mark.parametrize('status', [401, 403, 404, 429, 500])
+def test_inaccessible_inventory_cannot_prove_absence(monkeypatch, status):
+    monkeypatch.setenv('MOZES_PROSPECTIVE_CLEANUP_TOKEN', 'synthetic-token')
+    methods = []
+    def opened(request, timeout):
+        methods.append(request.get_method())
+        code = status if urlsplit(request.full_url).query else 404
+        raise HTTPError(request.full_url, code, 'synthetic-private-error', {}, None)
+    monkeypatch.setattr(cleanup, 'urlopen', opened)
+    with pytest.raises(auth.AuthorizationError, match='absence_not_confirmed'):
+        cleanup.variable(cleanup.AUTHORIZATION)
+    assert methods == ['GET', 'GET']
+
+
+@pytest.mark.parametrize('body', [
+    [], {}, {'total_count': True, 'variables': []}, {'total_count': -1, 'variables': []},
+    {'total_count': '0', 'variables': []}, {'total_count': 101, 'variables': []},
+    {'total_count': 0, 'variables': {}}, {'total_count': 2, 'variables': [inventory_row('OTHER')]},
+    {'total_count': 2, 'variables': [inventory_row('OTHER'), inventory_row('other')]},
+    {'total_count': 1, 'variables': [None]},
+    {'total_count': 1, 'variables': [inventory_row('')]},
+    {'total_count': 1, 'variables': [inventory_row('OTHER/INVALID')]},
+    {'total_count': 1, 'variables': [{**inventory_row('OTHER'), 'value': False}]},
+    {'total_count': 1, 'variables': [{**inventory_row('OTHER'), 'updated_at': None}]},
+    {'total_count': 1, 'variables': [inventory_row(cleanup.AUTHORIZATION)]},
+    b'{',
+])
+def test_incomplete_malformed_or_conflicting_inventory_is_not_absence(monkeypatch, body):
+    monkeypatch.setenv('MOZES_PROSPECTIVE_CLEANUP_TOKEN', 'synthetic-token')
+    def opened(request, timeout):
+        assert request.get_method() == 'GET'
+        if not urlsplit(request.full_url).query:
+            raise HTTPError(request.full_url, 404, 'missing', {}, None)
+        return inventory_response(body)
+    monkeypatch.setattr(cleanup, 'urlopen', opened)
+    with pytest.raises(auth.AuthorizationError): cleanup.variable(cleanup.AUTHORIZATION)
+
+
+@pytest.mark.parametrize('problem', ['changed_total', 'duplicate_across_pages', 'target_on_later_page',
+                                   'next_page', 'unquoted_next_page', 'oversize'])
+def test_inventory_cannot_hide_unread_or_inconsistent_pages(monkeypatch, problem):
+    monkeypatch.setenv('MOZES_PROSPECTIVE_CLEANUP_TOKEN', 'synthetic-token')
+    pages = []
+    def opened(request, timeout):
+        assert request.get_method() == 'GET'
+        query = parse_qs(urlsplit(request.full_url).query)
+        if not query:
+            raise HTTPError(request.full_url, 404, 'missing', {}, None)
+        page = int(query['page'][0])
+        pages.append(page)
+        if problem in ('next_page', 'unquoted_next_page'):
+            return inventory_response({'total_count': 0, 'variables': []},
+                headers={'Link': '<https://api.github.com/next>; ' +
+                    ('rel="next"' if problem == 'next_page' else 'REL=next')})
+        if problem == 'oversize':
+            return inventory_response(b' ' * (cleanup.INVENTORY_BYTES + 1))
+        if page == 1:
+            return inventory_response({'total_count': 31,
+                'variables': [inventory_row(f'OTHER_{i}') for i in range(30)]})
+        return inventory_response({'total_count': 32 if problem == 'changed_total' else 31,
+            'variables': [inventory_row(cleanup.AUTHORIZATION if problem == 'target_on_later_page' else 'OTHER_0')]})
+    monkeypatch.setattr(cleanup, 'urlopen', opened)
+    with pytest.raises(auth.AuthorizationError): cleanup.variable(cleanup.AUTHORIZATION)
+    assert pages == ([1, 2] if problem in ('changed_total', 'duplicate_across_pages', 'target_on_later_page') else [1])
+
+
+@pytest.mark.parametrize('state', ['active', 'capture_off', 'allowlist_removed', 'capture_absent',
+                                  'already_off', 'all_absent', 'final_access_lost'])
+def test_real_adapter_preserves_confirmed_absence_and_partial_cleanup(monkeypatch, capsys, state):
+    identifier = '20000101T000000Z.' + CODE + '.' + 'c' * 32
+    rows = {cleanup.CAPTURE: {**inventory_row(cleanup.CAPTURE), 'value': '1'},
+        cleanup.AUTHORIZATION: {**inventory_row(cleanup.AUTHORIZATION), 'value': identifier},
+        cleanup.EVENT_IDS: {**inventory_row(cleanup.EVENT_IDS), 'value': json.dumps([auth.EVENT])},
+        'UNRELATED': inventory_row('UNRELATED')}
+    if state in ('capture_off', 'allowlist_removed', 'already_off'):
+        rows[cleanup.CAPTURE]['value'] = '0'
+    if state in ('allowlist_removed', 'already_off', 'all_absent'):
+        rows.pop(cleanup.EVENT_IDS)
+    if state in ('already_off', 'all_absent'):
+        rows.pop(cleanup.AUTHORIZATION)
+    if state in ('capture_absent', 'all_absent'):
+        rows.pop(cleanup.CAPTURE)
+    original_other = copy.deepcopy(rows['UNRELATED'])
+    writes, inventories = [], []
+    access_lost = False
+    monkeypatch.setenv('MOZES_PROSPECTIVE_CLEANUP_TOKEN', 'synthetic-private-token')
+    monkeypatch.setenv(cleanup.AUTHORIZATION, identifier)
+    monkeypatch.setattr(cleanup, 'owner', lambda: None)
+    def opened(request, timeout):
+        nonlocal access_lost
+        url = urlsplit(request.full_url)
+        assert request.get_header('Authorization') == 'Bearer synthetic-private-token'
+        if access_lost:
+            assert request.get_method() == 'GET'
+            raise HTTPError(request.full_url, 404, 'synthetic-private-token', {}, None)
+        if url.query:
+            assert request.get_method() == 'GET'
+            inventories.append(url.query)
+            return inventory_response({'total_count': len(rows), 'variables': list(rows.values())})
+        name = url.path.rsplit('/', 1)[1]
+        if request.get_method() == 'GET':
+            if name not in rows:
+                raise HTTPError(request.full_url, 404, 'missing', {}, None)
+            return inventory_response(rows[name])
+        writes.append((name, request.get_method()))
+        if request.get_method() == 'PATCH':
+            assert name == cleanup.CAPTURE and json.loads(request.data) == {'value': '0'}
+            rows[name].update(value='0', updated_at='off')
+        else:
+            assert request.get_method() == 'DELETE' and name in (cleanup.AUTHORIZATION, cleanup.EVENT_IDS)
+            rows.pop(name)
+            if name == cleanup.AUTHORIZATION and state == 'final_access_lost':
+                access_lost = True
+        response = io.BytesIO()
+        response.status = 204
+        return response
+    monkeypatch.setattr(cleanup, 'urlopen', opened)
+    if state == 'final_access_lost':
+        with pytest.raises(SystemExit) as caught: cleanup.main()
+        assert caught.value.code == 1
+    else:
+        cleanup.main()
+    expected = 'already_off' if state in ('already_off', 'all_absent') else 'off_expired'
+    output = capsys.readouterr().out
+    if state == 'final_access_lost':
+        assert output.startswith('prospective_cleanup=HOLD') and 'off_expired' not in output
+    else:
+        assert output.strip() == 'prospective_cleanup=' + expected
+    assert 'synthetic-private' not in output and inventories
+    assert rows['UNRELATED'] == original_other
+    assert rows.get(cleanup.CAPTURE, {}).get('value') in (None, '0')
+    assert cleanup.AUTHORIZATION not in rows and cleanup.EVENT_IDS not in rows
+    if expected == 'already_off': assert not writes
+    else: assert writes[-1] == (cleanup.AUTHORIZATION, 'DELETE')
 
 
 @pytest.mark.parametrize('status', [200, 201, 202, 302, 403, 429, 500])
