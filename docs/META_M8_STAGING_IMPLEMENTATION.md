@@ -19,8 +19,12 @@ No assertion is made about actual production contamination.
 
 `mozes.price_staging.connect` explicitly initializes three tables in a **separate
 SQLite database**, not in `db.SCHEMA` or `db.connect`. It refuses a database containing
-legacy/foreign tables before DDL. No monitor, workflow, API, live scoring, public export
-or historical backfill calls it. No production migration is performed by this PR.
+legacy/foreign tables before DDL. SQLite's `ANALYZE` statistics tables, `sqlite_stat1`
+and optional `sqlite_stat4`, are permitted on reopen and are left unchanged; append-only
+triggers still apply only to the three staging tables. Other table names, including
+`sqlite_sequence` and unknown `sqlite_stat*` names, remain refused. No monitor, workflow,
+API, live scoring, public export or historical backfill calls it. No production
+migration is performed by this PR.
 
 - `staged_price_runs`: immutable run ID and allowlisted canonical JSON containing
   provider, instrument ID (not inferred from ticker), ticker, adapter version, UTC
