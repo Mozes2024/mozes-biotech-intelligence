@@ -1,5 +1,17 @@
 # META-M8 production readiness: evidence and owner decisions
 
+Current integration baseline after the separately approved PR58 squash merge:
+main `b96b029f12726093f377d7b6f2b0fb31733965d4`. Main push CI `39313763120`
+and automatic Pages `39314180874` passed, including verified restore/export,
+preflight, deployment, ledger acknowledgement and public-byte identity. The
+restored source was immutable monitor checkpoint `39310031856`; no new source
+scan, price migration or pilot capture was required. Historical rows,
+attachments, source archives and the single prospective record matched the
+pre-merge checkpoint; runup/hold_through gates remained disabled. PR57 has been
+normally merged with this baseline for testing and remains Draft/unmerged.
+This publication observation does not authorize META-M8 rollout or certify
+progress under continuous producer contention.
+
 Sequential review baseline: main `2569ad87e18d66d162ccc9e22ef970800e63d65e`,
 the owner-approved PR48 squash merge of reviewed HEAD
 `c4786586e0598e2f8df10a355ec73654aaae980f`. This is a transition plan,

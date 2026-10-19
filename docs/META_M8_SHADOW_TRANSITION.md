@@ -1,5 +1,16 @@
 # META-M8: read-only shadow bridge, no production cutover
 
+Post-PR58 integration baseline: main
+`b96b029f12726093f377d7b6f2b0fb31733965d4`. Push CI `39313763120` and
+the genuine automatic `workflow_run` Pages run `39314180874` passed. Restore,
+export, preflight, deployment and ledger ACK completed; request/artifact/public
+receipt, code SHA, checkpoint hashes and public data bytes were verified.
+This run restored in 71 seconds without retries; it does not certify continuous
+producer-contention liveness. A normal merge of this main preserves reviewed
+PR57 HEAD `d06442c0177306f6690fa92873a916c13b8fea3b` and leaves only the six
+shadow files in the incremental diff. PR57 remains Draft and unmerged;
+its refreshed exact-head CI and separate owner merge approval are still required.
+
 Reviewed against main `2569ad87e18d66d162ccc9e22ef970800e63d65e` after
 the owner-approved PR48 squash merge at `2026-10-19T15:52:52Z`. Its tree
 `769a48ea16ac4a0a30d2b5123f75599898cb29ee` exactly matches the reviewed

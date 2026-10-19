@@ -45,6 +45,7 @@ jobs:
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           if [ "$(git rev-parse HEAD)" = "$current" ]; then
             echo 'current=true' >> "$GITHUB_OUTPUT"
+            echo "code_sha=$current" >> "$GITHUB_OUTPUT"
           else
             echo 'current=false' >> "$GITHUB_OUTPUT"
             echo 'Newer code exists; its own CI will own publication.'
@@ -59,7 +60,12 @@ jobs:
         run: pip install -e .
       - name: Restore known data without a new source scan
         if: steps.guard.outputs.current == 'true'
-        run: python -m scripts.restore_pages_state
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = 'workflow_run' ]; then
+            python -m scripts.restore_pages_state --automatic --expected-sha '${{ steps.guard.outputs.code_sha }}'
+          else
+            python -m scripts.restore_pages_state
+          fi
       - name: Export current code against stored data (offline)
         if: steps.guard.outputs.current == 'true'
         run: python -m mozes.pipeline_v2c export --consumer-only
