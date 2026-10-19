@@ -183,10 +183,35 @@ def promote_candidate(conn, candidate: dict, extracted: dict, ticker: str, sourc
         if json.dumps(current_facet, sort_keys=True, ensure_ascii=False) not in fingerprints:
             prior_facets.append(current_facet)
         event["timing_facets"] = prior_facets
+    source_id = extracted.get("source_id") or f"sec-{event_id}"
+    if previous:
+        # Missing retrieval metadata is not a new observation of identical evidence.
+        prior_provenance = prior_event.get('provenance') or {}
+        if (not extracted.get('retrieved_at') and
+                {k: v for k, v in event['provenance'].items() if k != 'retrieved_at'} ==
+                {k: v for k, v in prior_provenance.items() if k != 'retrieved_at'}):
+            event['provenance']['retrieved_at'] = prior_provenance.get('retrieved_at')
+        expected_state = {
+            'status': 'SCHEDULED' if w.get('precision') == 'exact' else 'VERIFIED',
+            'verification_state': 'VERIFIED', 'verification_confidence': min(100, int(90 + confidence * 10)),
+            'event_timestamp': state.get('event_timestamp'), 'event_session': state.get('event_session', 'unknown'),
+            'resolved_at': state.get('resolved_at'),
+            'note': 'auto-promoted only after primary-source match: ' + '; '.join(reasons),
+        }
+        source_exists = conn.execute(
+            'SELECT 1 FROM event_sources WHERE event_id=? AND source_id=? AND statement=?',
+            (event_id, source_id, extracted.get('statement'))).fetchone()
+        watch = conn.execute('SELECT * FROM watch_universe WHERE ticker=?', (ticker.upper(),)).fetchone()
+        linked = conn.execute('SELECT promoted_event_id FROM discovery_candidates WHERE candidate_id=?',
+                              (candidate['candidate_id'],)).fetchone()
+        if (event == prior_event and all(state.get(k) == v for k, v in expected_state.items()) and source_exists
+                and watch and watch['active'] == 1 and watch['source'] == 'primary_verified_candidate'
+                and (candidate.get('sponsor') is None or watch['company'] == candidate['sponsor'])
+                and (linked is None or linked['promoted_event_id'] == event_id)):
+            return event_id  # No writers, new change identities, or duplicate deliveries.
     with conn:
         conn.execute("INSERT INTO events(id,kind,payload) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload", (event_id, "live", json.dumps(event, ensure_ascii=False)))
         conn.execute("UPDATE discovery_candidates SET promoted_event_id=? WHERE candidate_id=?", (event_id, candidate["candidate_id"]))
-    source_id = extracted.get("source_id") or f"sec-{event_id}"
     if not conn.execute("SELECT 1 FROM event_sources WHERE event_id=? AND source_id=? AND statement=?",
                         (event_id, source_id, extracted.get("statement"))).fetchone():
         db.add_event_source(conn, event_id, source_id, source_type,

@@ -160,7 +160,7 @@ def test_wire_fixtures_parse(name):
     assert all(item["title"] and item["url"].startswith("http") for item in items)
 
 
-def test_gmab_oct5_release_replays_as_single_p1_alert(tmp_path):
+def test_gmab_oct5_release_remains_visible_without_verified_primary_outcome(tmp_path):
     """The Genmab EPCORE DLBCL-2 release that was missed on 2026-10-05, replayed from real feeds."""
     conn = db.connect(tmp_path / "gmab.db")
     feeds = {url: _feed(name) for name, url in WIRE_FEEDS}
@@ -172,7 +172,8 @@ def test_gmab_oct5_release_replays_as_single_p1_alert(tmp_path):
     assert json.loads(gmab[0]["new_value"])["outcome"]["polarity"] == "positive"
     alerts = conn.execute("SELECT payload_json FROM alert_outbox WHERE change_id=?", (gmab[0]["change_id"],)).fetchall()
     assert len(alerts) == 1
-    assert json.loads(alerts[0]["payload_json"])["priority"] == "P1"
+    assert json.loads(alerts[0]["payload_json"])["priority"] == "P2"
+    assert json.loads(alerts[0]["payload_json"])["popup_eligible"] is False
 
 
 def test_fda_fixtures_from_runner_record_without_paging(tmp_path):
@@ -198,11 +199,11 @@ def test_alias_resolution_is_unique_or_nothing():
 
 # 4 — P1 only for watchlist tickers; unattributed signals never page ----------------------
 
-def test_p1_requires_watched_ticker():
+def test_p1_requires_verified_identity_and_source_outcome():
     material = {"material": True}
     assert alert_priority("fda_release_signal", "high", material, ticker=None, watched=False) == "P3"
     assert alert_priority("fda_release_signal", "high", material, ticker="ZZZZ", watched=False) == "P2"
-    assert alert_priority("fda_release_signal", "high", material, ticker="GMAB", watched=True) == "P1"
+    assert alert_priority("fda_release_signal", "high", material, ticker="GMAB", watched=True) == "P2"
     assert alert_priority("nasdaq_halt_signal", "critical", {}, ticker="ZZZZ", watched=False) == "P2"
     assert alert_priority("nasdaq_volatility_pause", "high", {}, ticker="GMAB", watched=True) == "P2"
     # A non-material headline-only release is browsing, not an alert, even for a watched name.
@@ -259,7 +260,8 @@ def test_site_lists_alerts_even_when_push_is_off_or_warmup_silenced(tmp_path):
     alerts = alert_dispatch.recent_alerts(conn)
     assert [a["change_id"] for a in alerts] == [change_id]
     alert = alerts[0]
-    assert alert["ticker"] == "GMAB" and alert["priority"] == "P1" and alert["polarity"] == "positive"
+    assert alert["ticker"] == "GMAB" and alert["priority"] == "P2" and alert["polarity"] == "unknown"
+    assert alert["popup_eligible"] is False
     assert alert["headline"] == "Genmab announces positive topline results" and alert["delivered"] is False
     from datetime import date
     from mozes.payload_v3 import build
@@ -464,12 +466,18 @@ def test_corpus_size_and_real_share():
 @pytest.mark.parametrize("polarity,material,origin,strictness,headline",
                          [r for r in _corpus() if r[3] == "must"])
 def test_corpus_must_rows(polarity, material, origin, strictness, headline):
+    adjudication = json.loads((FIXTURES / 'a5/legacy_label_adjudications.json').read_text()).get(headline)
+    if adjudication:
+        assert adjudication['reason']
+        polarity, material = adjudication['polarity'], adjudication['material']
     result = classify_outcome(headline)
     assert (result["polarity"], result["material"]) == (polarity, material), headline
 
 
 def test_corpus_has_no_sign_flips_and_high_agreement():
-    rows = _corpus()
+    adjudications = json.loads((FIXTURES / 'a5/legacy_label_adjudications.json').read_text())
+    rows = [(adjudications[h]['polarity'], adjudications[h]['material'], o, s, h) if h in adjudications else (p,m,o,s,h)
+            for p,m,o,s,h in _corpus()]
     flips = [h for p, _m, _o, _s, h in rows
              if {p, classify_outcome(h)["polarity"]} == {"positive", "negative"}]
     assert flips == []

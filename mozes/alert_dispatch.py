@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 
 from . import db
 from .latency_metrics import mark_queued, mark_sent, record_detection
-from .materiality import ALERTABLE_CHANGE_TYPES, PRIORITY_RANK, alert_priority, classify_outcome, should_enqueue
+from .materiality import ALERTABLE_CHANGE_TYPES, PRIORITY_RANK, alert_priority, classify_outcome, should_enqueue, interruptive_outcome
 from .priority import priority_tickers
 from .security import tradability
 
@@ -103,11 +103,23 @@ def build_stage1_payload(conn, change_id):
     elif new_value is not None:
         text_bits.append(str(new_value))
     stored_outcome = new_value.get("outcome") if isinstance(new_value, dict) else None
-    outcome = stored_outcome if isinstance(stored_outcome, dict) else classify_outcome(" ".join(text_bits))
+    basis = 'feed_summary' if isinstance(new_value, dict) and new_value.get('summary') else 'headline_only'
+    as_of = (new_value.get('published_at') or new_value.get('accepted')) if isinstance(new_value, dict) else None
+    outcome = classify_outcome("\n".join(text_bits), basis=basis, as_of=as_of or row['detected_at'])
+    if isinstance(stored_outcome, dict) and stored_outcome.get('semantic_version') == 'alert-evidence-v1':
+        outcome = dict(stored_outcome)  # Current producer classified the actual fetched body.
+    if row['source_type'] == 'nasdaq_halts' and isinstance(new_value, dict) and new_value.get('reason_code'):
+        outcome.update(material=True, event_family='market_halt', event_outcome='volatility_pause' if row['change_type'] == 'nasdaq_volatility_pause' else 'halt',
+                       confirmed_outcome=True, needs_review=False, uncertainty_status='none', evidence_basis='structured_source')
+    if isinstance(stored_outcome, dict):
+        # Retain routing flags; legacy polarity is not evidence of a completed decision.
+        outcome.update({k: stored_outcome[k] for k in ('relevant', 'actionable', 'catalyst', 'kind') if k in stored_outcome})
+        if stored_outcome.get('catalyst') and stored_outcome.get('material'):
+            outcome['material'] = True  # Upcoming research remains in the list, never a completed outcome.
     watched = is_watched(conn, row["ticker"])
     verified = verified_issuer_identity(conn, row["ticker"])
     priority = alert_priority(row["change_type"], row["severity"], outcome,
-                              ticker=row["ticker"], watched=watched or bool(verified))
+                              ticker=row["ticker"], watched=watched, issuer_verified=bool(verified))
     published = None
     if isinstance(new_value, dict):
         published = new_value.get("published_at")
@@ -118,6 +130,10 @@ def build_stage1_payload(conn, change_id):
         "ticker": row["ticker"],
         "watched": watched,
         "verified_issuer_cik": verified["cik"] if verified else None,
+        "issuer_verified": bool(verified),
+        "popup_eligible": bool(verified) and interruptive_outcome(outcome) and priority in {'P1', 'P2'},
+        **{k: outcome.get(k) for k in ('event_family', 'event_outcome', 'confirmed_outcome', 'needs_review',
+                                     'uncertainty_status', 'evidence_basis', 'semantic_version')},
         "change_id": change_id,
         "edge_event_ids": [r[0] for r in conn.execute(
             "SELECT edge_event_id FROM edge_event_links WHERE change_id=? OR change_id IN "
@@ -214,6 +230,14 @@ def material_story_state(payload):
     value = payload.get("new_value")
     text = " ".join(str(value.get(k) or "") for k in ("headline", "title", "summary")) if isinstance(value, dict) else str(value or "")
     outcome = payload.get("outcome") or classify_outcome(text)
+    if outcome.get('semantic_version') != 'alert-evidence-v1':
+        # Compare like policy versions without changing the earlier stored payload.
+        normalized = classify_outcome(text, basis='feed_summary' if isinstance(value, dict) and value.get('summary') else 'headline_only',
+                                      as_of=payload.get('published_at') or payload.get('accepted_at') or payload.get('detected_at'))
+        normalized.update({k: outcome[k] for k in ('relevant','actionable','catalyst','kind') if k in outcome})
+        if outcome.get('catalyst') and outcome.get('material'):
+            normalized['material'] = True
+        outcome = normalized
     change_type = payload.get("change_type") or ""
     family = "release" if change_type in {"wire_release_signal", "company_release_signal", "news_signal"} else change_type
     if outcome.get('relevant') and change_type in {'sec_material_filing','fda_release_signal','wire_release_signal','company_release_signal','news_signal'}:

@@ -12,10 +12,11 @@ export function classifyClinical(raw, outcome = { material: false, polarity: "un
   const routine = has("conference") && has("routine") && !has("data") && !has("regulatory");
   const management = has("management", sample.slice(0, 220)) && !has("data", sample.slice(0, 220)) && !has("milestone", sample.slice(0, 220));
   const catalyst = relevant && future && (has("data") || has("regulatory") || has("milestone")) && !routine && !management;
-  const actionable = !future && !routine && !management && (Boolean(outcome.material) || has("regulatory_event"));
+  const actionable = !future && !routine && !management && Boolean(outcome.material);
   const material = actionable || catalyst && (has("important") || has("regulatory")) || relevant&&has('milestone')&&has('important')&&!routine&&!management;
   const kind = routine ? "routine_conference" : management ? "management_update" : catalyst ? "upcoming_catalyst" : actionable ? "confirmed_development" : relevant ? "clinical_update" : "outside_scope";
-  return { relevant, material, actionable, catalyst, polarity: future || routine || management ? "unknown" : outcome.polarity,
+  return { ...outcome, relevant, material, actionable, catalyst, polarity: future || routine || management ? "unknown" : outcome.polarity,
+    confirmed_outcome:outcome.confirmed_outcome===true&&!future&&!routine&&!management,
     kind, suppression_reason: routine ? "routine_conference" : !relevant || management ? "outside_scope" : !material ? "low_materiality" : null,
     method: rules.version };
 }

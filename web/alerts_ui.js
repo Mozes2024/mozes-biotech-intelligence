@@ -62,9 +62,15 @@ function alertDeliveryHe(a){
 }
 function alertAnalysisHtml(a){
   const x=a.explanation;
-  if(!x)return '<div class="company">הסבר לפי המקור: ממתין לקריאת תוכן ההודעה.</div>';
+  const notice=interruptiveAlertEligible(a)?'זהות המנפיק ותוצאה מהותית מבוססת מקור אומתו.':
+    a.semantic_version==='alert-evidence-v1'?'מוצג ברשימה בלבד: אין תוצאה מהותית מאומתת המתאימה להתראה קוטעת.':
+    'מוצג ברשימה בלבד: נתוני הזכאות להתראה קוטעת חסרים. הסיווג ההיסטורי נשמר.';
+  const displayNotice=interruptiveAlertEligible(a)&&!(x?.evidence?.length)?
+    ' ציטוט המקור אינו מוצג; הזכאות נשענת על אימות המקור שסופק, ולא על קיום ציטוט בתצוגה.':'';
+  const policy=`<div class="company">${esc(notice+displayNotice)}</div>`;
+  if(!x)return policy+'<div class="company">הסבר לפי המקור: ממתין לקריאת תוכן ההודעה.</div>';
   const basis={source_text:'תוכן המקור נקרא',feed_summary:'נקרא תקציר ההודעה בלבד',headline_only:'כותרת בלבד',structured_source:'נתונים מובנים מהמקור'};
-  return `<div class="company"><b>בסיס ההסבר:</b> ${esc(basis[x.basis]||'לא ידוע')}${x.ai_status==='used'?' · ניסוח בסיוע מודל שפה':''}</div>`+
+  return policy+`<div class="company"><b>בסיס ההסבר:</b> ${esc(basis[x.basis]||'לא ידוע')}${x.ai_status==='used'?' · ניסוח בסיוע מודל שפה':''}</div>`+
     (x.evidence||[]).map(e=>`<blockquote class="alert-evidence" dir="auto">${esc(e.quote)}</blockquote>`).join('')+
     (x.missing_he||[]).map(text=>`<div class="company">${esc(text)}</div>`).join('');
 }
