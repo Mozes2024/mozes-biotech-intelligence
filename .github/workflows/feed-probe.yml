@@ -10,6 +10,10 @@ on:
         description: 'Read-only TYRA HTTP, XML, dates and official-host diagnostic'
         type: boolean
         default: false
+      edge_backlog:
+        description: 'Fixed read-only SELECT of backlog age, retries and completion evidence'
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -34,3 +38,8 @@ jobs:
       - name: Inspect official TYRA RSS and HTML without monitor state
         if: inputs.tyra
         run: python scripts/probe_tyra_ir.py
+      - name: Read Edge backlog without mutations
+        if: inputs.edge_backlog
+        env:
+          CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
+        run: python scripts/audit_edge_backlog.py
