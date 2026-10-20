@@ -32,6 +32,9 @@ def inspect(*, token, opener=urllib.request.urlopen):
 
 if __name__ == '__main__':
     try:
-        print(json.dumps(inspect(token=os.environ['CLOUDFLARE_RECOVERY_READ_TOKEN'])))
+        result = inspect(token=os.environ['CLOUDFLARE_RECOVERY_READ_TOKEN'])
+        print(json.dumps({key: value for key, value in result.items() if key != 'events'}))
+        for row in result['events']:
+            print(json.dumps({'event': row}))
     except (OSError, KeyError, ValueError):
         raise SystemExit('Read-only backlog audit unavailable; no writes attempted') from None
