@@ -199,13 +199,20 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
         if not site:
             observe(conn, "official_feed:" + ticker, {"status": "no_official_site", "checked_at": checked_at}, source_type="company_ir")
             continue
+        feed_error = None
         try:
             known_feed = entry.get("feed_url")
-            feed = known_feed if (known_feed and _same_official_host(known_feed, site)) else discover_official_feed(site, fetch)
             items = []
+            feed = None
+            try:
+                feed = known_feed if (known_feed and _same_official_host(known_feed, site)) else discover_official_feed(site, fetch)
+                if feed:
+                    items = parse_official_feed(fetch(feed), site=site, now=now)
+            except (OSError, ValueError, ET.ParseError, UnicodeError, http.client.HTTPException) as exc:
+                feed_error = f"{type(exc).__name__}: {exc}"[:160]
+                feed = None
             feed_url = feed
             if feed:
-                items = parse_official_feed(fetch(feed), site=site, now=now)
                 checked += 1
                 observe(conn, "official_feed:" + ticker, {"status": "active", "site": site, "feed": feed,
                                                           "checked_at": checked_at, "known_feed": bool(known_feed)},
@@ -213,9 +220,12 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
             else:
                 # no_rss_found is no longer a dead end: HTML press index is Stage-1 discovery.
                 entries = discover_press_index(site, fetch, entries=True)
+                if feed_error and not entries:
+                    errors.append({"ticker": ticker, "error": feed_error})
                 observe(conn, "official_feed:" + ticker,
-                        {"status": "html_fallback" if entries else "no_rss_found",
-                         "site": site, "index_links": len(entries), "checked_at": checked_at},
+                        {"status": "html_fallback" if entries else "fetch_error" if feed_error else "no_rss_found",
+                         "site": site, "index_links": len(entries), "checked_at": checked_at,
+                         "feed_error": feed_error},
                         source_url=site, source_type="company_ir")
                 feed_url = site
                 # An HTML index has no dates: the first sighting is a baseline, only later additions are news.
@@ -243,7 +253,8 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                 added += conn.total_changes > before
         except (OSError, ValueError, ET.ParseError, UnicodeError, http.client.HTTPException) as exc:
             errors.append({"ticker": ticker, "error": f"{type(exc).__name__}: {exc}"[:160]})
-            observe(conn, "official_feed:" + ticker, {"status": "fetch_error", "site": site, "checked_at": checked_at},
+            observe(conn, "official_feed:" + ticker, {"status": "fetch_error", "site": site, "checked_at": checked_at,
+                                                      "error": f"{type(exc).__name__}: {exc}"[:160], "feed_error": feed_error},
                     source_url=site, source_type="company_ir")
     return {"checked": checked, "signals_seen": added, "errors": errors}
 
