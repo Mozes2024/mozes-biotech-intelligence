@@ -108,7 +108,7 @@ def test_success_ack_requires_identity_order_and_verified_deployment(problem):
 
 def test_pages_serializes_deploy_and_checks_snapshot_before_publish():
     text=Path('.github/workflows/pages.yml').read_text()
-    assert 'group: pages' in text and 'cancel-in-progress: false' in text
+    assert 'group: mozes-hot-monitor' in text and 'cancel-in-progress: false' in text
     assert text.index('publication_control preflight') < text.index('uses: actions/deploy-pages@v4')
     assert 'timeout-minutes: 8' in text
 
