@@ -199,15 +199,26 @@ def test_browser_freshness_ages_independently_of_export_time():
     assert result.returncode == 0, result.stderr
 
 
-def test_complete_inventory_beyond_old_lifetime_limit(monkeypatch):
+@pytest.mark.parametrize('out_of_order', [False, True])
+def test_complete_inventory_beyond_old_lifetime_limit(monkeypatch, out_of_order):
+    from threading import Event
     rows = [{'id': i} for i in range(1, 3102)]
     visited = []
+    third_page = Event()
     def api(path):
-        page = int(path.rsplit('=', 1)[1]); visited.append(page)
+        page = int(path.rsplit('=', 1)[1])
+        if out_of_order and page == 2:
+            assert third_page.wait(5), 'concurrent third-page request never arrived'
+        visited.append(page)
+        if page == 3:
+            third_page.set()
         return {'total_count': len(rows), 'workflow_runs': rows[(page-1)*100:page*100]}
     monkeypatch.setattr(pages, 'api', api)
     assert pages.inventory('workflows/x/runs?exclude_pull_requests=true', 'workflow_runs') == rows
-    assert visited == list(range(1, 33))
+    assert sorted(visited) == list(range(1, 33))
+    assert len(visited) == len(set(visited))
+    if out_of_order:
+        assert visited.index(3) < visited.index(2)
 
 
 @pytest.mark.parametrize('problem', ['missing', 'duplicate', 'count_changed', 'time_budget'])
