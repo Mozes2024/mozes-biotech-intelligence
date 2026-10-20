@@ -4,6 +4,10 @@ Failed runs 39402359125, 39410024253, 39411904492 and 39423501327 all exhausted
 the 300-second restore budget while serialized producers were still active.
 Three dispatches can occupy the writer queue longer than five minutes. Merely
 retrying the same cross-workflow race cannot guarantee a publication opportunity.
+Another confirmed defect: completed/skipped Pages runs triggered by PR CI restart
+the two-minute publication-dispatch throttle despite making no publication request.
+Ignore those terminal no-op runs for throttling and last-attempt reporting; live
+runs and genuine failed requests retain the existing coalescing/backoff rules.
 
 Proposed fix: put Pages under the existing `mozes-hot-monitor` workflow queue,
 with cancellation disabled and `queue: max`, through build, deployment and receipt.

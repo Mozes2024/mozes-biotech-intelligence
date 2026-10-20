@@ -62,6 +62,12 @@ def test_live_pages_run_suppresses_duplicate_dispatch_even_when_old(status):
     assert dispatch_decision([{'status':status,'created_at':(NOW-timedelta(hours=1)).isoformat()}],now=NOW)=='publish_running'
 
 
+def test_skipped_ci_pages_run_does_not_throttle_a_real_publication_request():
+    rows=[{'status':'completed','conclusion':'failure','created_at':(NOW-timedelta(minutes=5)).isoformat()},
+          {'status':'completed','conclusion':'skipped','created_at':(NOW-timedelta(seconds=10)).isoformat()}]
+    assert dispatch_decision(rows,now=NOW)=='publish_requested_new'
+
+
 @pytest.mark.parametrize('conclusion', ['failure','cancelled','success'])
 def test_terminal_attempt_throttle_is_two_minutes_never_one_hour(conclusion):
     def decision(age):
