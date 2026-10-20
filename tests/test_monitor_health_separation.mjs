@@ -59,3 +59,23 @@ test('fresh missing-source observations cannot manufacture a successful source s
   assert.equal(h.sources_stale,true);
   assert.equal(h.current_partial_sources,1);
 });
+
+test('banner keeps coverage gaps red while identifying recovered publication and bounded IR', () => {
+  const c=vm.createContext({D:{},esc:String,MozesCheckpointHealth:()=>({
+    stale:false,sources_stale:false,publication_stale:false,failed_sources:2,stale_sources:0,
+    current_failed_sources:1,current_partial_sources:1,unconfigured_observations:60,
+    ir_coverage:{configured_count:41,priority_count:40,rotating_count:1,rotating_per_cycle:8,
+      configured_without_observation:['TYRA'],watch_without_configured_site:156},
+    checkpoint_at:'2026-10-20T11:59:00Z',age_minutes:1,publication_at:'2026-10-20T11:59:30Z'
+  })});
+  const app=readFileSync('web/app.js','utf8');
+  vm.runInContext(app.slice(app.indexOf('function checkpointBanner()'),app.indexOf('function render(){')),c);
+  const html=c.checkpointBanner();
+  assert.match(html,/red-note/);
+  assert.match(html,/פרסום: מעודכן/);
+  assert.match(html,/מוגדרות שטרם נבדקו: 1/);
+  assert.match(html,/עדיפות: 40/);
+  assert.match(html,/בסבב: 1/);
+  assert.match(html,/ללא אתר IR מוגדר: 156/);
+  assert.match(html,/תצפיות מחוץ לתצורת המקורות: 60/);
+});

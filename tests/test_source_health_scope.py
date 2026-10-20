@@ -30,6 +30,21 @@ def test_source_failure_and_recovery_preserve_history_without_current_failure(tm
     assert recovered['last_success_at'] == '2026-10-20T08:00:00Z'
 
 
+def test_retired_feed_and_incomplete_legacy_success_remain_visible_but_not_current(tmp_path):
+    conn = db.connect(tmp_path / 'legacy.db')
+    observe(conn, 'wire_feed:retired', {'status':'fetch_error', 'checked_at':'2026-10-01T08:00:00Z'})
+    observe(conn, 'official_feed:SLS', {'status':'no_rss_found', 'checked_at':'2026-10-20T08:00:00Z'})
+    row = conn.execute("SELECT value_json FROM monitor_observations WHERE observation_key='official_feed:SLS'").fetchone()
+    value = json.loads(row[0])
+    value['last_success_at'] = value['checked_at']
+    conn.execute("UPDATE monitor_observations SET value_json=? WHERE observation_key='official_feed:SLS'", (json.dumps(value),))
+    rows = {r['source']:r for r in _health(conn, [], None, None)['source_freshness']}
+    assert rows['wire_feed:retired']['monitoring_scope'] == 'retired_feed'
+    assert rows['wire_feed:retired']['in_scope'] is False
+    assert rows['wire_feed:retired']['status'] == 'FAILED'
+    assert rows['official_feed:SLS']['last_success_at'] is None
+
+
 def test_backlog_audit_only_issues_fixed_select():
     from scripts.audit_edge_backlog import inspect, SQL, URL
     class Response:

@@ -18,6 +18,7 @@ from .alert_feed import channel_configuration
 from .live_monitor import recent_changes
 from .priority import priority_tickers
 from .ir_registry import load_ir_registry
+from .primary_feeds import FDA_FEEDS, WIRE_FEEDS
 from .live_intelligence import enrich_live_rows
 from .financial_context import enrich_financial_context, operation_health
 from .latency_metrics import summary as latency_summary
@@ -160,6 +161,7 @@ def _health(conn, live, refresh, monitor):
     operations = operation_health(conn).get("modules", {})
     source_freshness = []
     registry = load_ir_registry()
+    active_feeds = {"fda_feed:" + name for name, _ in FDA_FEEDS} | {"wire_feed:" + name for name, _ in WIRE_FEEDS}
     source_rows = conn.execute("SELECT observation_key,value_json,observed_at,source_type FROM monitor_observations "
                                "WHERE observation_key LIKE 'fda_feed:%' OR observation_key LIKE 'wire_feed:%' "
                                "OR observation_key LIKE 'sec_latest:%' OR observation_key LIKE 'official_feed:%' "
@@ -171,6 +173,8 @@ def _health(conn, live, refresh, monitor):
             "PARTIAL" if value.get("status") in {"no_official_site", "no_rss_found", "PARTIAL"} else "OK")
         ticker = source["observation_key"].split(":", 1)[-1]
         scope = ("configured_ir" if ticker in registry else "discovered_ir" if value.get("site") else "unconfigured_ir") if source["observation_key"].startswith("official_feed:") else "primary_feed"
+        if source["observation_key"].startswith(("fda_feed:", "wire_feed:")) and source["observation_key"] not in active_feeds:
+            scope = "retired_feed"
         checked = value.get("last_checked_at") or value.get("checked_at") or source["observed_at"]
         success = value.get("last_success_at")
         # Older collectors called a missing IR source a success. Do not export that as a scan.
@@ -178,7 +182,7 @@ def _health(conn, live, refresh, monitor):
             success = None
         item = {"source": source["observation_key"], "status": status,
                 "source_type": source["source_type"], "observation_status": value.get("status"),
-                "monitoring_scope": scope, "in_scope": scope != "unconfigured_ir",
+                "monitoring_scope": scope, "in_scope": scope not in {"unconfigured_ir", "retired_feed"},
                 "last_checked_at": checked,
                 "last_success_at": success,
                 "last_error_at": value.get("last_error_at"),
@@ -186,7 +190,7 @@ def _health(conn, live, refresh, monitor):
                 "consecutive_failures": value.get("consecutive_failures", 0)}
         source_freshness.append(item)
         if not item["in_scope"]:
-            info.append({"module": item["source"], "status": "UNCONFIGURED", "details": item})
+            info.append({"module": item["source"], "status": "OUTSIDE_CURRENT_CONFIGURATION", "details": item})
         elif status == "FAILED":
             red.append({"module": item["source"], "status": status, "details": item})
         elif status == "PARTIAL":
