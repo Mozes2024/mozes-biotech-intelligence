@@ -61,7 +61,7 @@ test('fresh missing-source observations cannot manufacture a successful source s
 });
 
 test('banner keeps coverage gaps red while identifying recovered publication and bounded IR', () => {
-  const c=vm.createContext({D:{},esc:String,MozesCheckpointHealth:()=>({
+  const c=vm.createContext({D:{health:{source_freshness:[{source:'official_feed:TYRA',status:'FAILED',in_scope:true,last_error:'HTTP 403'}]}},esc:String,MozesCheckpointHealth:()=>({
     stale:false,sources_stale:false,publication_stale:false,failed_sources:2,stale_sources:0,
     current_failed_sources:1,current_partial_sources:1,unconfigured_observations:60,
     ir_coverage:{configured_count:41,priority_count:40,rotating_count:1,rotating_per_cycle:8,
@@ -72,6 +72,11 @@ test('banner keeps coverage gaps red while identifying recovered publication and
   vm.runInContext(app.slice(app.indexOf('function checkpointBanner()'),app.indexOf('function render(){')),c);
   const html=c.checkpointBanner();
   assert.match(html,/red-note/);
+  assert.match(html,/<details><summary>פירוט כשלים, כיסוי וזמני ניטור<\/summary>/);
+  assert.doesNotMatch(html,/<details[^>]*\sopen/);
+  assert.ok(html.indexOf('מקורות: 1 כשלו · 1 חלקיים')<html.indexOf('<details>'));
+  assert.ok(html.indexOf('official_feed:TYRA')>html.indexOf('<details>'));
+  assert.match(html,/HTTP 403/);
   assert.match(html,/פרסום: מעודכן/);
   assert.match(html,/מוגדרות שטרם נבדקו: 1/);
   assert.match(html,/עדיפות: 40/);
