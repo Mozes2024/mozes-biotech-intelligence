@@ -39,8 +39,11 @@ v0.3 adds the daily-use product surface on top of the v0.2 research engine:
 - `mozes app` runs the only supported local UI + JSON API on `127.0.0.1`.
 - The dashboard includes a filterable Radar, event detail drawer, provenance, risks, evidence explanations, CT.gov candidates, resolved events, Paper Signals, validation and system status.
 - `mozes export-v3` creates `web/data.json` for static/cloud hosting.
+- `web/data.json` is ignored generated output; run the export before local static hosting. It is not a checkpoint or a committed production snapshot.
 - The SPA works in both modes: live API when `mozes app` is running, or a read-only static snapshot on GitHub Pages.
 - GitHub Pages deployment is included in `.github/workflows/pages.yml`.
+
+Operational diagnosis, preservation and approval boundaries: [recovery runbook](docs/operations-recovery-runbook.md).
 
 ## Recommended start
 
