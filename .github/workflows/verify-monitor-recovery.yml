@@ -25,7 +25,7 @@ jobs:
           persist-credentials: false
       - name: Require trusted verification ref
         # Permit isolated rehearsal before merge; this workflow cannot process alerts.
-        run: python -c "import os; assert os.environ['GITHUB_REF'] in ('refs/heads/main', 'refs/heads/codex/bio-recovery-20261020'), 'trusted verification ref required'"
+        run: python -c "import os; assert os.environ['GITHUB_REF'] in ('refs/heads/main', 'refs/heads/codex/bio-recovery-20261020', 'refs/heads/codex/bio-evidence-20261020'), 'trusted verification ref required'"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -36,3 +36,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
         run: python scripts/restore_monitor_state.py --run-id 39310031856 --verify-recovery-only
+      - name: Inspect retained TYRA identities without processing
+        env:
+          EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
+        run: python scripts/inspect_tyra_edge.py
