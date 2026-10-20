@@ -15,9 +15,12 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  group: pages
-  # Serialize the whole build/deploy/ack boundary; pending requests coalesce.
+  # The read-only consumer owns the same lock through build/deploy/receipt.
+  group: mozes-hot-monitor
   cancel-in-progress: false
+  queue: max
+env:
+  MOZES_PAGES_LINEAGE_LOCK: mozes-hot-monitor
 jobs:
   build:
     if: >-

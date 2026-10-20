@@ -61,6 +61,9 @@ def dispatch_decision(rows, *, now):
     require(all(r.get('status') in ('completed', *ACTIVE) for r in rows), 'publication_inventory')
     if any(r['status'] in ACTIVE for r in rows):
         return 'publish_running'
+    # PR CI creates completed/skipped Pages runs without a publication request.
+    # They must not restart the two-minute dispatch throttle or act as an ACK.
+    rows = [r for r in rows if r.get('conclusion') != 'skipped']
     if rows and (now - max(stamp(r['created_at']) for r in rows)).total_seconds() < 120:
         return 'publish_requested'
     return 'publish_requested_new'
@@ -82,7 +85,7 @@ def dispatch():
         state = 'publish_requested'
     elif state == 'publish_running':
         print('publication_blocked category=pages_running; monitoring continues')
-    terminal = sorted((r for r in rows if r['status'] == 'completed'), key=lambda r: stamp(r['created_at']), reverse=True)
+    terminal = sorted((r for r in rows if r['status'] == 'completed' and r.get('conclusion') != 'skipped'), key=lambda r: stamp(r['created_at']), reverse=True)
     if terminal:
         print('last_attempt=' + ('publish_requested' if terminal[0].get('conclusion') == 'success' else 'publish_failed'))
     receipt_path = Path('.monitor/published-ledger.json')

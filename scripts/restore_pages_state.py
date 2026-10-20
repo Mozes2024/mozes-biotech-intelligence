@@ -99,6 +99,17 @@ def newest():
         if run['status'] == 'completed':
             require(run.get('conclusion') in ('success', 'failure', 'cancelled'), 'unknown_producer_conclusion')
         jobs = collection(api(f"runs/{run['id']}/jobs?filter=all&per_page=100"), 'jobs')
+        # Under the common workflow lock, a waiting producer cannot touch the DB.
+        # Never infer that from status alone: ordinary readers still fail closed,
+        # and any job/step execution is a conflicting writer even in this context.
+        locked_consumer = (os.environ.get('MOZES_PAGES_LINEAGE_LOCK') == 'mozes-hot-monitor'
+                           and os.environ.get('GITHUB_WORKFLOW') == 'deploy-pages'
+                           and os.environ.get('GITHUB_REF') == 'refs/heads/main')
+        if locked_consumer and run['status'] in ('pending', 'queued'):
+            require(not any(a.get('workflow_run', {}).get('id') == run['id'] for a in artifacts)
+                    and all(j.get('status') == 'queued' and not j.get('started_at')
+                            and not j.get('steps') for j in jobs), 'producer_busy')
+            continue
         # A live owner is a transient publishing conflict, not proof that the
         # last checkpoint is invalid. Wait, then redo the complete selection.
         require(run['status'] == 'completed', 'producer_busy')
