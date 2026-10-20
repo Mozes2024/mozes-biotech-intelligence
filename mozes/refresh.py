@@ -144,7 +144,7 @@ def _select_issuer_batch(conn, eligible, limit=25):
     chosen = [ticker for ticker in priority_tickers() if ticker in by_ticker]
     material = sorted((r for r in eligible if r['pending_material_at']),
                       key=lambda r: (r['last_attempt'] is None, r['pending_material_at'], r['ticker']))[:10]
-    chosen.extend(r['ticker'] for r in material if r['ticker'] not in chosen)
+    chosen = list(dict.fromkeys([r['ticker'] for r in material] + chosen))
     late_stage = {r['ticker'] for r in conn.execute(
         "SELECT DISTINCT ticker FROM discovery_candidates WHERE ticker IS NOT NULL "
         "AND UPPER(phase) LIKE '%PHASE3%' AND promoted_event_id IS NULL")}
@@ -154,7 +154,11 @@ def _select_issuer_batch(conn, eligible, limit=25):
         if row['ticker'] in late_stage and row['ticker'] not in chosen and row['last_attempt'] is None:
             chosen.append(row['ticker'])
     chosen.extend(r['ticker'] for r in oldest if r['ticker'] not in chosen)
-    return chosen[:limit]
+    # Reserve one fifth of the existing budget for aging non-hot discoveries.
+    # Selection reads the durable attempt cursor, including failures and restarts.
+    hot = set(priority_tickers())
+    fair = [r['ticker'] for r in oldest if r['ticker'] not in hot][:max(1, limit // 5)] if limit > 0 else []
+    return [ticker for ticker in chosen if ticker not in fair][:max(0, limit-len(fair))] + fair
 
 
 def verify_candidates_from_sec(conn, filings_per_company=12, budget_seconds=120, *, deadline=None, tickers=None):

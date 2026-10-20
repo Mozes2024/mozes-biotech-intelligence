@@ -104,7 +104,7 @@ for(const field of ['source_run_id','artifact_id','db_sha256'])test(`downloaded 
 test('production offset banner ages across the 45-minute threshold',async()=>{
  const h=harness(data(production()));h.now(Date.parse('2026-10-12T10:43:40Z'));
  h.responses.push(update({...production(),checkpoint_at:'2026-10-12T09:58:40Z'}));await h.poll();
- assert.match(h.elements.get('checkpointFreshness').outerHTML,/תמונת הניטור מעודכנת/);
+ assert.match(h.elements.get('checkpointFreshness').outerHTML,/עותק הנתונים מעודכן/);
  h.now(Date.parse('2026-10-12T10:43:40.001Z'));h.responses.push(update(production()));await h.poll();
  assert.match(h.elements.get('checkpointFreshness').outerHTML,/נתונים ישנים/);assert.equal(h.requests.length,2);
  assert.equal(h.snapshot().checkpoint_at,production().checkpoint_at);
@@ -155,7 +155,7 @@ test('hidden tab skips minute polling and catches up on visibility restoration',
 });
 test('unchanged snapshot crosses 45 minutes truthfully, without replacing loaded checkpoint',async()=>{
  const h=harness(data(cp('2026-10-12T11:16:00+00:00')));h.responses.push(update(cp('2026-10-12T11:16:00+00:00')));await h.poll();
- assert.match(h.elements.get('checkpointFreshness').outerHTML,/תמונת הניטור מעודכנת/);
+ assert.match(h.elements.get('checkpointFreshness').outerHTML,/עותק הנתונים מעודכן/);
  h.now(NOW+120000);h.responses.push(update(cp('2026-10-12T11:16:00+00:00')));await h.poll();
  assert.match(h.elements.get('checkpointFreshness').outerHTML,/נתונים ישנים — תמונת מצב בלבד/);assert.equal(h.snapshot().checkpoint_at,'2026-10-12T11:16:00+00:00');
 });
