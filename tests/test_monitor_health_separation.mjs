@@ -79,3 +79,14 @@ test('banner keeps coverage gaps red while identifying recovered publication and
   assert.match(html,/ללא אתר IR מוגדר: 156/);
   assert.match(html,/תצפיות מחוץ לתצורת המקורות: 60/);
 });
+
+test('forty-minute data is delayed even inside the unchanged hard freshness guard', () => {
+  const data={checkpoint_at:'2026-10-20T11:20:00Z',generated_at:'2026-10-20T11:59:00Z'};
+  const h=context.MozesCheckpointHealth(data,now);
+  assert.equal(h.stale,false);
+  assert.equal(h.publication_delayed,true);
+  assert.equal(h.checkpoint_to_export_minutes,39);
+  assert.equal(h.publication_stale,false);
+  for(const [checkpoint_at,delayed] of [['2026-10-20T11:40:01Z',false],['2026-10-20T11:40:00Z',true]])
+    assert.equal(context.MozesCheckpointHealth({checkpoint_at},now).publication_delayed,delayed);
+});
