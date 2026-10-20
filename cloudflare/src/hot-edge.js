@@ -553,11 +553,27 @@ export class HotEdge {
   }
   async reconcileGaps(health) {
     const gaps=Object.values(this.sourceState || {}).filter(s=>s.gap);
-    if (!gaps.length) {if(health.sources.reconciliation)health.sources.reconciliation.status='NOT_NEEDED';return;}
+    let idleWatchdog=false;
+    if (!gaps.length && this.env.EDGE_MONITOR_WATCHDOG_ENABLED==='1') {
+      // Publication age is only a liveness hint, never checkpoint/recovery proof.
+      let feed;
+      try {feed=await this.db.prepare('SELECT generated_at FROM alert_feed WHERE id=1').first();}
+      catch(error) {this.failure(health,'reconciliation',new Date().toISOString(),error);return;}
+      const stamp=Date.parse(feed?.generated_at),age=Date.now()-stamp;
+      health.monitor_liveness={feed_generated_at:feed?.generated_at || null,status:
+        !Number.isFinite(age)||age<0?'UNKNOWN':age>2400000?'RECOVERY_REQUIRED':age>=1200000?'RECONCILIATION_DUE':'RECENT_HINT'};
+      idleWatchdog=health.monitor_liveness.status==='RECONCILIATION_DUE';
+    }
+    if (!gaps.length && !idleWatchdog) {if(health.sources.reconciliation)health.sources.reconciliation.status='NOT_NEEDED';return;}
     if (!this.env.GITHUB_TOKEN) return;
     const last=await this.state.storage.get('reconciliation_requested_at') || 0;
-    if (Date.now()-last<900000) return;
+    if (Date.now()-last<900000) {
+      if(idleWatchdog)health.monitor_liveness.status='THROTTLED_UNVERIFIED';
+      return;
+    }
     try {
+      // Persist before I/O: ambiguous remote acceptance cannot cause an immediate retry.
+      if(idleWatchdog)await this.state.storage.put('reconciliation_requested_at',Date.now());
       const response=await fetch(`https://api.github.com/repos/${this.env.GITHUB_REPO}/actions/workflows/${this.env.WORKFLOW_FILE || 'lightweight-monitor.yml'}/dispatches`,{
         method:'POST',headers:{Authorization:`Bearer ${this.env.GITHUB_TOKEN}`,Accept:'application/vnd.github+json','User-Agent':'mozes-hot-edge','Content-Type':'application/json'},
         body:JSON.stringify({ref:this.env.GITHUB_REF || 'main',inputs:{priority_only:'true'}}),signal:AbortSignal.timeout(8000),
@@ -565,6 +581,7 @@ export class HotEdge {
       if (response.status!==204) throw Error('reconciliation dispatch failed');
       await this.state.storage.put('reconciliation_requested_at',Date.now());
       for(const s of gaps) s.gap.reconciliation_status='REQUESTED_UNVERIFIED';
+      if(idleWatchdog)health.monitor_liveness.status='REQUESTED_UNVERIFIED';
       this.success(health,'reconciliation',new Date().toISOString());
     } catch(e) { this.failure(health,'reconciliation',new Date().toISOString(),e); }
   }

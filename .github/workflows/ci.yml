@@ -43,6 +43,7 @@ jobs:
           node cloudflare/test_alert_feed.mjs
           node --test cloudflare/test_a5_feed_contract.mjs cloudflare/test_alert_cache.mjs
           node cloudflare/test_hot_edge.mjs
+          node --test cloudflare/test_monitor_watchdog.mjs
       - name: Local D1 query plans and 24-hour workload
         run: |
           node cloudflare/profile_d1.mjs
