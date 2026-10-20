@@ -44,7 +44,8 @@ def record_change(conn, *, ticker, change_type, previous_value, new_value, sourc
     """Stable identity includes severity, so a later escalation is retained."""
     clinical = None
     if (source_type in {'wire','company_ir','sec','fda'} and isinstance(new_value,dict)
-            and new_value.get('headline') and not (metadata or {}).get('clinical_event_id')):
+            and new_value.get('headline') and not (metadata or {}).get('clinical_event_id')
+            and not (metadata or {}).get('historical_only')):
         from .clinical_events import classify_clinical, ingest_clinical, source_issuer
         headline = str(new_value['headline'])
         summary = str(new_value.get('summary') or '')

@@ -61,6 +61,8 @@ def load_aliases():
     aliases = {}
     for row in ir_entries():
         names = [part.strip() for part in re.split(r"\s*/\s*", row.get("company") or "")]
+        if row['ticker'] == 'TYRA':
+            names.append('Tyra Biosciences')
         aliases.setdefault(row["ticker"], []).extend(
             ("company", name) for name in names if len(name) >= 5)
     try:
