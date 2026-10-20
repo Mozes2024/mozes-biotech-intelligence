@@ -171,7 +171,7 @@ export class HotEdge {
     if (this.summaryLoading) return this.summaryLoading;
     this.summaryLoading = (async()=>{
       const generated_at = new Date().toISOString();
-      const backlog = await this.db.prepare("SELECT COUNT(*) AS events,SUM(CASE WHEN analysis_status<>'complete' THEN 1 ELSE 0 END) AS analysis_pending,SUM(CASE WHEN material=1 AND enrichment_ack_at IS NULL THEN 1 ELSE 0 END) AS enrichment_pending FROM edge_events").first();
+      const backlog = await this.db.prepare("SELECT COUNT(*) AS events,SUM(CASE WHEN analysis_status<>'complete' THEN 1 ELSE 0 END) AS analysis_pending,SUM(CASE WHEN analysis_status='blocked' THEN 1 ELSE 0 END) AS analysis_blocked,SUM(CASE WHEN material=1 AND enrichment_ack_at IS NULL THEN 1 ELSE 0 END) AS enrichment_pending FROM edge_events").first();
       const value = {generated_at,backlog,clinical_operations:await candidateStats(this.db),metrics:await edgeMetrics(this.db)};
       const mode=this.usage.report(this.env).mode;
       const multiplier=mode==='PROTECTION'?12:mode==='ECO'?3:1;
@@ -387,12 +387,14 @@ export class HotEdge {
         successes.push(record);
         receipts.push({event_id:event.event_id,status:'complete',attempts,completed_at:new Date().toISOString(),retry_at:null,source_hash:sourceHash,error:null});
       } catch (error) {
-        receipts.push({event_id:event.event_id,status:'failed',attempts,completed_at:null,retry_at:retryAt,source_hash:null,error:/^HTTP \d{3}$/.test(error.message)?error.message:'primary document analysis failed'});
+        const oversized=error.message==='source too large';
+        receipts.push({event_id:event.event_id,status:oversized?'blocked':'failed',attempts,completed_at:null,retry_at:oversized?null:retryAt,source_hash:null,
+          error:oversized?'primary document exceeds analysis size limit; manual source review required':/^HTTP \d{3}$/.test(error.message)?error.message:'primary document analysis failed'});
       }
     }));
     const statements=receipts.length?[db.prepare(`WITH incoming AS (SELECT json_extract(value,'$.event_id') AS event_id,value FROM json_each(?))
       UPDATE edge_events SET analysis_status=json_extract(incoming.value,'$.status'),analysis_attempts=json_extract(incoming.value,'$.attempts'),analysis_completed_at=json_extract(incoming.value,'$.completed_at'),analysis_retry_at=json_extract(incoming.value,'$.retry_at'),analysis_source_hash=COALESCE(json_extract(incoming.value,'$.source_hash'),analysis_source_hash),last_analysis_error=json_extract(incoming.value,'$.error'),
-      lifecycle=CASE WHEN json_extract(incoming.value,'$.status')='failed' THEN 'SUPPRESSED' ELSE lifecycle END,suppression_reason=CASE WHEN json_extract(incoming.value,'$.status')='failed' THEN 'source_unavailable' ELSE suppression_reason END
+      lifecycle=CASE WHEN json_extract(incoming.value,'$.status') IN ('failed','blocked') THEN 'SUPPRESSED' ELSE lifecycle END,suppression_reason=CASE WHEN json_extract(incoming.value,'$.status') IN ('failed','blocked') THEN 'source_unavailable' ELSE suppression_reason END
       FROM incoming WHERE edge_events.event_id=incoming.event_id`).bind(JSON.stringify(receipts))]:[];
     await persistWireBatch(db,successes,statements);
     return { processed: successes.length, failed: receipts.length-successes.length };

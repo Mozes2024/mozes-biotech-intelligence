@@ -70,3 +70,4 @@ await import("./test_optimization.mjs");
 await import("./test_readiness.mjs");
 await import("./test_fairness.mjs");
 await import("./test_fresh_material.mjs");
+await import("./test_analysis_limit.mjs");
