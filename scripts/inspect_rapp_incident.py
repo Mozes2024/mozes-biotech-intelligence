@@ -33,6 +33,7 @@ def main():
                 raise ValueError('SEC response too large')
             (OUT/name).write_bytes(raw)
             row['sha256']=hashlib.sha256(raw).hexdigest()
+            row['utf8_characters']=len(raw.decode('utf-8',errors='replace'))
             return raw
         except (OSError,ValueError) as exc:
             row['error']=f'{type(exc).__name__}: {exc}'[:160]
@@ -54,6 +55,7 @@ def main():
     meso='https://www.sec.gov/Archives/edgar/data/1345099/000134509926000087/'
     fetch(meso+'0001345099-26-000087-index.htm','meso-index.htm')
     fetch(meso+'index.json','meso-directory.json')
+    fetch(meso+'exhibit991annualreportag.htm','meso-exhibit991.htm')
     token=os.environ.get('CLOUDFLARE_RECOVERY_READ_TOKEN')
     if token:
         url='https://api.cloudflare.com/client/v4/accounts/75b91ca20508a72979cb5337ce1cc7e2/d1/database/9baf99f2-1ccc-4415-affd-2708a7210e7b/query'
