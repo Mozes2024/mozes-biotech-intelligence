@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from mozes import db
-from mozes.alert_dispatch import enqueue_change, sync_new_changes
+from mozes.alert_dispatch import STAGE2, enqueue_change, sync_new_changes
 from mozes.ingest.edgar_latest import biotech_universe
 from mozes.ir_registry import load_ir_registry, resolve_alias
 from mozes.live_monitor import recent_changes
@@ -43,11 +43,13 @@ def test_historical_tyra_records_are_visible_changes_and_never_enqueue(tmp_path)
     assert clinical['event_status'] == 'results_reported'
     for change_id in ids:
         assert enqueue_change(conn, change_id, channels=['log']) == []
+        assert enqueue_change(conn, change_id, stage=STAGE2, channels=['log']) == []
     sync_new_changes(conn)
     assert conn.execute('SELECT count(*) FROM alert_outbox').fetchone()[0] == 0
     assert conn.execute('SELECT count(*) FROM alert_deliveries').fetchone()[0] == 0
     assert {row['change_id'] for row in recent_changes(conn)} == set(ids)
     assert all(row['metadata']['historical_only'] for row in recent_changes(conn))
+    assert {row[0] for row in conn.execute('SELECT decision FROM alert_enqueue_decisions')} == {'historical_only'}
 
 
 @pytest.mark.parametrize('ticker,cik', [('TYRA', '1863127'), ('ZZZZ', '1234567')])
