@@ -6,6 +6,10 @@ on:
         description: 'Space-separated candidate feed URLs to probe'
         required: false
         default: ''
+      tyra:
+        description: 'Read-only TYRA HTTP, XML, dates and official-host diagnostic'
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -27,3 +31,6 @@ jobs:
           name: feed-samples
           path: tests/fixtures/feeds/
           retention-days: 7
+      - name: Inspect official TYRA RSS and HTML without monitor state
+        if: inputs.tyra
+        run: python scripts/probe_tyra_ir.py
