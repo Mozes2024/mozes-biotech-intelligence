@@ -60,7 +60,7 @@ index 0000000..d56444b
 +    FROM queue`).bind(from,from,now,now,now).first();
 +}
 diff --git a/cloudflare/src/hot-edge.js b/cloudflare/src/hot-edge.js
-index f010742..8f9fe32 100644
+index f010742..d8abd58 100644
 --- a/cloudflare/src/hot-edge.js
 +++ b/cloudflare/src/hot-edge.js
 @@ -1,6 +1,7 @@
@@ -71,7 +71,20 @@ index f010742..8f9fe32 100644
  const WIRES = [
    ["businesswire", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGFNXXw=="],
    ["globenewswire", "https://rss.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"],
-@@ -200,8 +201,9 @@ export class HotEdge {
+@@ -168,7 +169,11 @@ export class HotEdge {
+ 
+   async analyzePending(now = new Date().toISOString()) {
+     const db = this.env.ALERTS_DB;
+-    const rows = (await db.prepare("SELECT * FROM edge_events WHERE source='sec' AND analysis_status IN ('pending','failed') AND (analysis_retry_at IS NULL OR analysis_retry_at<=?) ORDER BY first_seen_at,event_id LIMIT 3").bind(now).all()).results || [];
++    // One bounded source review identifies legacy deterministic failures whose
++    // generic hourly backoff would otherwise hide the new size classification.
++    const review = !await this.state.storage.get('stage_a_analysis_limit_review_v1');
++    if (review) await this.state.storage.put('stage_a_analysis_limit_review_v1',true);
++    const rows = (await db.prepare("SELECT * FROM edge_events WHERE source='sec' AND analysis_status IN ('pending','failed') AND (analysis_retry_at IS NULL OR analysis_retry_at<=? OR (? AND analysis_status='failed' AND analysis_attempts>=5 AND last_analysis_error='primary document analysis failed')) ORDER BY first_seen_at,event_id LIMIT 3").bind(now,review?1:0).all()).results || [];
+     const outcomes = await Promise.all(rows.map(async event => {
+       const attempts = event.analysis_attempts + 1;
+       const retryAt = new Date(Date.parse(now) + retryDelay(attempts)).toISOString();
+@@ -200,8 +205,9 @@ export class HotEdge {
          await this.persistCandidate({...event,source_url:candidate.href,summary:content.slice(0,8000)},outcome,{ticker:event.ticker,cik:event.cik},now);
          return true;
        } catch (error) {
@@ -83,7 +96,7 @@ index f010742..8f9fe32 100644
          return false;
        }
      }));
-@@ -249,6 +251,7 @@ export class HotEdge {
+@@ -249,6 +255,7 @@ export class HotEdge {
      const digest=await hash(event.headline+' '+(event.summary||''));
      const prior=await this.env.ALERTS_DB.prepare('SELECT * FROM edge_candidates WHERE candidate_id=?').bind(event.event_id).first();
      if(prior){
@@ -91,7 +104,7 @@ index f010742..8f9fe32 100644
        const samePolicy=JSON.parse(prior.classification_json).method===scope.method;
        if(samePolicy&&prior.content_hash===digest&&prior.ticker===(issuer?.ticker||null))return;
        const reassess=prior.completed_at&&(prior.content_hash!==digest||!samePolicy);
-@@ -280,6 +283,7 @@ export class HotEdge {
+@@ -280,6 +287,7 @@ export class HotEdge {
    }
  
    async drainPending(now) {
@@ -99,7 +112,7 @@ index f010742..8f9fe32 100644
      // D1 retains the backlog; cap unacknowledged dispatches so retries cannot flood Actions.
      const active = await this.env.ALERTS_DB.prepare("SELECT COUNT(*) AS n FROM edge_events WHERE material=1 AND enrichment_ack_at IS NULL AND enrichment_retry_at>?").bind(now).first();
      const capacity = Math.max(0, 3 - (active?.n || 0));
-@@ -297,33 +301,46 @@ export class HotEdge {
+@@ -297,33 +305,46 @@ export class HotEdge {
      const pending = this.env.NTFY_URL
        ? "((actionable=1 AND stage0_sent_at IS NULL) OR (enrichment_ack_at IS NULL AND (enrichment_retry_at IS NULL OR enrichment_retry_at<=?)))"
        : "(enrichment_ack_at IS NULL AND (enrichment_retry_at IS NULL OR enrichment_retry_at<=?))";
@@ -154,7 +167,7 @@ index f010742..8f9fe32 100644
      allowDispatch = allowDispatch && this.env.EDGE_ENRICHMENT_ENABLED !== "0";
      const db = this.env.ALERTS_DB;
      let failed = false;
-@@ -341,7 +358,7 @@ export class HotEdge {
+@@ -341,7 +362,7 @@ export class HotEdge {
      if (allowDispatch && !event.enrichment_ack_at && (!event.enrichment_retry_at || event.enrichment_retry_at <= now)) {
        const attempts = (event.enrichment_attempts || 0) + 1;
        const deadline = new Date(Date.parse(now) + ACK_TIMEOUT(this.env)).toISOString();

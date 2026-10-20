@@ -63,6 +63,7 @@ try{
  const meso='EDGE-fe3b6ebc9a7186e22f7d78b8',base='https://www.sec.gov/Archives/edgar/data/1345099/000134509926000087/';
  db.sqlite.prepare(`INSERT INTO edge_events(event_id,source,source_url,filing_index_url,ticker,cik,accession,first_seen_at,polarity,material,analysis_status,analysis_attempts)
  VALUES(?,'sec',?,?,'MESO','1345099','0001345099-26-000087','2026-10-13T10:29:04Z','unknown',0,'failed',173)`).run(meso,base+'index.htm',base+'index.htm');
+ db.sqlite.prepare("UPDATE edge_events SET analysis_retry_at='2026-10-21T00:00:00Z',last_analysis_error='primary document analysis failed' WHERE event_id=?").run(meso);
  let fetched=0;globalThis.fetch=async url=>{fetched++;return new Response(String(url).endsWith('index.htm')?'<tr><td>EX-99.1</td><td><a href="exhibit991annualreportag.htm">Exhibit 99.1</a></td></tr>':'x'.repeat(1092465));};
  await edge.analyzePending(NOW);
  const blocked=db.sqlite.prepare('SELECT * FROM edge_events WHERE event_id=?').get(meso);
@@ -71,5 +72,14 @@ try{
  await edge.analyzePending('2026-10-21T18:10:00Z');assert.equal(fetched,2);
  assert.equal((await queueHealth(db,env,NOW)).analysis_blocked,1);
  assert.equal(db.sqlite.prepare('SELECT count(*) n FROM edge_events').get().n,41);
+ const transient=database(),transientState=state();
+ transient.sqlite.prepare(`INSERT INTO edge_events(event_id,source,source_url,filing_index_url,ticker,cik,accession,first_seen_at,polarity,material,analysis_status,analysis_attempts,analysis_retry_at,last_analysis_error)
+ VALUES(?,'sec',?,?,'MESO','1345099','0001345099-26-000087','2026-10-13T10:29:04Z','unknown',0,'failed',173,'2026-10-21T00:00:00Z','primary document analysis failed')`).run(meso,base+'index.htm',base+'index.htm');
+ let failedFetches=0;globalThis.fetch=async()=>{failedFetches++;return new Response('unavailable',{status:503});};
+ const retryEdge=new HotEdge(transientState,{...env,ALERTS_DB:transient});
+ await retryEdge.analyzePending(NOW);await new HotEdge(transientState,{...env,ALERTS_DB:transient}).analyzePending(NOW);
+ assert.equal(failedFetches,1,'one-time review does not defeat transient backoff after restart');
+ const failed=transient.sqlite.prepare('SELECT * FROM edge_events WHERE event_id=?').get(meso);
+ assert.equal(failed.analysis_status,'failed');assert.equal(failed.last_analysis_error,'HTTP 503');assert.ok(failed.analysis_retry_at);
  console.log('Stage A only: forward-only, fair fresh dispatch, cap, restart, retained history, candidates, retry budget and blocked MESO passed');
 }finally{globalThis.fetch=originalFetch;globalThis.Date=RealDate;}
