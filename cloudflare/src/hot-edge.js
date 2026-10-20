@@ -671,19 +671,32 @@ export class HotEdge {
       const head = (await this.db.prepare(`${select} AND (first_seen_at,event_id)<=(?,?) ORDER BY first_seen_at,event_id LIMIT ${limit - rows.length}`).bind(now, cutoff, cursor.first_seen_at, cursor.event_id).all()).results || [];
       rows.push(...head);
     }
-    if (rows.length) {
+    // Reserve one existing slot for a recent first attempt. Long-lived publisher
+    // failures keep their fair retry round, but cannot delay new material news
+    // by a full backlog round. This does not bypass deadlines or create ACKs.
+    let fresh = null;
+    if (capacity && (rows.length || validCursor) && this.env.EDGE_ENRICHMENT_ENABLED !== "0") {
+      const since = new Date(Date.parse(now) - 45 * 60000).toISOString();
+      fresh = rows.find(row => !row.enrichment_attempts && !row.enrichment_ack_at
+        && row.first_seen_at >= since && row.first_seen_at <= now) || null;
+      if (!fresh) fresh = await this.db.prepare("SELECT * FROM edge_events WHERE material=1 AND analysis_status='complete' AND (enrichment_ack_at IS NULL OR (actionable=1 AND stage0_sent_at IS NULL)) AND enrichment_ack_at IS NULL AND enrichment_attempts=0 AND (enrichment_retry_at IS NULL OR enrichment_retry_at<=?) AND first_seen_at>=? AND first_seen_at<=? ORDER BY first_seen_at,event_id LIMIT 1")
+        .bind(now, since, now).first();
+    }
+    const retryRows = fresh ? rows.filter(row => row.event_id !== fresh.event_id).slice(0, limit - 1) : rows;
+    if (retryRows.length) {
       // Cursor is only a scheduling hint. Advance before I/O so dispatch/source
       // failures cannot pin the queue. D1 deadlines, identities and ACKs stay authoritative.
-      const last = rows[rows.length - 1];
+      const last = retryRows[retryRows.length - 1];
       const next = {first_seen_at:last.first_seen_at,event_id:last.event_id,round_cutoff:cutoff};
       await this.state.storage.put('delivery_cursor', next);
       this.deliveryCursor = next;
-    } else if (validCursor) {
+    } else if (validCursor && !fresh) {
       // Empty queues need one lookup on subsequent ticks, not repeated wrap scans.
       await this.state.storage.put('delivery_cursor', null);
       this.deliveryCursor = null;
     }
-    const outcomes = await Promise.allSettled(rows.map((row, index) => this.deliver(row, now, index < capacity)));
+    const selected = fresh ? [fresh, ...retryRows] : retryRows;
+    const outcomes = await Promise.allSettled(selected.map((row, index) => this.deliver(row, now, index < capacity)));
     if (outcomes.some(item => item.status === "rejected")) throw Error("pending downstream delivery");
   }
 

@@ -1,0 +1,17 @@
+{
+  "fixture_kind": "minimal_excerpt_not_full_document",
+  "ticker": "RAPP",
+  "company": "Rapport Therapeutics, Inc.",
+  "cik": "2012593",
+  "accession": "0001193125-26-425647",
+  "accepted_at": "2026-10-20T10:05:17.000Z",
+  "publisher_at": "2026-10-20T10:00:00Z",
+  "source_url": "https://www.sec.gov/Archives/edgar/data/2012593/000119312526425647/d185134dex991.htm",
+  "index_url": "https://www.sec.gov/Archives/edgar/data/2012593/000119312526425647/index.json",
+  "retrieved_at": "2026-10-20T12:43:34.132831+00:00",
+  "raw_document_sha256": "4a31c6842cd8b31c73bdf261951faa1ff1f7b1d3967a27da4cb8d414df292d7b",
+  "runner_evidence": "https://github.com/Mozes2024/mozes-biotech-intelligence/actions/runs/39424476171",
+  "headline": "Rapport Therapeutics Announces Positive Topline Results from its Phase 2 Trial of RAP-219 for the Treatment of Bipolar Mania",
+  "excerpt": "The trial met its primary endpoint, with RAP-219 achieving a statistically significant 3.1-point least squares (LS) mean improvement over placebo in YMRS total score at Week 3 (p=0.045).",
+  "documents": ["d185134d8k.htm", "d185134dex991.htm", "d185134dex992.htm"]
+}
