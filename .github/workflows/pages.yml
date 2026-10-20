@@ -60,12 +60,9 @@ jobs:
         run: pip install -e .
       - name: Restore known data without a new source scan
         if: steps.guard.outputs.current == 'true'
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = 'workflow_run' ]; then
-            python -m scripts.restore_pages_state --automatic --expected-sha '${{ steps.guard.outputs.code_sha }}'
-          else
-            python -m scripts.restore_pages_state
-          fi
+        # Monitor requests use workflow_dispatch too; keep the same bounded,
+        # SHA-pinned reselection policy for every publication trigger.
+        run: python -m scripts.restore_pages_state --automatic --expected-sha '${{ steps.guard.outputs.code_sha }}'
       - name: Export current code against stored data (offline)
         if: steps.guard.outputs.current == 'true'
         run: python -m mozes.pipeline_v2c export --consumer-only
