@@ -76,7 +76,7 @@
       return `<div>${label}: p50 ${fmt(row?.p50)} · p95 ${fmt(row?.p95)} · n=${row?.n??0}</div>`;};
     const total=latency.metrics?.publication_to_sent||{};
     const timing=`<div id="edgeHealthMetrics">${edgeHealthHtml()}</div><b>Stage‑1 / Python — מקור עד זיהוי</b>${sourceRow('SEC',['sec'])}${sourceRow('FDA',['fda'])}${sourceRow('Wire',['wire'])}${sourceRow('IR',['company_ir'])}<div>Python — מקור עד שליחה: p50 ${fmt(total.p50)} · p95 ${fmt(total.p95)} · n=${total.n??0}</div>`;
-    const freshness=(h.source_freshness||[]).map(x=>`<div>${esc(x.source)}: ${esc(x.status)} · בדיקה ${esc(x.last_checked_at||'N/A')} · הצלחה ${esc(x.last_success_at||'N/A')} · שגיאה ${esc(x.last_error_at||'N/A')} · כשלים רצופים ${esc(x.consecutive_failures)}</div>`).join('');
+    const freshness=(h.source_freshness||[]).map(x=>`<div>${esc(x.source)}: ${esc(x.status)}${x.in_scope===false?' · מחוץ לתצורת המקורות':''} · בדיקה ${esc(x.last_checked_at||'N/A')} · הצלחה ${esc(x.last_success_at||'N/A')} · שגיאה ${esc(x.last_error_at||'N/A')} ${esc(x.last_error||'')} · כשלים רצופים ${esc(x.consecutive_failures)}</div>`).join('');
     return `<details class="notice ${red.length?'red-note':'blue-note'}" style="margin-top:18px"><summary id="sourceFreshness" data-checked="${esc(checked||'')}"><b>סטטוס מערכת</b> · בדיקת מקורות ${age===null?'לא זמינה':`לפני ${age} דקות`} · ${esc(primary.label_he||'ניטור ליבה')} · SEC ${h.sec_monitoring_enabled?'פעיל':'כבוי'}</summary><div class="company" style="margin-top:8px">${timing}${freshness}${details?`פרטים: ${details}`:''}</div></details>`;
   }
 

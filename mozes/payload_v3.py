@@ -17,6 +17,8 @@ from .alert_dispatch import recent_alerts
 from .alert_feed import channel_configuration
 from .live_monitor import recent_changes
 from .priority import priority_tickers
+from .ir_registry import load_ir_registry
+from .primary_feeds import FDA_FEEDS, WIRE_FEEDS
 from .live_intelligence import enrich_live_rows
 from .financial_context import enrich_financial_context, operation_health
 from .latency_metrics import summary as latency_summary
@@ -158,21 +160,38 @@ def _health(conn, live, refresh, monitor):
     red, amber, info = [], [], []
     operations = operation_health(conn).get("modules", {})
     source_freshness = []
-    source_rows = conn.execute("SELECT observation_key,value_json FROM monitor_observations "
+    registry = load_ir_registry()
+    active_feeds = {"fda_feed:" + name for name, _ in FDA_FEEDS} | {"wire_feed:" + name for name, _ in WIRE_FEEDS}
+    source_rows = conn.execute("SELECT observation_key,value_json,observed_at,source_type FROM monitor_observations "
                                "WHERE observation_key LIKE 'fda_feed:%' OR observation_key LIKE 'wire_feed:%' "
                                "OR observation_key LIKE 'sec_latest:%' OR observation_key LIKE 'official_feed:%' "
                                "OR observation_key='nasdaq_halts' ORDER BY observation_key") if hasattr(conn, "execute") else ()
     for source in source_rows:
         value = json.loads(source["value_json"] or "{}")
         status = "FAILED" if value.get("consecutive_failures") else (
-            "PARTIAL" if value.get("status") in {"no_official_site", "no_rss_found"} else "OK")
+            "FAILED" if value.get("status") in {"fetch_error", "FAILED"} else
+            "PARTIAL" if value.get("status") in {"no_official_site", "no_rss_found", "PARTIAL"} else "OK")
+        ticker = source["observation_key"].split(":", 1)[-1]
+        scope = ("configured_ir" if ticker in registry else "discovered_ir" if value.get("site") else "unconfigured_ir") if source["observation_key"].startswith("official_feed:") else "primary_feed"
+        if source["observation_key"].startswith(("fda_feed:", "wire_feed:")) and source["observation_key"] not in active_feeds:
+            scope = "retired_feed"
+        checked = value.get("last_checked_at") or value.get("checked_at") or source["observed_at"]
+        success = value.get("last_success_at")
+        # Older collectors called a missing IR source a success. Do not export that as a scan.
+        if value.get("status") in {"no_official_site", "no_rss_found"} and success == checked:
+            success = None
         item = {"source": source["observation_key"], "status": status,
-                "last_checked_at": value.get("last_checked_at") or value.get("checked_at"),
-                "last_success_at": value.get("last_success_at"),
+                "source_type": source["source_type"], "observation_status": value.get("status"),
+                "monitoring_scope": scope, "in_scope": scope in {"configured_ir", "primary_feed"},
+                "last_checked_at": checked,
+                "last_success_at": success,
                 "last_error_at": value.get("last_error_at"),
+                "last_error": value.get("error") or value.get("feed_error"),
                 "consecutive_failures": value.get("consecutive_failures", 0)}
         source_freshness.append(item)
-        if status == "FAILED":
+        if not item["in_scope"]:
+            info.append({"module": item["source"], "status": "OUTSIDE_CURRENT_CONFIGURATION", "details": item})
+        elif status == "FAILED":
             red.append({"module": item["source"], "status": status, "details": item})
         elif status == "PARTIAL":
             amber.append({"module": item["source"], "status": status, "details": item})
@@ -252,6 +271,15 @@ def build(conn, today: date, *, consumer_only=False):
                                "observed_at": row["observed_at"], **json.loads(row["value_json"])})
     priority = set(priority_tickers())
     official_feeds.sort(key=lambda item: (item["ticker"] not in priority, item["ticker"]))
+    configured = set(load_ir_registry())
+    observed = {row["ticker"] for row in official_feeds}
+    watch = {row["ticker"] for row in db.watch_rows(conn)}
+    ir_coverage = {"policy": "bounded_rotation", "priority_count": len(priority),
+                   "configured_count": len(configured), "rotating_count": len(configured - priority),
+                   "rotating_per_cycle": 8, "configured_without_observation": sorted(configured - observed),
+                   "watch_configured_count": len(watch & configured),
+                   "watch_without_configured_site": len(watch - configured),
+                   "watch_without_observation": len(watch - observed)}
     return {
         "version": VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -277,6 +305,7 @@ def build(conn, today: date, *, consumer_only=False):
                                                        "sec_filing_signal", "sec_financing_filing", "sec_material_filing")),
         "official_feeds": official_feeds,
         "health": _health(conn, live, refresh, monitor),
+        "ir_coverage": ir_coverage,
         "intelligence_v2c": operation_health(conn),
         "validation": validation,
         "coverage": (operation_health(conn).get("modules", {}).get("coverage_audit") or {}).get("details"),
