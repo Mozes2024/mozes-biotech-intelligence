@@ -5,6 +5,7 @@ Secondary aggregators remain discovery backups; these feeds feed Stage-1 alerts.
 from __future__ import annotations
 
 import http.client
+import json
 import re
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -25,8 +26,8 @@ FDA_FEEDS = (
 WIRE_FEEDS = (
     ("businesswire_health", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeEVlZWA=="),
     ("businesswire_clinical_trials", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGFNXXw=="),
-    ("globenewswire_biotech", "https://www.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"),
-    ("globenewswire_clinical_study", "https://www.globenewswire.com/RssFeed/subjectcode/27-Clinical%20Study/feedTitle/GlobeNewswire%20-%20Clinical%20Study"),
+    ("globenewswire_biotech", "https://rss.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"),
+    ("globenewswire_clinical_study", "https://rss.globenewswire.com/RssFeed/subjectcode/27-Clinical%20Study/feedTitle/GlobeNewswire%20-%20Clinical%20Study"),
     ("prnewswire_biotech", "https://www.prnewswire.com/rss/health-latest-news/biotechnology-list.rss"),
     ("prnewswire_health", "https://www.prnewswire.com/rss/health-latest-news/health-latest-news-list.rss"),
 )
@@ -172,6 +173,35 @@ def poll_fda_feeds(conn, *, fetch, now=None, max_items=20, resolve_headline=None
     return {"signals_seen": seen, "errors": errors}
 
 
+def _globe_forward_only_from(conn, name, url, payload, items, now):
+    """The reviewed transport transition cannot replay a week of missed releases."""
+    if name not in {'globenewswire_biotech', 'globenewswire_clinical_study'}:
+        return None
+    if urlsplit(url).hostname != 'rss.globenewswire.com':
+        raise ValueError('unreviewed GlobeNewswire transport')
+    root = ET.fromstring(payload)
+    if root.tag != 'rss' or root.find('channel') is None:
+        raise ValueError('official GlobeNewswire RSS required')
+    for item in items:
+        parts = urlsplit(item['url'])
+        if (parts.scheme not in {'http','https'} or parts.username or parts.password or parts.port is not None
+                or parts.hostname not in {'globenewswire.com','www.globenewswire.com','rss.globenewswire.com'}):
+            raise ValueError('nonofficial GlobeNewswire article URL')
+    key = 'wire_transport_baseline:globe_rss_v1:' + name
+    prior = conn.execute('SELECT value_json FROM monitor_observations WHERE observation_key=?', (key,)).fetchone()
+    if prior:
+        value = json.loads(prior[0])
+        if not isinstance(value, dict):
+            raise ValueError('invalid GlobeNewswire activation evidence')
+        at = datetime.fromisoformat(value.get('activated_at'))
+        if value.get('transport_url') != url or at.tzinfo is None or at > now:
+            raise ValueError('invalid GlobeNewswire activation evidence')
+        return at
+    observe(conn, key, {'transport_url': url, 'activated_at': now.isoformat(), 'policy': 'forward_only_v1'},
+            source_url=url, source_type='wire')
+    return now
+
+
 def poll_wire_feeds(conn, *, fetch, now=None, resolve_headline=None, max_items=30):
     """Wire headlines are investigation signals; SEC/FDA remain verification."""
     now = now or datetime.now(timezone.utc)
@@ -181,8 +211,15 @@ def poll_wire_feeds(conn, *, fetch, now=None, resolve_headline=None, max_items=3
     seen = errors = 0
     for name, url in WIRE_FEEDS:
         try:
-            items = _parse_rss_items(fetch(url), now=now, max_age_hours=168)[:max_items]
-            observe(conn, f"wire_feed:{name}", {"status": "active", "checked_at": now.isoformat(), "items": len(items)},
+            payload = fetch(url)
+            items = _parse_rss_items(payload, now=now, max_age_hours=168)[:max_items]
+            after = _globe_forward_only_from(conn, name, url, payload, items, now)
+            before = len(items)
+            if after is not None:
+                items = [item for item in items if datetime.fromisoformat(item['published_at']) >= after]
+            observe(conn, f"wire_feed:{name}", {"status": "active", "checked_at": now.isoformat(), "items": len(items),
+                                               "forward_only_from": after.isoformat() if after else None,
+                                               "baseline_suppressed": before - len(items)},
                     source_url=url, source_type="wire")
             for item in items:
                 text = item["title"] + " " + item.get("summary", "")

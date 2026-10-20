@@ -252,7 +252,7 @@ def test_workflow_keeps_trigger_lock_preflight_and_ack_order():
     text = (Path(__file__).resolve().parents[1]/'.github/workflows/pages.yml').read_text()
     assert "workflows: ['ci']" in text
     assert '--automatic --expected-sha' in text
-    assert 'group: pages' in text and 'cancel-in-progress: false' in text
+    assert 'group: mozes-hot-monitor' in text and 'cancel-in-progress: false' in text
     assert text.index('publication_control preflight') < text.index('uses: actions/deploy-pages@v4')
     assert text.index('uses: actions/deploy-pages@v4') < text.index('Acknowledge ledger only after successful deployment')
 
