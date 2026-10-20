@@ -688,7 +688,7 @@ export class HotEdge {
       const next = {first_seen_at:last.first_seen_at,event_id:last.event_id,round_cutoff:cutoff};
       await this.state.storage.put('delivery_cursor', next);
       this.deliveryCursor = next;
-    } else if (validCursor) {
+    } else if (validCursor && !fresh) {
       // Empty queues need one lookup on subsequent ticks, not repeated wrap scans.
       await this.state.storage.put('delivery_cursor', null);
       this.deliveryCursor = null;
