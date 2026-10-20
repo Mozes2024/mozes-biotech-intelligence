@@ -25,7 +25,11 @@ globalThis.MozesCheckpointHealth = function(data, now = Date.now()) {
   const age = valid ? Math.floor((now - parsed) / 60000) : null;
   const parse = value => { try { return MozesCheckpointTime(value, now); } catch { return NaN; } };
   const sources = data?.health?.source_freshness || [];
-  const successful = sources.map(row => ({at:row.last_success_at, time:parse(row.last_success_at)}))
+  const scoped = sources.filter(row => row.in_scope !== false);
+  const recent = scoped.filter(row => { const t=parse(row.last_checked_at); return Number.isFinite(t) && now-t<=2700000; });
+  const stale = scoped.filter(row => !recent.includes(row));
+  const successful = scoped.filter(row => !['no_official_site','no_rss_found'].includes(row.observation_status))
+    .map(row => ({at:row.last_success_at, time:parse(row.last_success_at)}))
     .filter(row => Number.isFinite(row.time)).sort((a,b) => b.time-a.time);
   const latest = successful[0];
   const published = parse(data?.generated_at);
@@ -35,7 +39,12 @@ globalThis.MozesCheckpointHealth = function(data, now = Date.now()) {
     source_scan_at:latest?.at || null, sources_stale:!latest || now-latest.time>2700000,
     publication_at:Number.isFinite(published) ? data.generated_at : null,
     publication_stale:!Number.isFinite(published) || now-published>2700000,
-    failed_sources:sources.filter(row => row.status==='FAILED' || row.status==='PARTIAL').length,
+    failed_sources:scoped.filter(row => row.status==='FAILED' || row.status==='PARTIAL').length,
+    current_failed_sources:recent.filter(row => row.status==='FAILED').length,
+    current_partial_sources:recent.filter(row => row.status==='PARTIAL').length,
+    stale_sources:stale.length,
+    unconfigured_observations:sources.length-scoped.length,
+    ir_coverage:data?.ir_coverage || null,
     unscanned_ir_issuers:(data?.watch_universe || []).filter(row => !covered.has(row.ticker)).length,
     enrichment_pending:Number.isSafeInteger(backlog.enrichment_pending) ? backlog.enrichment_pending : null,
     analysis_pending:Number.isSafeInteger(backlog.analysis_pending) ? backlog.analysis_pending : null};

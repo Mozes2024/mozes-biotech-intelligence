@@ -1,0 +1,17 @@
+name: source-health-audit
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Read backlog age, retries and completion evidence without mutations
+        env:
+          CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
+        run: python scripts/audit_edge_backlog.py

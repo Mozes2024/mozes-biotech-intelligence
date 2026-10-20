@@ -34,3 +34,28 @@ test('deep workflow has an unconditional machine-enforced suspension before chec
   assert.match(workflow, /monitor:\r?\n\s+if: \$\{\{ false \}\}/);
   assert.doesNotMatch(workflow, /\n\s+schedule:/);
 });
+
+test('current FAILED and PARTIAL are distinct from stale and unconfigured observations', () => {
+  const rows = [
+    {status:'FAILED',last_checked_at:'2026-10-20T11:59:00Z'},
+    {status:'PARTIAL',last_checked_at:'2026-10-20T11:59:00Z'},
+    {status:'FAILED',last_checked_at:'2026-10-19T11:59:00Z'},
+    {status:'PARTIAL',in_scope:false,last_checked_at:'2026-10-20T11:59:00Z',observation_status:'no_official_site',last_success_at:'2026-10-20T11:59:00Z'},
+    {status:'OK',last_checked_at:'2026-10-20T11:59:00Z',last_success_at:'2026-10-20T11:59:00Z',last_error_at:'2026-10-19T11:59:00Z'}
+  ];
+  const h=context.MozesCheckpointHealth({checkpoint_at:'2026-10-20T11:59:00Z',generated_at:'2026-10-20T11:59:00Z',health:{source_freshness:rows}},now);
+  assert.equal(h.current_failed_sources,1);
+  assert.equal(h.current_partial_sources,1);
+  assert.equal(h.stale_sources,1);
+  assert.equal(h.unconfigured_observations,1);
+  assert.equal(h.failed_sources,3);
+  assert.equal(h.sources_stale,false);
+  assert.equal(h.publication_stale,false);
+});
+
+test('fresh missing-source observations cannot manufacture a successful source scan', () => {
+  const h=context.MozesCheckpointHealth({health:{source_freshness:[{status:'PARTIAL',observation_status:'no_rss_found',last_checked_at:'2026-10-20T11:59:00Z',last_success_at:'2026-10-20T11:59:00Z'}]}},now);
+  assert.equal(h.source_scan_at,null);
+  assert.equal(h.sources_stale,true);
+  assert.equal(h.current_partial_sources,1);
+});

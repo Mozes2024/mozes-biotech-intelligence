@@ -86,9 +86,10 @@ def observe(conn, key, value, *, source_url=None, source_type=None):
         value = dict(value)
         checked = value.get("checked_at") or db.utcnow()
         failed = value.get("status") in {"fetch_error", "FAILED", "PARTIAL"}
+        incomplete = value.get("status") in {"no_official_site", "no_rss_found"}
         value.update({
             "last_checked_at": checked,
-            "last_success_at": previous.get("last_success_at") if failed else checked,
+            "last_success_at": previous.get("last_success_at") if failed or incomplete else checked,
             "last_error_at": checked if failed else previous.get("last_error_at"),
             "consecutive_failures": previous.get("consecutive_failures", 0) + 1 if failed else 0,
         })
