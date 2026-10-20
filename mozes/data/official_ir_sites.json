@@ -1,8 +1,8 @@
 {
   "TYRA": {
-    "company": "Tyra Biosciences, Inc.",
+    "company": "Tyra Biosciences",
     "site": "https://ir.tyra.bio/",
-    "feed_url": null
+    "feed_url": "https://ir.tyra.bio/rss/news-releases.xml"
   },
   "SLS": {
     "company": "SELLAS Life Sciences",

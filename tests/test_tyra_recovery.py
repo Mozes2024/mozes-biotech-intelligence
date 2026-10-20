@@ -12,9 +12,13 @@ from mozes.priority import priority_tickers
 
 
 def test_tyra_official_identity_and_context_bound_aliases():
+    registry_path = Path(__file__).resolve().parents[1] / 'mozes' / 'data' / 'official_ir_sites.json'
+    entries = json.loads(registry_path.read_text(encoding='utf-8'), object_pairs_hook=list)
+    assert sum(ticker == 'TYRA' for ticker, _ in entries) == 1
     entry = load_ir_registry()['TYRA']
+    assert entry['company'] == 'Tyra Biosciences'
     assert entry['site'] == 'https://ir.tyra.bio/'
-    assert entry['feed_url'] is None
+    assert entry['feed_url'] == 'https://ir.tyra.bio/rss/news-releases.xml'
     assert resolve_alias('Tyra Biosciences reports SURF302 results')['ticker'] == 'TYRA'
     assert resolve_alias('dabogratinib results') is None
     assert resolve_alias('SURF302 trial') is None
