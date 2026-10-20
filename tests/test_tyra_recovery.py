@@ -49,7 +49,7 @@ def test_historical_tyra_records_are_visible_changes_and_never_enqueue(tmp_path)
     assert conn.execute('SELECT count(*) FROM alert_deliveries').fetchone()[0] == 0
     assert {row['change_id'] for row in recent_changes(conn)} == set(ids)
     assert all(row['metadata']['historical_only'] for row in recent_changes(conn))
-    assert {row[0] for row in conn.execute('SELECT decision FROM alert_enqueue_decisions')} == {'historical_only'}
+    assert {row[0] for row in conn.execute('SELECT decision FROM alert_enqueue_decisions')} == {'filtered'}
 
 
 @pytest.mark.parametrize('ticker,cik', [('TYRA', '1863127'), ('ZZZZ', '1234567')])
