@@ -1,6 +1,12 @@
 from pathlib import Path
 import subprocess
-from scripts.build_stage_a_stabilized import build,ROOT
+import importlib.util
+
+ROOT=Path(__file__).resolve().parents[1]
+spec=importlib.util.spec_from_file_location('stage_a_builder',ROOT/'scripts/build_stage_a_stabilized.py')
+builder=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(builder)
+build=builder.build
 
 
 def test_stage_a_combined_forward_only_queue_and_blocked_analysis_without_migration_0005(tmp_path):

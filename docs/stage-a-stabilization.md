@@ -22,6 +22,11 @@ pending for manual resolution. Health distinguishes eligible work, active claims
 manual review and blocked analysis, and remains PARTIAL for unresolved gaps.
 There is no success, delivery or ACK manufactured for these states.
 
+One durable, bounded activation review re-fetches up to three old generic SEC
+analysis failures, once, to distinguish a genuine size-limit block from a
+retryable transport error. It never infers success or blockage from attempt count;
+ordinary backoff resumes for HTTP/network failures, including after restart.
+
 Tests build the exact candidate with only 0001–0004, exercise real SQLite claims,
 fresh admission, old retries, the single-slot boundary, restart, retained RAPP,
 historical/unknown timestamps, candidate filtering, exhausted retries and MESO.
