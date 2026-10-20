@@ -288,10 +288,10 @@ def test_read_only_workflow_has_fixed_inputs_and_no_write_or_processing_steps():
     assert "contents: read\n  actions: read" in workflow
     assert "group: mozes-hot-monitor" in workflow and "cancel-in-progress: false" in workflow
     assert "${{ secrets.EDGE_SYNC_TOKEN }}" in workflow and "${{ vars.MOZES_EDGE_SYNC_URL }}" in workflow
-    assert "SOURCE_RUN_ID: '38052910145'" in workflow
-    assert "MONITOR_RECOVERY_SHA256: '0ca9e7f01ccb639914820c96489192d8c5e7842d098e52de0c7fcbb6c19687fb'" in workflow
-    assert "python scripts/restore_monitor_state.py --run-id 38052910145 --verify-recovery-only" in workflow
-    assert "refs/heads/codex/lineage-incident-20261010" in workflow
+    assert "SOURCE_RUN_ID: '39310031856'" in workflow
+    assert "MONITOR_RECOVERY_SHA256: '4dc73cc369e79c63c9009c35a494038de8f82ea79fcf716aab5a076c9e162e1d'" in workflow
+    assert "python scripts/restore_monitor_state.py --run-id 39310031856 --verify-recovery-only" in workflow
+    assert "refs/heads/codex/bio-recovery-20261020" in workflow
     assert "persist-credentials: false" in workflow
     for forbidden in ("write", "schedule:", "pull_request:", "push:", "upload-artifact", "cache:",
                       "edge_enrichment", "edge_sync", "alert_dispatch", "pipeline_v2c", "gh workflow run"):
