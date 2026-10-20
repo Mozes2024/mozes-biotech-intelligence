@@ -182,7 +182,7 @@ def _health(conn, live, refresh, monitor):
             success = None
         item = {"source": source["observation_key"], "status": status,
                 "source_type": source["source_type"], "observation_status": value.get("status"),
-                "monitoring_scope": scope, "in_scope": scope not in {"unconfigured_ir", "retired_feed"},
+                "monitoring_scope": scope, "in_scope": scope in {"configured_ir", "primary_feed"},
                 "last_checked_at": checked,
                 "last_success_at": success,
                 "last_error_at": value.get("last_error_at"),

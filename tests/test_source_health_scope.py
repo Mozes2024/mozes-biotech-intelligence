@@ -33,6 +33,7 @@ def test_source_failure_and_recovery_preserve_history_without_current_failure(tm
 def test_retired_feed_and_incomplete_legacy_success_remain_visible_but_not_current(tmp_path):
     conn = db.connect(tmp_path / 'legacy.db')
     observe(conn, 'wire_feed:retired', {'status':'fetch_error', 'checked_at':'2026-10-01T08:00:00Z'})
+    observe(conn, 'official_feed:KOD', {'status':'fetch_error', 'site':'https://kodiak.gcs-web.com/', 'checked_at':'2026-10-01T08:00:00Z'})
     observe(conn, 'official_feed:SLS', {'status':'no_rss_found', 'checked_at':'2026-10-20T08:00:00Z'})
     row = conn.execute("SELECT value_json FROM monitor_observations WHERE observation_key='official_feed:SLS'").fetchone()
     value = json.loads(row[0])
@@ -42,6 +43,8 @@ def test_retired_feed_and_incomplete_legacy_success_remain_visible_but_not_curre
     assert rows['wire_feed:retired']['monitoring_scope'] == 'retired_feed'
     assert rows['wire_feed:retired']['in_scope'] is False
     assert rows['wire_feed:retired']['status'] == 'FAILED'
+    assert rows['official_feed:KOD']['in_scope'] is False
+    assert rows['official_feed:KOD']['status'] == 'FAILED'
     assert rows['official_feed:SLS']['last_success_at'] is None
 
 
