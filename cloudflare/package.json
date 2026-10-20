@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node test.mjs && node test_alert_feed.mjs && node test_hot_edge.mjs",
+    "test": "node run-tests.mjs",
     "deploy": "wrangler deploy",
     "benchmark": "node benchmark_d1.mjs",
     "profile": "node profile_d1.mjs"
