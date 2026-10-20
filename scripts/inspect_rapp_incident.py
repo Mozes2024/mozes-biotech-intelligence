@@ -12,6 +12,7 @@ QUERIES = [
     "SELECT * FROM edge_issuers WHERE ticker='RAPP' OR cik='2012593'",
     "SELECT * FROM edge_events WHERE accession='0001193125-26-425647' OR ticker='RAPP'",
     "SELECT * FROM edge_candidates WHERE ticker='RAPP' OR ticker_hint='RAPP' OR headline LIKE '%Rapport%'",
+    "SELECT event_id,source_url,filing_index_url,cik,accession,analysis_attempts,analysis_retry_at,last_analysis_error FROM edge_events WHERE event_id='EDGE-fe3b6ebc9a7186e22f7d78b8'",
 ]
 
 
