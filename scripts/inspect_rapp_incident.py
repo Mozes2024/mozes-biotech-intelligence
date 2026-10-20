@@ -63,6 +63,19 @@ def main():
             proof['edge_evidence']='saved; SELECT only'
         except (OSError,ValueError):
             proof['edge_evidence']='unavailable; no writes attempted'
+        for suffix in ('deployments','content/v2'):
+            try:
+                url='https://api.cloudflare.com/client/v4/accounts/75b91ca20508a72979cb5337ce1cc7e2/workers/scripts/mozes-hot-clock/'+suffix
+                req=urllib.request.Request(url,headers={'Authorization':'Bearer '+token})
+                with urllib.request.urlopen(req,timeout=30) as response:
+                    raw=response.read(4_000_001)
+                if len(raw)>4_000_000:
+                    raise ValueError('Worker evidence too large')
+                (OUT/('worker-'+suffix.replace('/','-')+'.txt')).write_bytes(raw)
+                proof['worker_'+suffix]={'sha256':hashlib.sha256(raw).hexdigest(),
+                    'fair_cursor_marker':b'delivery_cursor' in raw,'frozen_round_marker':b'round_cutoff' in raw}
+            except (OSError,ValueError):
+                proof['worker_'+suffix]='read unavailable'
     (OUT/'provenance.json').write_text(json.dumps(proof,indent=2))
     print(json.dumps(proof))
 
