@@ -1,7 +1,190 @@
 from pathlib import Path
 import ast
+import re
+
+import pytest
 
 ROOT=Path(__file__).resolve().parents[1]
+
+
+def workflow_sections(source, wanted):
+    """Read the workflow's mapping sections, independent of quoting/indent width.
+
+    Deliberately not a general YAML loader: unsupported contract shapes fail
+    assertions rather than being silently treated as equivalent permissions.
+    """
+    lines = source.splitlines()
+    parents = []
+    pattern = re.compile(r'''^( *)(?:- )?(["']?)([\w-]+)\2:\s*(.*?)\s*$''')
+    for index, line in enumerate(lines):
+        match = pattern.match(line)
+        if not match:
+            continue
+        indent, _, key, value = match.groups()
+        depth = len(indent)
+        while parents and parents[-1][0] >= depth:
+            parents.pop()
+        value = value.split(' #', 1)[0].strip()
+        if key == wanted:
+            end = index+1
+            while end < len(lines):
+                following = lines[end]
+                if following.strip() and not following.lstrip().startswith('#') and len(following)-len(following.lstrip()) <= depth:
+                    break
+                end += 1
+            yield tuple(name for _, name in parents), value, lines[index+1:end]
+        if not value:
+            parents.append((depth, key))
+
+
+def workflow_fields(value, lines):
+    def scalar(raw):
+        return raw.strip().strip("\"'")
+    if value.startswith('{') and value.endswith('}'):
+        return {scalar(k): scalar(v) for k, v in
+                (item.split(':', 1) for item in value[1:-1].split(',') if item.strip())}
+    assert not value, f'Unsupported contract mapping: {value}'
+    rows = [line for line in lines if line.strip() and not line.lstrip().startswith('#')]
+    if not rows:
+        return {}
+    depth = min(len(line)-len(line.lstrip()) for line in rows)
+    fields = {}
+    for index, line in enumerate(rows):
+        if len(line)-len(line.lstrip()) != depth:
+            continue
+        key, raw = line.strip().split(':', 1)
+        raw = raw.split(' #', 1)[0].strip()
+        fields[scalar(key)] = ('\n'.join(item.strip() for item in rows[index+1:]
+            if len(item)-len(item.lstrip()) > depth) if raw == '|' else scalar(raw))
+    return fields
+
+
+def permission_contract(source, expected):
+    sections = list(workflow_sections(source, 'permissions'))
+    actual = {context: workflow_fields(value, body) for context, value, body in sections}
+    assert len(actual) == len(sections), 'Duplicate permission mappings'
+    assert actual == expected
+
+
+def test_workflow_permission_boundaries():
+    read = {'contents': 'read'}
+    producer = {**read, 'actions': 'write'}
+    contracts = {
+        'ci.yml': {(): read},
+        'pages.yml': {(): {**read, 'actions': 'read', 'pages': 'write', 'id-token': 'write'}},
+        'deep-monitor.yml': {(): producer},
+        'nightly.yml': {(): read},
+        'lightweight-monitor.yml': {(): producer,
+            ('jobs', 'incident_eligibility'): {'contents': 'write', 'actions': 'read'},
+            ('jobs', 'prospective_claim'): {'contents': 'write', 'actions': 'read'},
+            ('jobs', 'monitor'): producer,
+            ('jobs', 'prospective_cleanup'): {**read, 'actions': 'read'}},
+    }
+    for name, expected in contracts.items():
+        permission_contract((ROOT/'.github/workflows'/name).read_text(), expected)
+
+
+def test_shared_lineage_lock_cannot_cancel_or_replace_queued_owners():
+    for name in ('lightweight-monitor.yml', 'pages.yml'):
+        sections = list(workflow_sections((ROOT/'.github/workflows'/name).read_text(), 'concurrency'))
+        assert len(sections) == 1
+        _, value, body = sections[0]
+        assert workflow_fields(value, body) == {
+            'group': 'mozes-hot-monitor', 'cancel-in-progress': 'false', 'queue': 'max'}
+
+
+def test_workflow_trigger_boundaries_and_deep_suspension():
+    events = {'ci.yml': {'push', 'pull_request', 'workflow_dispatch'},
+              'pages.yml': {'workflow_run', 'workflow_dispatch'},
+              'lightweight-monitor.yml': {'schedule', 'workflow_dispatch'},
+              'deep-monitor.yml': {'workflow_dispatch'}, 'nightly.yml': {'workflow_dispatch'}}
+    for name, allowed in events.items():
+        source = (ROOT/'.github/workflows'/name).read_text()
+        sections = list(workflow_sections(source, 'on'))
+        assert len(sections) == 1
+        _, value, body = sections[0]
+        assert set(workflow_fields(value, body)) == allowed
+    deep = (ROOT/'.github/workflows/deep-monitor.yml').read_text()
+    assert ('jobs', 'monitor') in [context for context, value, _ in workflow_sections(deep, 'if')
+                                  if value == '${{ false }}']
+    hot = (ROOT/'.github/workflows/lightweight-monitor.yml').read_text()
+    assert {value.strip("\"'") for _, value, _ in workflow_sections(hot, 'cron')} == {
+        '7,22,37,52 * * * *', '20 0,12,18 * * *', '20 6 * * 0,2,4,6'}
+
+
+def test_checkpoint_artifact_layout_and_publication_receipt_contract():
+    hot = (ROOT/'.github/workflows/lightweight-monitor.yml').read_text()
+    assert [value for _, value, _ in workflow_sections(hot, 'MOZES_DB_PATH')] == ['.monitor/mozes-live.db']
+    uploads = [workflow_fields(value, body) for _, value, body in workflow_sections(hot, 'with')]
+    checkpoint = [item for item in uploads if item.get('name') == 'mozes-live-monitor']
+    assert len(checkpoint) == 1
+    assert set(checkpoint[0]['path'].splitlines()) == {
+        '.monitor/mozes-live.db', '.monitor/manifest.json', '.monitor/edge-checkpoint.json',
+        '.monitor/recovery-proof.json', '.monitor/prospective-pilot.json'}
+    assert checkpoint[0]['include-hidden-files'] == 'true'
+    pages = (ROOT/'.github/workflows/pages.yml').read_text()
+    published = [workflow_fields(value, body) for _, value, body in workflow_sections(pages, 'with')]
+    assert any(item.get('name') == 'mozes-published-ledger' and
+               item.get('path') == '/tmp/mozes-published/publish-receipt.json' for item in published)
+    assert '--consumer-only' in pages and 'mozes.publication_control preflight' in pages
+    assert pages.index('actions/deploy-pages@') < pages.index('name: mozes-published-ledger')
+
+
+def test_production_secrets_stay_in_declared_environment_bindings():
+    allowed = {'EDGE_SYNC_TOKEN', 'CLOUDFLARE_RECOVERY_READ_TOKEN', 'MOZES_NTFY_URL',
+               'MOZES_WEBHOOK_URL', 'MOZES_SMTP_USER', 'MOZES_SMTP_PASSWORD',
+               'MOZES_ALERT_EMAIL_TO', 'ANTHROPIC_API_KEY', 'MOZES_ALERT_FEED_TOKEN',
+               'MOZES_PROSPECTIVE_CLEANUP_TOKEN'}
+    for name in ('ci.yml', 'pages.yml', 'lightweight-monitor.yml', 'deep-monitor.yml'):
+        source = (ROOT/'.github/workflows'/name).read_text()
+        assert not re.search(r'toJSON\s*\(\s*secrets\s*\)|secrets\s*:\s*inherit', source, re.I)
+        for line in source.splitlines():
+            if 'secrets.' in line and not line.lstrip().startswith('#'):
+                key = line.strip().split(':', 1)[0]
+                sections = list(workflow_sections(source, key))
+                assert any('env' in context and value == line.strip().split(':', 1)[1].strip()
+                           for context, value, _ in sections)
+                assert set(re.findall(r'secrets\.([A-Za-z_][A-Za-z_0-9]*)', line)) <= allowed
+
+
+@pytest.mark.parametrize('source', [
+    'permissions: write-all',
+    'permissions: {contents: write}',
+    'permissions:\n  contents: read\njobs:\n  monitor:\n    permissions:\n      contents: write',
+])
+def test_permission_contract_rejects_escalation(source):
+    with pytest.raises(AssertionError):
+        permission_contract(source, {(): {'contents': 'read'}})
+
+
+def test_permission_contract_accepts_harmless_quotes_comments_and_indentation():
+    permission_contract('"permissions":\n    "contents": "read" # least privilege\n',
+                        {(): {'contents': 'read'}})
+    permission_contract('permissions: {contents: read}', {(): {'contents': 'read'}})
+
+
+@pytest.mark.parametrize('filename,old,new,contract', [
+    ('pages.yml', 'cancel-in-progress: false', 'cancel-in-progress: true',
+     test_shared_lineage_lock_cannot_cancel_or_replace_queued_owners),
+    ('ci.yml', '  pull_request:', '  pull_request_target:',
+     test_workflow_trigger_boundaries_and_deep_suspension),
+    ('lightweight-monitor.yml', '.monitor/mozes-live.db', '.monitor/wrong.db',
+     test_checkpoint_artifact_layout_and_publication_receipt_contract),
+    ('ci.yml', 'jobs:', 'env:\n  LEAK: ${{ toJSON(secrets) }}\njobs:',
+     test_production_secrets_stay_in_declared_environment_bindings),
+])
+def test_safety_contracts_reject_unsafe_workflow_mutations(tmp_path, monkeypatch, filename, old, new, contract):
+    directory = tmp_path/'.github/workflows'
+    directory.mkdir(parents=True)
+    for source in (ROOT/'.github/workflows').glob('*.yml'):
+        (directory/source.name).write_text(source.read_text())
+    target = directory/filename
+    original = target.read_text()
+    assert old in original
+    target.write_text(original.replace(old, new, 1))
+    monkeypatch.setitem(globals(), 'ROOT', tmp_path)
+    with pytest.raises(AssertionError):
+        contract()
 
 
 def test_pages_has_no_source_scan_or_duplicate_tests():
