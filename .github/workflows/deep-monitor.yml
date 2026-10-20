@@ -17,6 +17,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   monitor:
+    if: ${{ false }}
+    # Enforce the operational suspension before any competing writer can start.
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:

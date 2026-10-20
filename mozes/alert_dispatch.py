@@ -330,6 +330,9 @@ def enqueue_from_change_row(conn, *, change_id, change_type, severity):
         _enqueue_decision(conn, change_id, "filtered")
         return []
     payload = build_stage1_payload(conn, change_id)
+    if payload.get('historical_only'):
+        _enqueue_decision(conn, change_id, 'filtered')
+        return []
     if PRIORITY_RANK.get(payload["priority"], 3) > _min_priority():
         _enqueue_decision(conn, change_id, "filtered")
         return []

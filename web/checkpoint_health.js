@@ -23,5 +23,20 @@ globalThis.MozesCheckpointHealth = function(data, now = Date.now()) {
   try { parsed = MozesCheckpointTime(at, now); } catch { parsed = NaN; }
   const valid = Number.isFinite(parsed);
   const age = valid ? Math.floor((now - parsed) / 60000) : null;
-  return {checkpoint_at: valid ? at : null, age_minutes: age, stale: !valid || now - parsed > 2700000};
+  const parse = value => { try { return MozesCheckpointTime(value, now); } catch { return NaN; } };
+  const sources = data?.health?.source_freshness || [];
+  const successful = sources.map(row => ({at:row.last_success_at, time:parse(row.last_success_at)}))
+    .filter(row => Number.isFinite(row.time)).sort((a,b) => b.time-a.time);
+  const latest = successful[0];
+  const published = parse(data?.generated_at);
+  const covered = new Set((data?.official_feeds || []).map(row => row.ticker));
+  const backlog = data?.edge_health?.backlog || {};
+  return {checkpoint_at: valid ? at : null, age_minutes: age, stale: !valid || now - parsed > 2700000,
+    source_scan_at:latest?.at || null, sources_stale:!latest || now-latest.time>2700000,
+    publication_at:Number.isFinite(published) ? data.generated_at : null,
+    publication_stale:!Number.isFinite(published) || now-published>2700000,
+    failed_sources:sources.filter(row => row.status==='FAILED' || row.status==='PARTIAL').length,
+    unscanned_ir_issuers:(data?.watch_universe || []).filter(row => !covered.has(row.ticker)).length,
+    enrichment_pending:Number.isSafeInteger(backlog.enrichment_pending) ? backlog.enrichment_pending : null,
+    analysis_pending:Number.isSafeInteger(backlog.analysis_pending) ? backlog.analysis_pending : null};
 };

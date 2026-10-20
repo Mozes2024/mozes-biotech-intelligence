@@ -255,3 +255,40 @@ def test_workflow_keeps_trigger_lock_preflight_and_ack_order():
     assert 'group: pages' in text and 'cancel-in-progress: false' in text
     assert text.index('publication_control preflight') < text.index('uses: actions/deploy-pages@v4')
     assert text.index('uses: actions/deploy-pages@v4') < text.index('Acknowledge ledger only after successful deployment')
+
+
+def test_monitor_dispatched_pages_uses_pinned_bounded_policy_too():
+    text = (Path(__file__).resolve().parents[1]/'.github/workflows/pages.yml').read_text()
+    step = text.split('- name: Restore known data without a new source scan', 1)[1].split('- name:', 1)[0]
+    assert "GITHUB_EVENT_NAME" not in step
+    assert "python -m scripts.restore_pages_state --automatic --expected-sha '${{ steps.guard.outputs.code_sha }}'" in step
+
+
+def test_real_failure_timing_outlasts_dispatch_policy_but_bounded_policy_reselects(pages, clock, monkeypatch, tmp_path):
+    # Both incident runs exhausted three busy attempts; the last producer ended
+    # twelve seconds after the second Pages run gave up. Include inventory work.
+    incoming = tmp_path/'source'; incoming.mkdir()
+    source, _, _, run, artifact = fixture(incoming)
+    before = source.read_bytes()
+    environment(pages, monkeypatch, tmp_path, incoming)
+    mock_inventory(monkeypatch, pages, run, artifact)
+    original_api = pages.api
+    def api(path):
+        result = original_api(path)
+        if path.startswith('workflows/'):
+            clock['now'] += 27
+            if clock['now'] < 133:
+                result['workflow_runs'] = [dict(run, status='in_progress')]
+        return result
+    monkeypatch.setattr(pages, 'api', api)
+    with pytest.raises(RuntimeError, match='producer_busy'):
+        pages.restore(now=NOW)
+    assert clock['now'] == 121
+    assert not (tmp_path/'consumer.db').exists()
+    clock['now'] = 0
+    clock['waits'].clear()
+    receipt = pages.restore(now=NOW, automatic=True, expected_sha=SHA)
+    assert receipt['artifact_id'] == artifact['id']
+    assert clock['waits'] == [20, 30, 40]
+    assert clock['now'] < 300
+    assert source.read_bytes() == (tmp_path/'consumer.db').read_bytes() == before
