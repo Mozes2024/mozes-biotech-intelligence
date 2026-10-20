@@ -62,6 +62,12 @@ def test_live_pages_run_suppresses_duplicate_dispatch_even_when_old(status):
     assert dispatch_decision([{'status':status,'created_at':(NOW-timedelta(hours=1)).isoformat()}],now=NOW)=='publish_running'
 
 
+def test_skipped_ci_pages_run_does_not_throttle_a_real_publication_request():
+    rows=[{'status':'completed','conclusion':'failure','created_at':(NOW-timedelta(minutes=5)).isoformat()},
+          {'status':'completed','conclusion':'skipped','created_at':(NOW-timedelta(seconds=10)).isoformat()}]
+    assert dispatch_decision(rows,now=NOW)=='publish_requested_new'
+
+
 @pytest.mark.parametrize('conclusion', ['failure','cancelled','success'])
 def test_terminal_attempt_throttle_is_two_minutes_never_one_hour(conclusion):
     def decision(age):
@@ -108,7 +114,7 @@ def test_success_ack_requires_identity_order_and_verified_deployment(problem):
 
 def test_pages_serializes_deploy_and_checks_snapshot_before_publish():
     text=Path('.github/workflows/pages.yml').read_text()
-    assert 'group: pages' in text and 'cancel-in-progress: false' in text
+    assert 'group: mozes-hot-monitor' in text and 'cancel-in-progress: false' in text
     assert text.index('publication_control preflight') < text.index('uses: actions/deploy-pages@v4')
     assert 'timeout-minutes: 8' in text
 
