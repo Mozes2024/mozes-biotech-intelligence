@@ -129,6 +129,7 @@ def build_stage1_payload(conn, change_id):
         "source_url": row["source_url"],
         "detected_at": row["detected_at"],
         "published_at": published,
+        "historical_only": bool(meta.get('historical_only')),
         "accepted_at": new_value.get("accepted") if isinstance(new_value, dict) else None,
         "new_value": new_value,
         "outcome": outcome,
@@ -142,6 +143,8 @@ def enqueue_change(conn, change_id, *, stage=STAGE1, channels=None, send_after=N
         raise ValueError("unsupported alert stage")
     channels = tuple(channels or configured_channels())
     payload = build_stage1_payload(conn, change_id)
+    if payload.get('historical_only'):
+        return []  # Retained for list visibility; never a realtime or Stage-2 send.
     if stage == STAGE2:
         payload = {**payload, "stage": STAGE2}
     now = db.utcnow()
