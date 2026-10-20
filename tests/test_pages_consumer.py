@@ -175,8 +175,10 @@ def test_read_only_export_preserves_database_and_authoritative_state(tmp_path, m
                'db_sha256':hashlib.sha256(before).hexdigest(),'stale':True,'data_age_seconds':10800}
     (metadata/'pages-consumer.json').write_text(json.dumps(receipt))
     monkeypatch.setattr(pipeline_v2c,'DB_PATH',path)
+    assert not (tmp_path/'web/data.json').exists()
     assert pipeline_v2c.main(['export','--consumer-only']) == 0
     payload = json.loads((tmp_path/'web/data.json').read_text(encoding='utf-8'))
+    assert payload['live'], 'The isolated database must supply the dashboard content'
     assert payload['data_stale'] is True and payload['data_age_seconds'] >= 10800
     assert path.read_bytes() == before
     assert list(metadata.iterdir()) == [metadata/'pages-consumer.json']
