@@ -1,0 +1,101 @@
+name: deploy-stage-a-watchdog
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: 'Exact owner-approved one-deployment identifier'
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: mozes-hot-monitor
+  cancel-in-progress: false
+  queue: max
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && inputs.approval == 'DEPLOY_STAGE_A_WATCHDOG_20261021'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Require first attempt
+        run: test "$GITHUB_RUN_ATTEMPT" = 1
+      - run: pip install -e .
+      - run: npm ci --prefix cloudflare
+      - name: Build Stage A candidate with idle watchdog only
+        run: python -m scripts.build_stage_a_watchdog /tmp/bio-stage-a-watchdog
+      - name: Dry-run without uploading or migrating
+        run: |
+          test ! -f /tmp/bio-stage-a-watchdog/cloudflare/migrations/0005_d1_optimization.sql
+          ! grep -R "source_item_id" /tmp/bio-stage-a-watchdog/cloudflare/src
+          grep -q EDGE_MONITOR_WATCHDOG_ENABLED /tmp/bio-stage-a-watchdog/cloudflare/src/hot-edge.js
+          node cloudflare/node_modules/wrangler/bin/wrangler.js deploy \
+            --config /tmp/bio-stage-a-watchdog/cloudflare/wrangler.toml \
+            --dry-run --outdir /tmp/bio-stage-a-watchdog-bundle \
+            --keep-vars \
+            --var EDGE_INTERVAL_SECONDS:120 \
+            --var EDGE_MONITOR_WATCHDOG_ENABLED:1
+          grep -q EDGE_MONITOR_WATCHDOG_ENABLED /tmp/bio-stage-a-watchdog-bundle/index.js
+          ! grep -q source_item_id /tmp/bio-stage-a-watchdog-bundle/index.js
+      - name: Snapshot Worker settings before upload
+        env:
+          CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
+        run: |
+          mkdir -p .diagnostics/stage-a-watchdog
+          python - <<'PY'
+          import json, os, urllib.request
+          from pathlib import Path
+          account=os.environ['CLOUDFLARE_ACCOUNT_ID']
+          token=os.environ['CLOUDFLARE_API_TOKEN']
+          def get(path):
+              req=urllib.request.Request('https://api.cloudflare.com/client/v4/'+path,
+                  headers={'Authorization':'Bearer '+token})
+              with urllib.request.urlopen(req, timeout=60) as resp:
+                  body=json.load(resp)
+              assert body.get('success'), body
+              return body['result']
+          settings=get(f'accounts/{account}/workers/scripts/mozes-hot-clock/settings')
+          deployments=get(f'accounts/{account}/workers/scripts/mozes-hot-clock/deployments')
+          proof={'settings_bindings':[
+              {'name':b.get('name'),'type':b.get('type'),
+               'text':b.get('text') if b.get('type')=='plain_text' else None,
+               'id':b.get('id')} for b in settings.get('bindings',[])],
+              'latest_deployment':max(deployments['deployments'], key=lambda r:r['created_on'])}
+          Path('.diagnostics/stage-a-watchdog/proof-predeploy.json').write_text(json.dumps(proof, indent=2))
+          values={b['name']:b.get('text') for b in settings['bindings'] if b['type']=='plain_text'}
+          assert values.get('EDGE_INTERVAL_SECONDS')=='120', values.get('EDGE_INTERVAL_SECONDS')
+          assert values.get('EDGE_FORWARD_ONLY_FROM')=='2026-10-20T18:24:29.424Z'
+          print('predeploy_ok', proof['latest_deployment']['versions'][0]['version_id'])
+          PY
+      - name: Deploy Stage A watchdog once with keep-vars
+        run: |
+          node cloudflare/node_modules/wrangler/bin/wrangler.js deploy \
+            --config /tmp/bio-stage-a-watchdog/cloudflare/wrangler.toml \
+            --keep-vars \
+            --var EDGE_INTERVAL_SECONDS:120 \
+            --var EDGE_MONITOR_WATCHDOG_ENABLED:1
+      - name: Verify watchdog enabled and Stage A invariants preserved
+        env:
+          CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
+        run: python -m scripts.verify_stage_a_watchdog_deploy
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage-a-watchdog-deployment-proof
+          path: .diagnostics/stage-a-watchdog/proof-*.json
+          retention-days: 30
