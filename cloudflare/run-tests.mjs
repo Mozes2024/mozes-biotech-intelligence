@@ -10,6 +10,7 @@ const directory = new URL('./', import.meta.url);
 const excluded = new Set([
   'test-db.mjs', // Shared SQLite helper, not a standalone test.
   'test_stage_a_stabilization.mjs', // Built/tested by tests/test_stage_a_stabilization.py.
+  'test_stage_a_continuity.mjs', // Exact Stage A build; tests/test_stage_a_continuity.py.
 ]);
 const files = readdirSync(directory).filter(name =>
   name.startsWith('test') && name.endsWith('.mjs') && !excluded.has(name)).sort();

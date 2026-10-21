@@ -6,6 +6,7 @@ import {edgeMetrics} from './edge-metrics.js';
 import {candidateStats,candidates,candidateAck,investigate} from './candidate-contract.js';
 import {acknowledge,eventTrace} from './edge-contract.js';
 import {handleAlertFeed} from './alert-feed.js';
+import {MonitorHeartbeat} from './monitor-heartbeat.js';
 const WIRES = [
   ["businesswire", "https://feed.businesswire.com/rss/home/?rss=G1QFDERJXkJeGFNXXw=="],
   ["globenewswire", "https://rss.globenewswire.com/RssFeed/industry/4573-Biotechnology/feedTitle/GlobeNewswire%20-%20Industry%20News%20on%20Biotechnology"],
@@ -88,6 +89,7 @@ export class HotEdge {
     this.committed = new Map(); this.candidateCache = new Map();
     this.cacheStats = {issuer_hits:0,issuer_misses:0,item_hits:0,item_misses:0,conditional_hits:0};
     this.ready = this.restore();
+    this.monitorHeartbeat = new MonitorHeartbeat(this.state.storage, this.env);
   }
 
   async restore() {
@@ -222,6 +224,8 @@ export class HotEdge {
     if (path === '/summaries') return Response.json(await this.summaries());
     if (path === "/health") {
       const health = await this.state.storage.get("health") || {};
+      health.monitor_heartbeat = this.env.EDGE_MONITOR_HEARTBEAT_ENABLED === '1'
+        ? await this.state.storage.get('monitor_heartbeat') || {status:'UNKNOWN'} : {status:'DISABLED'};
       const source_schedule=Object.fromEntries(Object.entries(this.sourceState || {}).map(([name,s])=>[name,{
         effective_interval_seconds:s.effective_interval_seconds,next_at:s.next_at,last_success_at:s.last_success_at,
         high_water_at:s.high_water_at,gap:s.gap,failures:s.failures,
@@ -241,6 +245,7 @@ export class HotEdge {
 
   async runAlarm() {
     this.sourceFetches=0;
+    let heartbeatCycle=false;
     const started = Date.now();
     const now = new Date().toISOString();
     const health = await this.state.storage.get("health") || { sources: {} };
@@ -250,6 +255,12 @@ export class HotEdge {
     await this.state.storage.setAlarm(started + INTERVAL(this.env));
     await this.state.storage.put("health", health);
     try {
+      // Keep the bounded GitHub inventory separate from source-fetch budgets.
+      // Source deadlines/cursors stay unchanged and resume on the next alarm.
+      if (this.env.EDGE_MONITOR_HEARTBEAT_ENABLED === '1' && await this.monitorHeartbeat.due(started)) {
+        await this.monitorHeartbeat.check(started);
+        if (this.env.GITHUB_TOKEN) {heartbeatCycle=true;return;}
+      }
       const sources = [["sec_8-K", () => this.pollSec("8-K")], ["sec_6-K", () => this.pollSec("6-K")],
         ...WIRES.map(([name, url]) => [name, () => this.pollWire(name, url)])];
       await Promise.all(sources.map(async ([name, poll]) => {
@@ -279,7 +290,7 @@ export class HotEdge {
       // Historical candidate/alert records are retained. Only dedup state expires.
       await this.reconcileGaps(health);
     } finally {
-      await this.state.storage.setAlarm(Date.now() + INTERVAL(this.env));
+      await this.state.storage.setAlarm(Date.now() + (heartbeatCycle ? 1000 : INTERVAL(this.env)));
       health.next_alarm_at = await this.state.storage.getAlarm();
       health.alarm_running_at = null;
       health.monitoring_coverage = Object.values(this.sourceState || {}).some(s=>s.gap) ? 'DEGRADED' : 'RECENT_WINDOWS';
@@ -554,6 +565,7 @@ export class HotEdge {
     }
   }
   async reconcileGaps(health) {
+    if (this.env.EDGE_MONITOR_HEARTBEAT_ENABLED === '1') return;
     const gaps=Object.values(this.sourceState || {}).filter(s=>s.gap);
     let idleWatchdog=false;
     if (!gaps.length && this.env.EDGE_MONITOR_WATCHDOG_ENABLED==='1') {

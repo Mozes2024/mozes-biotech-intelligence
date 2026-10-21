@@ -35,6 +35,36 @@ function payload(){const cp=checkpoint();return {...clone(fixture),generated_at:
  checkpoint_at:cp.checkpoint_at,consumer_checkpoint:cp};}
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
+test('stale source observations show unknown status and last success instead of healthy zeros',async()=>{
+ const data=payload();
+ data.health={source_freshness:[
+  {source:'wire_feed:old',status:'FAILED',in_scope:true,last_checked_at:'2026-10-12T10:00:00Z',last_success_at:'2026-10-12T09:00:00Z',last_error:'HTTP 403'},
+  {source:'official_feed:partial',status:'PARTIAL',in_scope:true,last_checked_at:'2026-10-12T10:00:00Z'},
+  {source:'wire_feed:recovered',status:'OK',in_scope:true,last_checked_at:'2026-10-12T10:00:00Z',last_success_at:'2026-10-12T10:00:00Z',last_error_at:'2026-10-11T10:00:00Z'}]};
+ const h=await harness(data),html=h.run('checkpointBanner()');
+ const summary=html.split('<details>')[0];
+ assert.match(summary,/מצב המקורות העדכני אינו ידוע/);
+ assert.match(summary,/2026-10-12T10:00:00Z/);
+ assert.doesNotMatch(summary,/מקורות: 0 כשלו/);
+ assert.match(html,/wire_feed:old.*FAILED.*HTTP 403/);
+ assert.match(html,/official_feed:partial.*PARTIAL/);
+ assert.match(html,/wire_feed:recovered.*2026-10-11T10:00:00Z/);
+ assert.equal(h.notifications.length,0);
+});
+
+test('a recent success cannot hide other stale sources and an empty source inventory is unknown',async()=>{
+ const data=payload();
+ data.health={source_freshness:[
+  {source:'recent',status:'OK',in_scope:true,last_checked_at:'2026-10-12T12:59:00Z',last_success_at:'2026-10-12T12:59:00Z'},
+  {source:'old',status:'FAILED',in_scope:true,last_checked_at:'2026-10-12T10:00:00Z'}]};
+ const h=await harness(data);
+ assert.match(h.run('checkpointBanner()').split('<details>')[0],/מצב המקורות העדכני אינו ידוע/);
+ h.run('D.health.source_freshness=[]');
+ assert.match(h.run('checkpointBanner()').split('<details>')[0],/מצב המקורות העדכני אינו ידוע/);
+ h.run("D.health.source_freshness=[{source:'fresh',status:'FAILED',in_scope:true,last_checked_at:'2026-10-12T12:59:00Z'}]");
+ assert.match(h.run('checkpointBanner()').split('<details>')[0],/מקורות: 1 כשלו/);
+});
+
 test('changed dashboard assets use one new compatible version while checkpoint health keeps its version',()=>{
  const versions=new Map(scripts.map(src=>{const url=new URL(src,'https://example.invalid/');return [url.pathname,url.searchParams.get('v')];}));
  const version=versions.get('/app.js');assert.ok(version);assert.notEqual(version,'checkpoint-timezone-v1');

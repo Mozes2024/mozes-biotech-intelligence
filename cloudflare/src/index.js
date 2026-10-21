@@ -17,8 +17,9 @@ export default {
       const health = await (await stub.fetch("https://edge.internal/health")).json();
       const sources = Object.values(health.sources || {});
       const failed = sources.filter(row => row.status === "FAILED").length;
+      const producerDegraded = health.monitor_heartbeat && !['FRESH','DISABLED'].includes(health.monitor_heartbeat.status);
       const summary = await (await stub.fetch("https://edge.internal/summaries")).json();
-      return publicHealth({ ...health, status: !sources.length ? "UNKNOWN" : failed === sources.length ? "FAILED" : failed || summary.backlog?.analysis_blocked ? "PARTIAL" : "OK",
+      return publicHealth({ ...health, status: !sources.length ? "UNKNOWN" : failed === sources.length ? "FAILED" : failed || producerDegraded || summary.backlog?.analysis_blocked ? "PARTIAL" : "OK",
         stage0_delivery_enabled: Boolean(env.NTFY_URL), enrichment_enabled: env.EDGE_ENRICHMENT_ENABLED !== "0",
         ...summary }, env);
     }
