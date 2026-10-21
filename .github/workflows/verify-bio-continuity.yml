@@ -1,6 +1,11 @@
 name: verify-bio-continuity
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      diagnostic:
+        description: 'One bounded read-only Cloudflare capability diagnostic; no recovery'
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
@@ -27,15 +32,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
           EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
           MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
           MOZES_INCIDENT_APPROVED_MAIN: ${{ vars.MOZES_INCIDENT_APPROVED_MAIN }}
           SOURCE_RUN_ID: '39474053120'
           MONITOR_RECOVERY_SHA256: '94bda318e9f8e553709b295d5249cebf269002cefc4d718c0cd51f1dc21192c1'
-        run: python -m scripts.bio_continuity_control verify
+          BIO_CONTROL_MODE: ${{ inputs.diagnostic && 'diagnose' || 'verify' }}
+        run: python -m scripts.bio_continuity_control "$BIO_CONTROL_MODE"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: bio-continuity-readonly-proof
-          path: .diagnostics/bio-continuity/proof-verify.json
+          path: .diagnostics/bio-continuity/proof-*.json
           retention-days: 14

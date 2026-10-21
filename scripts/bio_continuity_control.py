@@ -4,6 +4,7 @@ import email.policy
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -40,24 +41,104 @@ def gh(*args):
         raise RuntimeError('GitHub_GET_' + code)
     return result.stdout
 
-def cf(path, *, sql=None, raw=False):
+def safe_reason(message):
+    # Only API error messages, never response bodies/bindings or request headers.
+    value = str(message)
+    for name in ('CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_RECOVERY_READ_TOKEN',
+                 'CLOUDFLARE_ACCOUNT_ID', 'EDGE_SYNC_TOKEN', 'MOZES_EDGE_SYNC_URL'):
+        secret = os.environ.get(name)
+        if secret:
+            value = value.replace(secret, '[REDACTED]')
+    value = re.sub(r'(?i)bearer\s+\S+|https?://\S+|[\w.+-]+@[\w.-]+', '[REDACTED]', value)
+    value = re.sub(r'"[^"]*"|\'[^\']*\'|[A-Za-z0-9_+/=-]{24,}', '[REDACTED]', value)
+    if '{' in value or '}' in value:
+        return 'structured error detail omitted'
+    return ' '.join(value.split())[:240]
+
+
+def api_errors(value):
+    result = []
+    def visit(rows, depth=0):
+        for row in rows[:8] if isinstance(rows, list) and depth < 3 else []:
+            if isinstance(row, dict):
+                result.append({'code': row.get('code') if type(row.get('code')) is int else None,
+                               'reason': safe_reason(row.get('message', 'unspecified API error'))})
+                visit(row.get('error_chain'), depth + 1)
+    visit(value.get('errors') if isinstance(value, dict) else None)
+    return result
+
+
+def cf(path, *, sql=None, raw=False, token_name='CLOUDFLARE_API_TOKEN'):
     # The only POST here is D1's fixed SELECT-only query endpoint.
     require(sql is None or sql.lstrip().upper().startswith(('SELECT ', 'PRAGMA TABLE_INFO')), 'non_read_query_refused')
     request = urllib.request.Request('https://api.cloudflare.com/client/v4/' + path,
         data=json.dumps({'sql': sql}).encode() if sql else None,
-        headers={'Authorization': 'Bearer ' + os.environ['CLOUDFLARE_API_TOKEN'], 'Content-Type': 'application/json'})
+        headers={'Authorization': 'Bearer ' + os.environ[token_name], 'Content-Type': 'application/json'})
+    evidence = {'endpoint': '/' + path.replace(ACCOUNT, '[account]').replace(DATABASE, '[database]'),
+                'method': request.get_method(), 'credential_name': token_name,
+                'credential_format': {
+                    'bearer_prefix_in_secret': os.environ[token_name].lower().startswith('bearer '),
+                    'outer_whitespace': os.environ[token_name] != os.environ[token_name].strip(),
+                    'outer_quotes': os.environ[token_name][:1] in ('"', "'")}}
+    proof.setdefault('cloudflare_requests', []).append(evidence)
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+    def record(status, headers):
+        evidence['http_status'] = status
+        ray = headers.get('CF-Ray', '')
+        evidence['cf_ray'] = ray if re.fullmatch(r'[A-Fa-f0-9]{8,32}-[A-Za-z]{3}', ray) else None
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.build_opener(NoRedirect()).open(request, timeout=30) as response:
+            record(response.status, response.headers)
             body, content_type = response.read(8_000_001), response.headers.get('Content-Type', '')
     except urllib.error.HTTPError as exc:
+        record(exc.code, exc.headers)
+        try:
+            error_body = exc.read(65_537)
+            evidence['errors'] = api_errors(json.loads(error_body)) if len(error_body) <= 65_536 else []
+        except (ValueError, OSError):
+            evidence['errors'] = []
         scope = 'D1_SELECT_query' if '/d1/' in path else 'Workers_Scripts_read'
         raise RuntimeError(f'Cloudflare_{scope}_HTTP_{exc.code}') from None
     require(len(body) <= 8_000_000, 'Cloudflare_response_bound')
     if raw:
         return body, content_type
     value = json.loads(body)
+    if value.get('success') is not True:
+        evidence['errors'] = api_errors(value)
     require(value.get('success') is True, 'Cloudflare_operation_not_confirmed')
     return value['result']
+
+
+def diagnose():
+    """One bounded capability pass: four Worker GETs, at most two fixed D1 SELECTs."""
+    require(os.environ['CLOUDFLARE_ACCOUNT_ID'] == ACCOUNT, 'Cloudflare_account_identity_changed')
+    base = f'accounts/{ACCOUNT}/workers/scripts/{WORKER}'
+    checks = [(base + '/' + suffix, {}, 'CLOUDFLARE_API_TOKEN')
+              for suffix in ('settings', 'deployments', 'schedules', 'content/v2')]
+    d1 = f'accounts/{ACCOUNT}/d1/database/{DATABASE}/query'
+    checks.append((d1, {'sql': 'SELECT name FROM d1_migrations ORDER BY id'}, 'CLOUDFLARE_API_TOKEN'))
+    if os.environ.get('CLOUDFLARE_RECOVERY_READ_TOKEN'):
+        checks.append((d1, {'sql': 'SELECT name FROM d1_migrations ORDER BY id'}, 'CLOUDFLARE_RECOVERY_READ_TOKEN'))
+    blocked = False
+    for path, options, token in checks:
+        try:
+            value = cf(path, raw=path.endswith('/content/v2'), token_name=token, **options)
+            if path.endswith('/settings'):
+                require(isinstance(value, dict) and isinstance(value.get('bindings'), list), 'settings_bindings_schema')
+            elif path.endswith('/deployments'):
+                require(isinstance(value, dict) and isinstance(value.get('deployments'), list), 'deployments_schema')
+            elif path.endswith('/schedules'):
+                require(isinstance(value, dict) and isinstance(value.get('schedules'), list), 'schedules_schema')
+            elif options:
+                require(len(value) == 1 and value[0].get('success') is True, 'D1_query_schema')
+                require([r['name'][:4] for r in value[0]['results']] == ['0001','0002','0003','0004'], 'D1_migrations_changed')
+            proof['cloudflare_requests'][-1]['schema_check'] = 'PASS'
+        except Exception as exc:
+            blocked = True
+            proof['cloudflare_requests'][-1]['check_failure'] = str(exc) if isinstance(exc, RuntimeError) else type(exc).__name__
+    require(not blocked, 'read_only_capability_diagnostic_blocked')
 
 def query(sql):
     value = cf(f'accounts/{ACCOUNT}/d1/database/{DATABASE}/query', sql=sql)
@@ -155,14 +236,16 @@ def verify():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('mode', choices=['verify', 'inspect', 'postdeploy'])
+    parser.add_argument('mode', choices=['verify', 'inspect', 'postdeploy', 'diagnose'])
     parser.add_argument('--candidate', type=Path)
     args = parser.parse_args()
     require(os.environ.get('GITHUB_REPOSITORY') == REPO and os.environ.get('GITHUB_REF') == 'refs/heads/main'
             and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch' and os.environ.get('GITHUB_RUN_ATTEMPT') == '1', 'trusted_main_first_attempt_required')
     OUT.mkdir(parents=True, exist_ok=True)
     try:
-        if args.mode == 'verify':
+        if args.mode == 'diagnose':
+            diagnose()
+        elif args.mode == 'verify':
             verify()
         else:
             proof['cloudflare'], _ = snapshot(deployed=args.mode == 'postdeploy', candidate=args.candidate)
