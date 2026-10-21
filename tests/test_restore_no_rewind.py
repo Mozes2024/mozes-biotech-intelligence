@@ -68,6 +68,104 @@ def test_restore_refuses_old_candidate_when_newer_successes_exist(tmp_path, monk
     assert not (tmp_path / "mozes-live.db").exists()
 
 
+def test_ordinary_resume_allows_newest_checkpoint_older_than_rewind_when_audit_clean(tmp_path, monkeypatch):
+    """Scheduling gaps must not permanently freeze the newest durable lineage."""
+    script = module()
+    from mozes import monitor_recovery
+    audited = {}
+
+    def audit(repo, since, gh, *, now=None, **kwargs):
+        audited["since"] = since
+        audited["now"] = now
+        return {"audited_producers": ["301", "302"]}
+
+    monkeypatch.setattr(monitor_recovery, "audit_producers", audit)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("GITHUB_REPOSITORY", "Owner/Repo")
+    destination = tmp_path / "restored.db"
+    monkeypatch.setenv("MOZES_DB_PATH", str(destination))
+
+    def gh(*args, timeout=300):
+        if args[0] == "api" and "actions/artifacts?" in args[1]:
+            return json.dumps({"artifacts": [
+                {"name": "mozes-live-monitor", "created_at": "2026-10-20T18:24:16Z",
+                 "workflow_run": {"id": 39474053120, "head_branch": "main"}},
+            ]})
+        if args[0] == "api" and "workflows/pages.yml/runs" in args[1]:
+            return json.dumps({"total_count": 0, "workflow_runs": []})
+        if args[0] == "api" and args[1].endswith("/39474053120"):
+            return json.dumps({
+                "head_branch": "main", "name": "lightweight-live-monitor",
+                "head_repository": {"full_name": "Owner/Repo"}, "conclusion": "success",
+            })
+        if args[:3] == ("run", "download", "39474053120"):
+            root = Path(args[-1])
+            source = root / "mozes-live.db"
+            _db(source)
+            (root / "manifest.json").write_text(json.dumps({
+                "generated_at": "2026-10-20T18:24:11+00:00"}), encoding="utf-8")
+            (root / "edge-checkpoint.json").write_text(json.dumps({
+                "schema": 1, "producer_run_id": "39474053120",
+                "created_at": "2026-10-20T18:24:11+00:00",
+                "db_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            }))
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(script, "gh", gh)
+    assert script.restore(now=datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc))
+    with sqlite3.connect(destination) as conn:
+        assert conn.execute("SELECT x FROM t").fetchone()[0] == 1
+    assert audited["since"].isoformat() == "2026-10-20T18:24:11+00:00"
+
+
+def test_ordinary_resume_still_refuses_when_later_producer_may_have_delivered(tmp_path, monkeypatch, capsys):
+    script = module()
+    from mozes import monitor_recovery
+
+    def audit(*a, **k):
+        raise RuntimeError("newer producer may have changed/delivered state; reconcile before recovery")
+
+    monkeypatch.setattr(monitor_recovery, "audit_producers", audit)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("GITHUB_REPOSITORY", "Owner/Repo")
+    destination = tmp_path / "restored.db"
+    monkeypatch.setenv("MOZES_DB_PATH", str(destination))
+
+    def gh(*args, timeout=300):
+        if args[:2] == ("run", "list") and "pages.yml" in args:
+            return "[]"
+        if args[0] == "api" and "actions/artifacts?" in args[1]:
+            return json.dumps({"artifacts": [
+                {"name": "mozes-live-monitor", "created_at": "2026-10-20T18:24:16Z",
+                 "workflow_run": {"id": 39474053120, "head_branch": "main"}},
+            ]})
+        if args[0] == "api" and args[1].endswith("/39474053120"):
+            return json.dumps({
+                "head_branch": "main", "name": "lightweight-live-monitor",
+                "head_repository": {"full_name": "Owner/Repo"}, "conclusion": "success",
+            })
+        if args[:3] == ("run", "download", "39474053120"):
+            root = Path(args[-1])
+            source = root / "mozes-live.db"
+            _db(source)
+            (root / "manifest.json").write_text(json.dumps({
+                "generated_at": "2026-10-20T18:24:11+00:00"}), encoding="utf-8")
+            (root / "edge-checkpoint.json").write_text(json.dumps({
+                "schema": 1, "producer_run_id": "39474053120",
+                "created_at": "2026-10-20T18:24:11+00:00",
+                "db_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+            }))
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(script, "gh", gh)
+    with pytest.raises(RuntimeError, match="refusing empty/old bootstrap"):
+        script.restore(now=datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc))
+    assert "newer producer may have changed/delivered state" in capsys.readouterr().out
+    assert not destination.exists()
+
+
 @pytest.mark.parametrize("conclusion,checkpoint_valid", [("cancelled", True), ("failure", True), ("cancelled", False)])
 def test_cancelled_or_failed_uploaded_checkpoint_survives_ack_boundary(tmp_path, monkeypatch, conclusion, checkpoint_valid):
     script = module()

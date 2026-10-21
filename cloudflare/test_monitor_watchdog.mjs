@@ -27,14 +27,26 @@ test('quiet sources still request one bounded reconciliation before the restore 
   assert.equal(health.monitor_liveness.status,'THROTTLED_UNVERIFIED');
 });
 
-test('stale, unknown and future feed hints never authorize recovery', async t=>{
+test('unknown and future feed hints never authorize idle dispatch', async t=>{
   t.mock.method(Date,'now',()=>now);
   t.mock.method(globalThis,'fetch',()=>{throw Error('unexpected dispatch');});
-  for(const age of [46,-5]) {
-    const {self,health}=fixture(age);
-    await HotEdge.prototype.reconcileGaps.call(self,health);
-    assert.ok(['RECOVERY_REQUIRED','UNKNOWN'].includes(health.monitor_liveness.status));
-  }
+  const {self,health}=fixture(-5);
+  await HotEdge.prototype.reconcileGaps.call(self,health);
+  assert.equal(health.monitor_liveness.status,'UNKNOWN');
+});
+
+test('stale feed still requests one bounded producer for evidence-based resume', async t=>{
+  t.mock.method(Date,'now',()=>now);
+  let requests=0;
+  t.mock.method(globalThis,'fetch',async(_url,options)=>{
+    requests++;
+    assert.deepEqual(JSON.parse(options.body),{ref:'main',inputs:{priority_only:'true'}});
+    return new Response(null,{status:204});
+  });
+  const {self,health}=fixture(46);
+  await HotEdge.prototype.reconcileGaps.call(self,health);
+  assert.equal(requests,1);
+  assert.equal(health.monitor_liveness.status,'REQUESTED_UNVERIFIED');
 });
 
 test('watchdog is inactive by default and ambiguous dispatch is durably throttled', async t=>{

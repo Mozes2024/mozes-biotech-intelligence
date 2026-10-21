@@ -234,9 +234,15 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
                             raise RuntimeError("approved recovery requires canonical TENX event")
                         proof.update(verify_tenx_eligibility())
                 else:
-                    if checkpoint_stamp < now - MAX_REWIND:
-                        raise RuntimeError("stale checkpoint requires reviewed forward recovery and explicit SHA256")
+                    # Age alone must not deadlock the newest durable lineage. MAX_REWIND still
+                    # blocks rewind to an older artifact; continuity after a scheduling gap is
+                    # proven by audit_producers (no un-checkpointed delivery/enrichment writes).
                     from mozes.monitor_recovery import audit_producers
+                    if checkpoint_stamp < now - MAX_REWIND:
+                        print(
+                            f"Newest checkpoint {candidate} is older than {MAX_REWIND}; "
+                            "resuming only if producer audit proves no later delivery writes"
+                        )
                     audit_producers(repo, checkpoint_stamp, gh, now=now)
                 if verify_only:
                     if proof is None:
