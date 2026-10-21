@@ -77,6 +77,7 @@ def test_ordinary_resume_allows_newest_checkpoint_older_than_rewind_when_audit_c
     def audit(repo, since, gh, *, now=None, **kwargs):
         audited["since"] = since
         audited["now"] = now
+        audited["kwargs"] = kwargs
         return {"audited_producers": ["301", "302"]}
 
     monkeypatch.setattr(monitor_recovery, "audit_producers", audit)
@@ -117,6 +118,7 @@ def test_ordinary_resume_allows_newest_checkpoint_older_than_rewind_when_audit_c
     with sqlite3.connect(destination) as conn:
         assert conn.execute("SELECT x FROM t").fetchone()[0] == 1
     assert audited["since"].isoformat() == "2026-10-20T18:24:11+00:00"
+    assert audited["kwargs"] == {"full_history": True, "source_run_id": "39474053120"}
 
 
 def test_ordinary_resume_still_refuses_when_later_producer_may_have_delivered(tmp_path, monkeypatch, capsys):

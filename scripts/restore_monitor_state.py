@@ -241,9 +241,14 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
                     if checkpoint_stamp < now - MAX_REWIND:
                         print(
                             f"Newest checkpoint {candidate} is older than {MAX_REWIND}; "
-                            "resuming only if producer audit proves no later delivery writes"
+                            "resuming only if full-history producer audit proves no later delivery writes"
                         )
-                    audit_producers(repo, checkpoint_stamp, gh, now=now)
+                        # Select by completion/update time so pre-checkpoint dispatches that
+                        # finished afterward cannot be missed by a created-at window.
+                        audit_producers(repo, checkpoint_stamp, gh, now=now,
+                                        full_history=True, source_run_id=candidate)
+                    else:
+                        audit_producers(repo, checkpoint_stamp, gh, now=now)
                 if verify_only:
                     if proof is None:
                         raise ValueError("verify-only requires recovery SHA256")
