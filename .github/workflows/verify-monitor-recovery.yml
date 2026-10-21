@@ -16,16 +16,16 @@ jobs:
     env:
       MOZES_EDGE_SYNC_URL: ${{ vars.MOZES_EDGE_SYNC_URL }}
       MOZES_INCIDENT_APPROVED_MAIN: ${{ vars.MOZES_INCIDENT_APPROVED_MAIN }}
-      # October 20 incident: verification only; no recovery authorization.
-      SOURCE_RUN_ID: '39310031856'
-      MONITOR_RECOVERY_SHA256: '4dc73cc369e79c63c9009c35a494038de8f82ea79fcf716aab5a076c9e162e1d'
+      # October 20 18:24 producer (current newest durable lineage): verification only.
+      SOURCE_RUN_ID: '39474053120'
+      MONITOR_RECOVERY_SHA256: '94bda318e9f8e553709b295d5249cebf269002cefc4d718c0cd51f1dc21192c1'
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Require trusted verification ref
         # Permit isolated rehearsal before merge; this workflow cannot process alerts.
-        run: python -c "import os; assert os.environ['GITHUB_REF'] in ('refs/heads/main', 'refs/heads/codex/bio-recovery-20261020', 'refs/heads/codex/bio-evidence-20261020'), 'trusted verification ref required'"
+        run: python -c "import os; assert os.environ['GITHUB_REF'] in ('refs/heads/main', 'refs/heads/fix/ordinary-resume-and-watchdog-20261021'), 'trusted verification ref required'"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -35,8 +35,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
-        run: python scripts/restore_monitor_state.py --run-id 39310031856 --verify-recovery-only
-      - name: Inspect retained TYRA identities without processing
-        env:
-          EDGE_SYNC_TOKEN: ${{ secrets.EDGE_SYNC_TOKEN }}
-        run: python scripts/inspect_tyra_edge.py
+        run: python scripts/restore_monitor_state.py --run-id 39474053120 --verify-recovery-only

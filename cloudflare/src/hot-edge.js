@@ -564,7 +564,10 @@ export class HotEdge {
       const stamp=Date.parse(feed?.generated_at),age=Date.now()-stamp;
       health.monitor_liveness={feed_generated_at:feed?.generated_at || null,status:
         !Number.isFinite(age)||age<0?'UNKNOWN':age>2400000?'RECOVERY_REQUIRED':age>=1200000?'RECONCILIATION_DUE':'RECENT_HINT'};
-      idleWatchdog=health.monitor_liveness.status==='RECONCILIATION_DUE';
+      // RECOVERY_REQUIRED still requests the serialized producer: Actions independently
+      // proves newest-checkpoint continuity (evidence audit) and never rewinds lineage.
+      idleWatchdog=health.monitor_liveness.status==='RECONCILIATION_DUE'
+        || health.monitor_liveness.status==='RECOVERY_REQUIRED';
     }
     if (!gaps.length && !idleWatchdog) {if(health.sources.reconciliation)health.sources.reconciliation.status='NOT_NEEDED';return;}
     if (!this.env.GITHUB_TOKEN) return;

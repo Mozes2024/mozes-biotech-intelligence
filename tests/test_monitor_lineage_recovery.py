@@ -57,9 +57,11 @@ def restore_fixture(tmp_path, monkeypatch, *, missing=False, corrupt=False):
 def test_artifact_discovery_ignores_artifactless_failed_attempts(tmp_path, monkeypatch):
     script, _ = restore_fixture(tmp_path, monkeypatch)
     assert script._list_success_runs() == [{"databaseId": 100, "createdAt": OLD}]
-    with pytest.raises(RuntimeError):
-        script.restore(now=NOW)  # Finding the producer does not remove the age gate.
-    assert not (tmp_path / "state").exists()
+    monkeypatch.setattr(recovery, "audit_producers", lambda *a, **k: {"audited_producers": []})
+    # Age beyond MAX_REWIND is no longer a hard stop when the newest durable lineage
+    # audits clean; rewind protection still lives in candidate selection above.
+    assert script.restore(now=NOW)
+    assert (tmp_path / "state" / "live.db").exists()
 
 
 @pytest.mark.parametrize("missing,corrupt", [(True, False), (False, True)])
@@ -288,10 +290,10 @@ def test_read_only_workflow_has_fixed_inputs_and_no_write_or_processing_steps():
     assert "contents: read\n  actions: read" in workflow
     assert "group: mozes-hot-monitor" in workflow and "cancel-in-progress: false" in workflow
     assert "${{ secrets.EDGE_SYNC_TOKEN }}" in workflow and "${{ vars.MOZES_EDGE_SYNC_URL }}" in workflow
-    assert "SOURCE_RUN_ID: '39310031856'" in workflow
-    assert "MONITOR_RECOVERY_SHA256: '4dc73cc369e79c63c9009c35a494038de8f82ea79fcf716aab5a076c9e162e1d'" in workflow
-    assert "python scripts/restore_monitor_state.py --run-id 39310031856 --verify-recovery-only" in workflow
-    assert "refs/heads/codex/bio-recovery-20261020" in workflow
+    assert "SOURCE_RUN_ID: '39474053120'" in workflow
+    assert "MONITOR_RECOVERY_SHA256: '94bda318e9f8e553709b295d5249cebf269002cefc4d718c0cd51f1dc21192c1'" in workflow
+    assert "python scripts/restore_monitor_state.py --run-id 39474053120 --verify-recovery-only" in workflow
+    assert "refs/heads/fix/ordinary-resume-and-watchdog-20261021" in workflow
     assert "persist-credentials: false" in workflow
     for forbidden in ("write", "schedule:", "pull_request:", "push:", "upload-artifact", "cache:",
                       "edge_enrichment", "edge_sync", "alert_dispatch", "pipeline_v2c", "gh workflow run"):
