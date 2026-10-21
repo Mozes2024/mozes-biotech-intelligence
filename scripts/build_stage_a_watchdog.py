@@ -2,10 +2,16 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import re
 from pathlib import Path
 
-from scripts.build_stage_a_stabilized import build as build_stage_a
+ROOT = Path(__file__).resolve().parents[1]
+_spec = importlib.util.spec_from_file_location(
+    'stage_a_builder', ROOT / 'scripts' / 'build_stage_a_stabilized.py')
+_builder = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_builder)
+build_stage_a = _builder.build
 
 WATCHDOG_METHOD = r'''
   async idleMonitorWatchdog(health) {

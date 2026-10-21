@@ -1,7 +1,13 @@
 """Stage A watchdog builder must stay migration-free and inject one idle path."""
 from pathlib import Path
+import importlib.util
 
-from scripts.build_stage_a_watchdog import build
+ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location(
+    'stage_a_watchdog_builder', ROOT / 'scripts' / 'build_stage_a_watchdog.py')
+builder = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(builder)
+build = builder.build
 
 
 def test_stage_a_watchdog_injects_idle_path_without_stage_b(tmp_path):

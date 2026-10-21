@@ -38,7 +38,7 @@ jobs:
       - run: pip install -e .
       - run: npm ci --prefix cloudflare
       - name: Build Stage A candidate with idle watchdog only
-        run: python -m scripts.build_stage_a_watchdog /tmp/bio-stage-a-watchdog
+        run: python scripts/build_stage_a_watchdog.py /tmp/bio-stage-a-watchdog
       - name: Dry-run without uploading or migrating
         run: |
           test ! -f /tmp/bio-stage-a-watchdog/cloudflare/migrations/0005_d1_optimization.sql
@@ -92,7 +92,7 @@ jobs:
       - name: Verify watchdog enabled and Stage A invariants preserved
         env:
           CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
-        run: python -m scripts.verify_stage_a_watchdog_deploy
+        run: python scripts/verify_stage_a_watchdog_deploy.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
