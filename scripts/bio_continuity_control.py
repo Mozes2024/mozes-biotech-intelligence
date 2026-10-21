@@ -141,7 +141,9 @@ def diagnose():
     require(not blocked, 'read_only_capability_diagnostic_blocked')
 
 def query(sql):
-    value = cf(f'accounts/{ACCOUNT}/d1/database/{DATABASE}/query', sql=sql)
+    require(bool(os.environ.get('CLOUDFLARE_RECOVERY_READ_TOKEN')), 'D1_read_credential_missing: CLOUDFLARE_RECOVERY_READ_TOKEN')
+    value = cf(f'accounts/{ACCOUNT}/d1/database/{DATABASE}/query', sql=sql,
+               token_name='CLOUDFLARE_RECOVERY_READ_TOKEN')
     require(len(value) == 1 and value[0].get('success') is True, 'D1_read_unconfirmed')
     return value[0]['results']
 

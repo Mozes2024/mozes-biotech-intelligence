@@ -1,11 +1,16 @@
 """Diagnostic evidence must explain failures without disclosing credentials/state."""
 import io
+import importlib.util
 import json
 import urllib.error
+from pathlib import Path
 
 import pytest
 
-from scripts import bio_continuity_control as control
+spec = importlib.util.spec_from_file_location('bio_continuity_control',
+    Path(__file__).resolve().parents[1] / 'scripts/bio_continuity_control.py')
+control = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(control)
 
 
 def test_http_error_retains_codes_endpoint_ray_and_redacts_secrets(monkeypatch):
@@ -76,3 +81,20 @@ def test_diagnostic_checks_d1_independently_and_never_runs_recovery(monkeypatch)
     assert len(calls) == 6
     assert calls[-1][1]['token_name'] == 'CLOUDFLARE_RECOVERY_READ_TOKEN'
     assert control.proof['cloudflare_requests'][-1]['schema_check'] == 'PASS'
+
+
+def test_preservation_queries_use_existing_reader_not_deployment_token(monkeypatch):
+    monkeypatch.setenv('CLOUDFLARE_RECOVERY_READ_TOKEN', 'existing-reader')
+    calls = []
+
+    def fake_cf(path, **options):
+        calls.append(options)
+        return [{'success': True, 'results': []}]
+
+    monkeypatch.setattr(control, 'cf', fake_cf)
+    assert control.query('SELECT name FROM d1_migrations ORDER BY id') == []
+    assert calls[0]['token_name'] == 'CLOUDFLARE_RECOVERY_READ_TOKEN'
+    monkeypatch.delenv('CLOUDFLARE_RECOVERY_READ_TOKEN')
+    with pytest.raises(RuntimeError, match='D1_read_credential_missing'):
+        control.query('SELECT name FROM d1_migrations ORDER BY id')
+    assert len(calls) == 1
