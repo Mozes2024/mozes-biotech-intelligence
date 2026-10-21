@@ -1,0 +1,71 @@
+name: deploy-stage-a-continuity
+on:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: 'Exact owner-approved one-deployment identifier'
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: mozes-hot-monitor
+  cancel-in-progress: false
+  queue: max
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && inputs.approval == 'DEPLOY_STAGE_A_ONCE_20261021'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Require first attempt and independently approved Stage A builder
+        run: |
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test -f scripts/build_stage_a_continuity.py
+          test "$(git hash-object scripts/build_stage_a_continuity.py)" = 32ef6d9198fbb47052ce3698c5aec6e12b340310
+      - run: npm ci --prefix cloudflare
+      - name: Build only the reviewed immutable Stage A candidate
+        run: python scripts/build_stage_a_continuity.py /tmp/bio-stage-a
+      - name: Dry-run and verify the exact reviewed bundle
+        run: |
+          node cloudflare/node_modules/wrangler/bin/wrangler.js deploy --config /tmp/bio-stage-a/cloudflare/wrangler.toml --dry-run --outdir /tmp/bio-stage-a-bundle --keep-vars --var EDGE_INTERVAL_SECONDS:120 --var EDGE_MONITOR_HEARTBEAT_ENABLED:1
+          echo '34e3ebd40198f5a1560e857dfcba972e9c70cd2be64d4cda675fbb58bcf63275  /tmp/bio-stage-a-bundle/index.js' | sha256sum --check
+          test ! -f /tmp/bio-stage-a/cloudflare/migrations/0005_d1_optimization.sql
+      - name: Verify candidate preserves every configured production variable before upload
+        run: python -m scripts.bio_continuity_control inspect --candidate /tmp/bio-stage-a/cloudflare/wrangler.toml
+      - name: Deploy exactly once without changing the forward fence or credentials
+        run: node cloudflare/node_modules/wrangler/bin/wrangler.js deploy --config /tmp/bio-stage-a/cloudflare/wrangler.toml --keep-vars --var EDGE_INTERVAL_SECONDS:120 --var EDGE_MONITOR_HEARTBEAT_ENABLED:1
+      - name: Verify new Stage A version and preserved production state
+        run: |
+          python -m scripts.bio_continuity_control postdeploy
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('.diagnostics/bio-continuity')
+          before=json.loads((root/'proof-inspect.json').read_text())['cloudflare']
+          after=json.loads((root/'proof-postdeploy.json').read_text())['cloudflare']
+          for key in ('preserved_bindings_hash','secret_names','forward_only_from','interval_seconds','cron','d1_migrations','rapp'):
+              assert before[key] == after[key], key + ' changed'
+          assert after['bundle_sha256'] == '34e3ebd40198f5a1560e857dfcba972e9c70cd2be64d4cda675fbb58bcf63275'
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bio-stage-a-deployment-proof
+          path: .diagnostics/bio-continuity/proof-*.json
+          retention-days: 14
