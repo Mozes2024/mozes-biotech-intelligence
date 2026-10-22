@@ -36,9 +36,8 @@
     "TVTX",
     "REPL",
     "ACAD",
-    "BPMC",
     "EDIT",
-    "BGNE",
+    "ONC",
     "UTHR"
   ],
   "note": "Hot-lane preference only; not evidence of edge. Cap enforced in priority.py."

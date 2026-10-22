@@ -52,10 +52,12 @@ def parse_atom(payload):
 def biotech_universe(conn):
     """Deduplicate CIKs for watched or active Phase 2/3 issuers."""
     tickers = {row[0] for row in conn.execute("SELECT ticker FROM watch_universe WHERE active=1")}
+    from ..watch_reconcile import retired_tickers
     tickers.update(row[0] for row in conn.execute(
         "SELECT ticker FROM discovery_candidates WHERE ticker IS NOT NULL "
         "AND (phase LIKE '%PHASE2%' OR phase LIKE '%PHASE3%') "
         "AND status IN ('RECRUITING','ACTIVE_NOT_RECRUITING','ENROLLING_BY_INVITATION','NOT_YET_RECRUITING')"))
+    tickers -= set(retired_tickers())
     rows = conn.execute(
         "SELECT ticker,cik,sponsor AS company,confidence,source FROM sponsor_ticker_map "
         "WHERE cik IS NOT NULL AND confidence>=0.85 AND source='SEC-v2C-equity'").fetchall()
