@@ -340,6 +340,16 @@ def run_priority_pipeline(conn):
                                          news=True, priority_only=True, **hot)
     finally:
         enable_hot_mode(False)
+    # Gated daily best-effort price refresh (MOZES_PRICE_REFRESH=1). The prices
+    # operation record surfaces a systemic failure in the exported health banner.
+    from .live_prices import maybe_refresh_live_prices
+    price_id = operation_start(conn, 'prices')
+    try:
+        details['prices'] = maybe_refresh_live_prices(
+            conn, budget_seconds=float(os.environ.get('MOZES_PRICE_BUDGET_SECONDS', '300')))
+    except Exception as exc:
+        details['prices'] = {'status': 'FAILED', 'best_effort': True, 'error': type(exc).__name__}
+    operation_finish(conn, price_id, details['prices'].get('status', 'OK'), details['prices'])
     status = details['monitor']['status']
     operation_finish(conn, rid, status, details)
     return {'status': status, 'details': details}

@@ -233,6 +233,7 @@ def test_priority_pipeline_does_not_run_broad_enrichment(tmp_path, monkeypatch):
     from mozes.intelligence_store import ensure_schema
     conn=db.connect(tmp_path/'priority.db')
     ensure_schema(conn)
+    monkeypatch.setenv('MOZES_PRICE_REFRESH','0')
     monkeypatch.setattr(pipeline_v2c,'reconcile_catalog',lambda _: {'changed': [], 'conflicts': []})
     called=[]
     def short_monitor(_conn, **kwargs):
