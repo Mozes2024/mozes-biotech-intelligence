@@ -18,7 +18,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .live_monitor import observe, record_change
-from .primary_feeds import canonical_url
+from .primary_feeds import canonical_url, recorded_release_urls
 from .priority import priority_tickers
 from .ir_registry import load_ir_registry, ir_site
 
@@ -181,7 +181,10 @@ def _poll_wire_issuer(conn, ticker, entry, *, fetch, now):
     after = _wire_issuer_baseline(conn, ticker, url, now)
     fresh = [item for item in items if datetime.fromisoformat(item["published_at"]) >= after]
     added = 0
+    known_urls = recorded_release_urls(conn)  # releases already alerted via the categorical wire feeds
     for item in fresh[:10]:
+        if canonical_url(item["url"]) in known_urls:
+            continue
         before = conn.total_changes
         record_change(conn, ticker=ticker, change_type="company_release_signal", previous_value=None,
                       new_value={"headline": item["title"], "published_at": item["published_at"]},

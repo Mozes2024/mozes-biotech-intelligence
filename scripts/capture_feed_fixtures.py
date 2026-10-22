@@ -65,7 +65,9 @@ def main(argv=None):
     parser.add_argument("--list-fda", action="store_true", help="print RSS links advertised by fda.gov")
     parser.add_argument("--extra", default="", help="space-separated candidate URLs to probe (not saved)")
     args = parser.parse_args(argv)
-    for index, url in enumerate(args.extra.split()):
+    tokens = args.extra.split()
+    run_wire_issuer = "@wire-issuer" in tokens
+    for index, url in enumerate(t for t in tokens if t != "@wire-issuer"):
         print(json.dumps(probe(f"extra_{index}", url)[0], indent=2))
     if args.list_fda:
         try:
@@ -81,6 +83,19 @@ def main(argv=None):
             OUT.mkdir(parents=True, exist_ok=True)
             (OUT / f"{name}.xml").write_bytes(body)
     print(json.dumps(report, indent=2, ensure_ascii=False))
+    if run_wire_issuer:
+        # Read-only: temp databases only; JSON lands in the log and in the feed-samples artifact.
+        import contextlib
+        import io
+        import probe_wire_issuer_feeds
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            code = probe_wire_issuer_feeds.main()
+        print(buffer.getvalue())
+        OUT.mkdir(parents=True, exist_ok=True)
+        (OUT / "wire-issuer-probe.json").write_text(buffer.getvalue(), encoding="utf-8")
+        print("wire-issuer probe exit code:", code)
+        return code
     return 0
 
 
