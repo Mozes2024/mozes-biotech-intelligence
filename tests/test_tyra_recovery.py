@@ -79,7 +79,7 @@ def test_tyra_is_polled_in_normal_nonpriority_ir_rotation(tmp_path, monkeypatch)
         return {}
     monkeypatch.setattr(hot_monitor, 'poll_official_feeds', poll)
     hot_monitor.run_hot_pass(conn, include_sec=False, dispatch=False, fetch=lambda url: b'')
-    assert len(priority_tickers()) == 40 and 'TYRA' not in priority_tickers()
+    assert len(priority_tickers()) == 39 and 'TYRA' not in priority_tickers()  # BPMC acquired by Sanofi 2025-07; BGNE renamed ONC
     assert set(selected) == set(load_ir_registry())
     assert selected.count('TYRA') == 1
 
@@ -146,7 +146,7 @@ def test_nonpriority_phase2_source_to_stage1(tmp_path, monkeypatch, ticker, cik,
     from mozes.ingest import edgar_latest
     from mozes.alert_dispatch import recent_alerts
     assert ticker not in priority_tickers()
-    assert len(priority_tickers()) == 40
+    assert len(priority_tickers()) == 39  # BPMC acquired by Sanofi 2025-07; BGNE renamed ONC
     conn = db.connect(tmp_path / 'ingestion.db')
     conn.execute('INSERT INTO sponsor_ticker_map VALUES(?,?,?,?,?,?,?)',
                  (ticker.lower(), ticker + ' Biosciences', ticker, cik, .99, 'SEC-v2C-equity', db.utcnow()))

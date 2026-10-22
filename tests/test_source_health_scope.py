@@ -69,8 +69,8 @@ def test_bounded_ir_coverage_separates_configured_unobserved_from_watch_without_
     db.upsert_watch(conn, 'TYRA')
     db.upsert_watch(conn, 'ZZZZ')
     coverage = build(conn, date(2026,10,20), consumer_only=True)['ir_coverage']
-    assert coverage['configured_count'] == 41
-    assert coverage['priority_count'] == 40
+    assert coverage['configured_count'] == 40
+    assert coverage['priority_count'] == 39
     assert coverage['rotating_count'] == 1
     assert coverage['rotating_per_cycle'] == 8
     assert 'TYRA' in coverage['configured_without_observation']

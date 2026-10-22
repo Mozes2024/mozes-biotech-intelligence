@@ -193,6 +193,9 @@ def set_validation(conn, name, enabled, oos_n, min_oos_n, metrics=None, note=Non
 
 
 def upsert_watch(conn, ticker, company=None, cik=None, source="manual", active=True):
+    from .watch_reconcile import retired_tickers
+    if ticker.upper() in retired_tickers():
+        active = False  # delisted/renamed tickers are never reactivated by discovery
     with conn:
         conn.execute(
             "INSERT INTO watch_universe(ticker,company,cik,source,active,updated_at) VALUES(?,?,?,?,?,?) "
