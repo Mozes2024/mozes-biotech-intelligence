@@ -41,10 +41,14 @@ def test_auto_audit_uses_keyless_provider_and_preserves_terminal_override(tmp_pa
 
 
 def test_historical_only_tickers_do_not_enter_current_watch_universe(tmp_path):
+    from mozes.watch_reconcile import retired_tickers
     conn = db.connect(tmp_path / "x.db")
     bootstrap_database(conn)
+    # Retired tickers (delisted/acquired/renamed) keep their live event history
+    # but never an active watch row: polling, prices and alerts stop for them.
     live = {e["ticker"] for e in db.load_events(conn, "live")}
-    assert {r["ticker"] for r in db.watch_rows(conn)} == live
+    assert {r["ticker"] for r in db.watch_rows(conn)} == live - set(retired_tickers())
+    assert "ACLX" in live  # acquired by Gilead 2026-04-28; event stays readable
     assert "KRTX" not in live
 
 
