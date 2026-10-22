@@ -36,7 +36,7 @@ globalThis.MozesCheckpointHealth = function(data, now = Date.now()) {
   const covered = new Set((data?.official_feeds || []).map(row => row.ticker));
   const backlog = data?.edge_health?.backlog || {};
   return {checkpoint_at: valid ? at : null, age_minutes: age, stale: !valid || now - parsed > 2700000,
-    publication_delayed:valid && now-parsed>=1200000,
+    publication_delayed:valid && now-parsed>=1800000,
     checkpoint_to_export_minutes:valid && Number.isFinite(published) && published>=parsed ? Math.floor((published-parsed)/60000) : null,
     source_scan_at:latest?.at || null, sources_stale:!latest || now-latest.time>2700000,
     publication_at:Number.isFinite(published) ? data.generated_at : null,
