@@ -106,7 +106,7 @@
   },
   "EDIT": {
     "company": "Editas Medicine",
-    "site": "https://investors.editasmedicine.com/",
+    "site": "https://ir.editasmedicine.com/",
     "feed_url": null
   },
   "ASND": {
@@ -116,12 +116,12 @@
   },
   "ARGX": {
     "company": "argenx",
-    "site": "https://investors.argenx.com/",
+    "site": "https://argenx.com/investors",
     "feed_url": null
   },
   "LEGN": {
     "company": "Legend Biotech",
-    "site": "https://ir.legendbiotech.com/",
+    "site": "https://investors.legendbiotech.com/",
     "feed_url": null
   },
   "BGNE": {
@@ -146,12 +146,12 @@
   },
   "ACAD": {
     "company": "Acadia",
-    "site": "https://ir.acadia-pharm.com/",
-    "feed_url": null
+    "site": "https://ir.acadia.com/",
+    "feed_url": "https://ir.acadia.com/rss/pressrelease.aspx"
   },
   "AXSM": {
     "company": "Axsome",
-    "site": "https://ir.axsome.com/",
+    "site": "https://axsometherapeuticsinc.gcs-web.com/",
     "feed_url": null
   },
   "RYTM": {
@@ -181,7 +181,7 @@
   },
   "KRYS": {
     "company": "Krystal Biotech",
-    "site": "https://ir.krystalbiotech.com/",
+    "site": "https://ir.krystalbio.com/",
     "feed_url": null
   },
   "SRPT": {

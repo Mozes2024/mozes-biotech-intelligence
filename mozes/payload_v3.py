@@ -166,6 +166,13 @@ def _health(conn, live, refresh, monitor):
                                "WHERE observation_key LIKE 'fda_feed:%' OR observation_key LIKE 'wire_feed:%' "
                                "OR observation_key LIKE 'sec_latest:%' OR observation_key LIKE 'official_feed:%' "
                                "OR observation_key='nasdaq_halts' ORDER BY observation_key") if hasattr(conn, "execute") else ()
+    source_rows = list(source_rows)
+    # SEC's global 8-K/6-K stream is polled for every issuer in the watch universe. While both feeds are
+    # healthy, a blocked company IR page is a coverage gap in a secondary source, not a missed filing.
+    sec_streams = {r["observation_key"]: json.loads(r["value_json"] or "{}") for r in source_rows
+                   if r["observation_key"] in {"sec_latest:8-K", "sec_latest:6-K"}}
+    sec_healthy = len(sec_streams) == 2 and all(
+        v.get("status") == "active" and not v.get("consecutive_failures") for v in sec_streams.values())
     for source in source_rows:
         value = json.loads(source["value_json"] or "{}")
         status = "FAILED" if value.get("consecutive_failures") else (
@@ -188,9 +195,14 @@ def _health(conn, live, refresh, monitor):
                 "last_error_at": value.get("last_error_at"),
                 "last_error": value.get("error") or value.get("feed_error"),
                 "consecutive_failures": value.get("consecutive_failures", 0)}
+        if (source["observation_key"].startswith("official_feed:") and status in {"FAILED", "PARTIAL"}
+                and item["in_scope"] and sec_healthy):
+            item["covered_by"] = "sec_8k_6k"
         source_freshness.append(item)
         if not item["in_scope"]:
             info.append({"module": item["source"], "status": "OUTSIDE_CURRENT_CONFIGURATION", "details": item})
+        elif item.get("covered_by"):
+            info.append({"module": item["source"], "status": "COVERED_BY_ALTERNATE_SOURCE", "details": item})
         elif status == "FAILED":
             red.append({"module": item["source"], "status": status, "details": item})
         elif status == "PARTIAL":

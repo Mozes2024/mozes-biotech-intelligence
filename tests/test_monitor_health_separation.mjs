@@ -95,3 +95,16 @@ test('forty-minute data is delayed even inside the unchanged hard freshness guar
   for(const [checkpoint_at,delayed] of [['2026-10-20T11:40:01Z',false],['2026-10-20T11:40:00Z',true]])
     assert.equal(context.MozesCheckpointHealth({checkpoint_at},now).publication_delayed,delayed);
 });
+
+test('IR failures covered by SEC streams are counted separately, not as failures', () => {
+  const data = {checkpoint_at:'2026-10-20T11:59:00Z', generated_at:'2026-10-20T11:59:30Z',
+    health:{source_freshness:[
+      {source:'official_feed:AMGN',status:'FAILED',covered_by:'sec_8k_6k',last_checked_at:'2026-10-20T11:50:00Z',last_success_at:'2026-10-20T11:50:00Z'},
+      {source:'official_feed:BIIB',status:'PARTIAL',covered_by:'sec_8k_6k',last_checked_at:'2026-10-20T11:50:00Z'},
+      {source:'wire_feed:x',status:'FAILED',last_checked_at:'2026-10-20T11:50:00Z',last_success_at:'2026-10-20T11:50:00Z'}]}};
+  const h = context.MozesCheckpointHealth(data, now);
+  assert.equal(h.current_failed_sources, 1);
+  assert.equal(h.current_partial_sources, 0);
+  assert.equal(h.covered_sources, 2);
+  assert.equal(h.failed_sources, 1);
+});

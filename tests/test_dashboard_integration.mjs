@@ -37,9 +37,9 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
 test('changed dashboard assets use one new compatible version while checkpoint health keeps its version',()=>{
  const versions=new Map(scripts.map(src=>{const url=new URL(src,'https://example.invalid/');return [url.pathname,url.searchParams.get('v')];}));
- const version=versions.get('/app.js');assert.ok(version);assert.notEqual(version,'checkpoint-timezone-v1');
+ const version=versions.get('/app.js');assert.ok(version);assert.notEqual(version,'checkpoint-timezone-v2');
  assert.equal(versions.get('/live_intelligence_ui.js'),version);
- assert.equal(versions.get('/checkpoint_health.js'),'checkpoint-timezone-v1');
+ assert.equal(versions.get('/checkpoint_health.js'),'checkpoint-timezone-v2');
 });
 
 async function harness(initial=payload(),now='2026-10-12T13:00:00Z'){
