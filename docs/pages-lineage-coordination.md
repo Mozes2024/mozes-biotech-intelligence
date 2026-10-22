@@ -22,8 +22,8 @@ running. No new scheduler is added. Tradeoff: Pages takes a bounded turn in the
 writer queue, so monitoring may wait for the existing eight-minute build and
 five-minute deployment limits. The 45-minute age guard is unchanged.
 
-The reader also reports checkpoint-to-export lag and warns after a 20-minute
-checkpoint-age target (the intended 15-minute fallback cadence plus five minutes
+The reader also reports checkpoint-to-export lag and warns after a 30-minute
+checkpoint-age target (the intended 15-minute fallback cadence plus fifteen minutes
 of publication headroom). That target is an operational warning, not a promise
 that GitHub's best-effort scheduler meets an SLA. The hard 45-minute validity
 guard remains unchanged. A newly generated HTML/JSON file cannot make a

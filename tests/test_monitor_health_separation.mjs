@@ -92,7 +92,7 @@ test('forty-minute data is delayed even inside the unchanged hard freshness guar
   assert.equal(h.publication_delayed,true);
   assert.equal(h.checkpoint_to_export_minutes,39);
   assert.equal(h.publication_stale,false);
-  for(const [checkpoint_at,delayed] of [['2026-10-20T11:40:01Z',false],['2026-10-20T11:40:00Z',true]])
+  for(const [checkpoint_at,delayed] of [['2026-10-20T11:30:01Z',false],['2026-10-20T11:30:00Z',true]])
     assert.equal(context.MozesCheckpointHealth({checkpoint_at},now).publication_delayed,delayed);
 });
 
