@@ -57,9 +57,29 @@ def verify_receipt(repo, run, value, gh):
             <= stamp(ledgers[0]['created_at']) <= stamp(run['updated_at']), 'publication_chronology')
 
 
-def dispatch_decision(rows, *, now):
+# GitHub can leave a finished run's record stuck in an active status
+# (run 39827554417, 2026-10-22: both jobs succeeded, cancel refused with
+# "not in progress" while the run status stayed in_progress). A wedged
+# record must not block publication forever.
+STALE_ACTIVE_SECONDS = 20 * 60
+
+
+def dispatch_decision(rows, *, now, stale_after_seconds=STALE_ACTIVE_SECONDS):
     require(all(r.get('status') in ('completed', *ACTIVE) for r in rows), 'publication_inventory')
-    if any(r['status'] in ACTIVE for r in rows):
+    active = []
+    for r in rows:
+        if r['status'] not in ACTIVE:
+            continue
+        try:
+            age = (now - stamp(r.get('updated_at'))).total_seconds()
+        except Exception:
+            age = None
+        if age is not None and age > stale_after_seconds:
+            print('publication_stale_active run_id=%s status=%s age_minutes=%d; treating as dead'
+                  % (r.get('id'), r.get('status'), age // 60))
+            continue
+        active.append(r)
+    if active:
         return 'publish_running'
     # PR CI creates completed/skipped Pages runs without a publication request.
     # They must not restart the two-minute dispatch throttle or act as an ACK.

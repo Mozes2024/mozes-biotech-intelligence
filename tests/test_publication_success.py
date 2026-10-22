@@ -158,3 +158,20 @@ def test_full_verified_receipt_roundtrip_preserves_checkpoint(tmp_path, monkeypa
     jobs['jobs'][0]['steps'][0]['conclusion']='failure'
     assert restore.restore_published_receipt('Owner/Repo') is None
     assert not Path('.monitor/published-ledger.json').exists()
+
+
+def test_stale_active_pages_run_is_treated_as_dead_and_redispatched():
+    rows=[{'id':1,'status':'in_progress','created_at':(NOW-timedelta(hours=2)).isoformat(),
+           'updated_at':(NOW-timedelta(minutes=90)).isoformat()}]
+    assert dispatch_decision(rows,now=NOW)=='publish_requested_new'
+
+
+def test_fresh_active_pages_run_still_blocks_dispatch():
+    rows=[{'id':1,'status':'in_progress','created_at':(NOW-timedelta(minutes=10)).isoformat(),
+           'updated_at':(NOW-timedelta(minutes=3)).isoformat()}]
+    assert dispatch_decision(rows,now=NOW)=='publish_running'
+
+
+def test_active_run_without_updated_at_is_never_overridden():
+    rows=[{'id':1,'status':'queued','created_at':(NOW-timedelta(hours=3)).isoformat()}]
+    assert dispatch_decision(rows,now=NOW)=='publish_running'
