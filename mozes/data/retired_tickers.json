@@ -1,4 +1,14 @@
 {
-  "BPMC": {"reason": "Acquired by Sanofi, completed 2025-07-18; delisted", "successor": null},
-  "BGNE": {"reason": "BeiGene renamed BeOne Medicines; Nasdaq ticker changed to ONC on 2025-01-02", "successor": "ONC"}
+  "BPMC": {
+    "reason": "Acquired by Sanofi, completed 2025-07-18; delisted",
+    "successor": null
+  },
+  "BGNE": {
+    "reason": "BeiGene renamed BeOne Medicines; Nasdaq ticker changed to ONC on 2025-01-02",
+    "successor": "ONC"
+  },
+  "ACLX": {
+    "reason": "Acquired by Gilead (GILD), completed 2026-04-28; delisted from Nasdaq (Form 25)",
+    "successor": null
+  }
 }
