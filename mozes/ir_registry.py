@@ -24,7 +24,13 @@ def _normalize_entry(ticker, value):
     company = (value.get("company") or ticker).strip()
     if not site:
         return None
-    return {"ticker": ticker, "site": site, "feed_url": feed, "company": company}
+    row = {"ticker": ticker, "site": site, "feed_url": feed, "company": company}
+    wire_feed = (value.get("wire_feed_url") or "").strip() or None
+    wire_contributor = (value.get("wire_contributor") or "").strip() or None
+    if wire_feed and wire_contributor:
+        row["wire_feed_url"] = wire_feed
+        row["wire_contributor"] = wire_contributor
+    return row
 
 
 def load_ir_registry():

@@ -85,6 +85,17 @@ def canonical_url(url):
     return urlunsplit(("https", parts.netloc.lower(), path, query, ""))
 
 
+def recorded_release_urls(conn, *, change_type=None, days=10):
+    """Canonical URLs of wire releases already recorded recently (cross-lane de-duplication)."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    sql = "SELECT source_url FROM change_events WHERE source_type='wire' AND source_url IS NOT NULL AND detected_at>=?"
+    args = [cutoff]
+    if change_type:
+        sql += " AND change_type=?"
+        args.append(change_type)
+    return {canonical_url(row[0]) for row in conn.execute(sql, args)}
+
+
 _EXCHANGE_SYMBOL = re.compile(r"\((?:NASDAQ|Nasdaq|NYSE)(?:\s+\w+)?\s*[:：]\s*([A-Z][A-Z0-9.]{0,9})\)")
 
 
@@ -221,7 +232,10 @@ def poll_wire_feeds(conn, *, fetch, now=None, resolve_headline=None, max_items=3
                                                "forward_only_from": after.isoformat() if after else None,
                                                "baseline_suppressed": before - len(items)},
                     source_url=url, source_type="wire")
+            issuer_lane_urls = recorded_release_urls(conn, change_type="company_release_signal")
             for item in items:
+                if canonical_url(item["url"]) in issuer_lane_urls:
+                    continue  # already alerted via the per-issuer fallback lane
                 text = item["title"] + " " + item.get("summary", "")
                 if not BIOTECHISH.search(text):
                     from .clinical_events import ingest_clinical

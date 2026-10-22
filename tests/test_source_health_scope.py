@@ -77,3 +77,84 @@ def test_bounded_ir_coverage_separates_configured_unobserved_from_watch_without_
     assert coverage['watch_configured_count'] == 1
     assert coverage['watch_without_configured_site'] == 1
     assert coverage['watch_without_observation'] == 2
+
+
+def _now():
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _sec_streams(conn, status='active', checked_at=None):
+    for form in ('8-K', '6-K'):
+        observe(conn, 'sec_latest:' + form, {'status': status, 'checked_at': checked_at or _now()})
+
+
+def test_blocked_ir_page_is_marked_covered_while_sec_streams_are_healthy(tmp_path):
+    conn = db.connect(tmp_path / 'covered.db')
+    _sec_streams(conn)
+    observe(conn, 'official_feed:AMGN', {'status': 'fetch_error', 'error': 'HTTP 403', 'checked_at': '2026-10-22T08:00:00Z'})
+    rows = {r['source']: r for r in _health(conn, [], None, None)['source_freshness']}
+    assert rows['official_feed:AMGN']['status'] == 'FAILED'  # raw status is never hidden
+    assert rows['official_feed:AMGN']['covered_by'] == 'sec_8k_6k'
+    assert rows['official_feed:AMGN']['coverage'] == 'partial'  # filings only, never full coverage
+    assert 'covered_by' not in rows['sec_latest:8-K']
+
+
+def test_no_alternate_coverage_when_sec_stream_is_failing_or_missing(tmp_path):
+    conn = db.connect(tmp_path / 'uncovered.db')
+    observe(conn, 'official_feed:AMGN', {'status': 'fetch_error', 'checked_at': '2026-10-22T08:00:00Z'})
+    rows = {r['source']: r for r in _health(conn, [], None, None)['source_freshness']}
+    assert 'covered_by' not in rows['official_feed:AMGN']  # no SEC observations at all
+    observe(conn, 'sec_latest:8-K', {'status': 'active', 'checked_at': '2026-10-22T08:00:00Z'})
+    observe(conn, 'sec_latest:6-K', {'status': 'fetch_error', 'checked_at': '2026-10-22T08:00:00Z'})
+    rows = {r['source']: r for r in _health(conn, [], None, None)['source_freshness']}
+    assert 'covered_by' not in rows['official_feed:AMGN']  # one stream down
+
+
+def test_failing_wire_or_sec_feed_is_never_marked_covered(tmp_path):
+    conn = db.connect(tmp_path / 'primary.db')
+    _sec_streams(conn)
+    observe(conn, 'wire_feed:businesswire_health', {'status': 'fetch_error', 'checked_at': '2026-10-22T08:00:00Z'})
+    rows = {r['source']: r for r in _health(conn, [], None, None)['source_freshness']}
+    assert 'covered_by' not in rows['wire_feed:businesswire_health']
+
+
+def test_registry_has_no_known_dead_ir_hosts():
+    from mozes.ir_registry import load_ir_registry
+    dead = {'ir.acadia-pharm.com', 'investors.argenx.com', 'ir.axsome.com', 'investors.editasmedicine.com',
+            'ir.krystalbiotech.com', 'ir.legendbiotech.com'}
+    from urllib.parse import urlsplit
+    hosts = {urlsplit(r['site']).hostname for r in load_ir_registry().values()}
+    assert not hosts & dead
+    assert load_ir_registry()['ACAD']['feed_url'].startswith('https://ir.acadia.com/')
+
+
+def test_connect_sets_busy_timeout(tmp_path):
+    conn = db.connect(tmp_path / 'wal.db')
+    assert conn.execute('PRAGMA busy_timeout').fetchone()[0] == 30000
+    # WAL is deliberately not enabled: the monitor copies the single .db file as its checkpoint.
+    assert conn.execute('PRAGMA journal_mode').fetchone()[0].lower() != 'wal'
+
+
+def test_pyproject_requires_python_matches_tomllib_use():
+    import pathlib
+    text = pathlib.Path('pyproject.toml').read_text()
+    assert 'requires-python = ">=3.11"' in text
+
+
+def test_stale_sec_streams_do_not_cover_a_blocked_ir_page(tmp_path):
+    conn = db.connect(tmp_path / 'stale.db')
+    _sec_streams(conn, checked_at='2026-10-22T08:00:00Z')  # active status but hours old
+    observe(conn, 'official_feed:AMGN', {'status': 'fetch_error', 'checked_at': _now()})
+    rows = {r['source']: r for r in _health(conn, [], None, None)['source_freshness']}
+    assert 'covered_by' not in rows['official_feed:AMGN']
+
+
+def test_covered_ir_failure_stays_visible_in_severity_lists(tmp_path):
+    conn = db.connect(tmp_path / 'visible.db')
+    _sec_streams(conn)
+    observe(conn, 'official_feed:AMGN', {'status': 'fetch_error', 'error': 'HTTP 403', 'checked_at': _now()})
+    health = _health(conn, [], None, None)
+    red = [r['module'] for r in health['severity']['red']]
+    assert 'official_feed:AMGN' in red
+    assert health['status'] == 'degraded'

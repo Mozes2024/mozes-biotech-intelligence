@@ -44,6 +44,7 @@ globalThis.MozesCheckpointHealth = function(data, now = Date.now()) {
     failed_sources:scoped.filter(row => row.status==='FAILED' || row.status==='PARTIAL').length,
     current_failed_sources:recent.filter(row => row.status==='FAILED').length,
     current_partial_sources:recent.filter(row => row.status==='PARTIAL').length,
+    covered_sources:scoped.filter(row => row.covered_by && (row.status==='FAILED' || row.status==='PARTIAL')).length,
     stale_sources:stale.length,
     unconfigured_observations:sources.length-scoped.length,
     ir_coverage:data?.ir_coverage || null,
