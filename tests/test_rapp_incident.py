@@ -15,7 +15,7 @@ def test_rapp_qualifies_before_watchlist_promotion_and_exhibit_is_material_idemp
         ('rapport',CASE['company'],'RAPP',CASE['cik'],.9,'SEC-v2C-equity','2026-10-06T06:32:14Z'))
     conn.execute('INSERT INTO discovery_candidates(candidate_id,nct_id,sponsor,ticker,phase,status,raw_json,discovered_at) VALUES(?,?,?,?,?,?,?,?)',
         ('rapp-fixture','NCT07046494','Rapport Therapeutics Inc.','RAPP','PHASE2','ACTIVE_NOT_RECRUITING','{}','2026-10-06T06:32:14Z'))
-    assert 'RAPP' not in priority_tickers() and len(priority_tickers())==40
+    assert 'RAPP' not in priority_tickers() and len(priority_tickers())==39
     assert not conn.execute("SELECT 1 FROM watch_universe WHERE ticker='RAPP'").fetchone()
     assert edgar_latest.biotech_universe(conn)[CASE['cik']]['ticker']=='RAPP'
     assert any(r['ticker']=='RAPP' for r in build_universe(conn)['issuers'])

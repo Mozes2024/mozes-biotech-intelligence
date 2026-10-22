@@ -124,16 +124,6 @@
     "site": "https://ir.legendbiotech.com/",
     "feed_url": null
   },
-  "BGNE": {
-    "company": "BeOne / BeiGene",
-    "site": "https://ir.beigene.com/",
-    "feed_url": null
-  },
-  "BPMC": {
-    "company": "Blueprint Medicines",
-    "site": "https://ir.blueprintmedicines.com/",
-    "feed_url": "https://ir.blueprintmedicines.com/rss/news-releases.xml"
-  },
   "INSM": {
     "company": "Insmed",
     "site": "https://investor.insmed.com/",
@@ -202,6 +192,11 @@
   "REPL": {
     "company": "Replimune",
     "site": "https://ir.replimune.com/",
+    "feed_url": null
+  },
+  "ONC": {
+    "company": "BeOne Medicines Ltd (formerly BeiGene)",
+    "site": "https://ir.beonemedicines.com/",
     "feed_url": null
   }
 }
