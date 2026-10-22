@@ -17,17 +17,23 @@
   "GMAB": {
     "company": "Genmab",
     "site": "https://ir.genmab.com/",
-    "feed_url": "https://ir.genmab.com/rss/news-releases.xml"
+    "feed_url": "https://ir.genmab.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Genmab",
+    "wire_contributor": "genmab"
   },
   "BNTX": {
     "company": "BioNTech",
     "site": "https://investors.biontech.de/",
-    "feed_url": "https://investors.biontech.de/rss/news-releases.xml"
+    "feed_url": "https://investors.biontech.de/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/BioNTech",
+    "wire_contributor": "biontech"
   },
   "REGN": {
     "company": "Regeneron",
     "site": "https://investor.regeneron.com/",
-    "feed_url": "https://investor.regeneron.com/rss/news-releases.xml"
+    "feed_url": "https://investor.regeneron.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Regeneron",
+    "wire_contributor": "regeneron"
   },
   "VRTX": {
     "company": "Vertex",
@@ -42,7 +48,9 @@
   "BIIB": {
     "company": "Biogen",
     "site": "https://investors.biogen.com/",
-    "feed_url": "https://investors.biogen.com/rss/news-releases.xml"
+    "feed_url": "https://investors.biogen.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Biogen",
+    "wire_contributor": "biogen"
   },
   "GILD": {
     "company": "Gilead",
@@ -72,7 +80,9 @@
   "MDGL": {
     "company": "Madrigal",
     "site": "https://ir.madrigalpharma.com/",
-    "feed_url": "https://ir.madrigalpharma.com/rss/news-releases.xml"
+    "feed_url": "https://ir.madrigalpharma.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Madrigal%20Pharmaceuticals",
+    "wire_contributor": "madrigal"
   },
   "CYTK": {
     "company": "Cytokinetics",
@@ -87,12 +97,16 @@
   "RARE": {
     "company": "Ultragenyx",
     "site": "https://ir.ultragenyx.com/",
-    "feed_url": "https://ir.ultragenyx.com/rss/news-releases.xml"
+    "feed_url": "https://ir.ultragenyx.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Ultragenyx",
+    "wire_contributor": "ultragenyx"
   },
   "NTLA": {
     "company": "Intellia",
     "site": "https://ir.intelliatx.com/",
-    "feed_url": "https://ir.intelliatx.com/rss/news-releases.xml"
+    "feed_url": "https://ir.intelliatx.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Intellia%20Therapeutics",
+    "wire_contributor": "intellia"
   },
   "CRSP": {
     "company": "CRISPR Therapeutics",
@@ -102,7 +116,9 @@
   "BEAM": {
     "company": "Beam Therapeutics",
     "site": "https://investors.beamtx.com/",
-    "feed_url": "https://investors.beamtx.com/rss/news-releases.xml"
+    "feed_url": "https://investors.beamtx.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Beam%20Therapeutics",
+    "wire_contributor": "beam therapeutics"
   },
   "EDIT": {
     "company": "Editas Medicine",
@@ -112,7 +128,9 @@
   "ASND": {
     "company": "Ascendis Pharma",
     "site": "https://investors.ascendispharma.com/",
-    "feed_url": "https://investors.ascendispharma.com/rss/news-releases.xml"
+    "feed_url": "https://investors.ascendispharma.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Ascendis%20Pharma",
+    "wire_contributor": "ascendis pharma"
   },
   "ARGX": {
     "company": "argenx",
@@ -157,7 +175,9 @@
   "RYTM": {
     "company": "Rhythm Pharmaceuticals",
     "site": "https://ir.rhythmtx.com/",
-    "feed_url": "https://ir.rhythmtx.com/rss/news-releases.xml"
+    "feed_url": "https://ir.rhythmtx.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Rhythm%20Pharmaceuticals",
+    "wire_contributor": "rhythm pharmaceuticals"
   },
   "TVTX": {
     "company": "Travere",
@@ -167,12 +187,16 @@
   "IOVA": {
     "company": "Iovance",
     "site": "https://ir.iovance.com/",
-    "feed_url": "https://ir.iovance.com/rss/news-releases.xml"
+    "feed_url": "https://ir.iovance.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Iovance%20Biotherapeutics",
+    "wire_contributor": "iovance"
   },
   "BCRX": {
     "company": "BioCryst",
     "site": "https://ir.biocryst.com/",
-    "feed_url": "https://ir.biocryst.com/rss/news-releases.xml"
+    "feed_url": "https://ir.biocryst.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/BioCryst",
+    "wire_contributor": "biocryst"
   },
   "RCKT": {
     "company": "Rocket Pharmaceuticals",
@@ -202,6 +226,8 @@
   "REPL": {
     "company": "Replimune",
     "site": "https://ir.replimune.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Replimune",
+    "wire_contributor": "replimune"
   }
 }

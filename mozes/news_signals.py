@@ -18,6 +18,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .live_monitor import observe, record_change
+from .primary_feeds import canonical_url
 from .priority import priority_tickers
 from .ir_registry import load_ir_registry, ir_site
 
@@ -113,6 +114,89 @@ def parse_official_feed(payload, *, site, now=None, max_age_hours=48):
     return rows
 
 
+_GN_DC = "{http://dublincore.org/documents/dcmi-namespace/}"
+_GN_FEED_HOST = "rss.globenewswire.com"
+_GN_ARTICLE_HOSTS = {"globenewswire.com", "www.globenewswire.com", "rss.globenewswire.com"}
+
+
+def parse_wire_issuer_feed(payload, *, contributor, now=None, max_age_hours=168):
+    """The issuer's own releases from its official GlobeNewswire keyword feed.
+
+    The keyword feed also carries third-party mentions and law-firm solicitations;
+    only items whose dc:contributor names the issuer count as its releases.
+    """
+    now = now or datetime.now(timezone.utc)
+    key = (contributor or "").strip().lower()
+    if not key:
+        return []
+    root = ET.fromstring(payload)
+    if root.tag != "rss":
+        return []
+    rows = []
+    for item in root.findall("./channel/item"):
+        byline = (item.findtext(_GN_DC + "contributor") or "").lower()
+        if key not in byline:
+            continue
+        title = (item.findtext("title") or "").strip()
+        link = (item.findtext("link") or "").strip()
+        host = (urlsplit(link).hostname or "").lower()
+        if not title or not link or host not in _GN_ARTICLE_HOSTS:
+            continue
+        try:
+            published = parsedate_to_datetime(item.findtext("pubDate")).astimezone(timezone.utc)
+        except (TypeError, ValueError, IndexError):
+            continue
+        if now - timedelta(hours=max_age_hours) <= published <= now + timedelta(minutes=15):
+            rows.append({"title": title, "url": link, "published_at": published.isoformat()})
+    return rows
+
+
+def _wire_issuer_baseline(conn, ticker, url, now):
+    """Forward-only activation: a newly added feed must not replay old releases as new alerts."""
+    key = "wire_issuer_baseline:globe_kw_v1:" + ticker
+    prior = conn.execute("SELECT value_json FROM monitor_observations WHERE observation_key=?", (key,)).fetchone()
+    if prior:
+        value = json.loads(prior[0])
+        if not isinstance(value, dict):
+            raise ValueError("invalid wire issuer activation evidence")
+        at = datetime.fromisoformat(value.get("activated_at"))
+        if value.get("transport_url") != url or at.tzinfo is None or at > now:
+            raise ValueError("invalid wire issuer activation evidence")
+        return at
+    observe(conn, key, {"transport_url": url, "activated_at": now.isoformat(), "policy": "forward_only_v1"},
+            source_url=url, source_type="wire")
+    return now
+
+
+def _poll_wire_issuer(conn, ticker, entry, *, fetch, now):
+    """Per-issuer wire fallback while the official IR source is unreachable."""
+    url = (entry.get("wire_feed_url") or "").strip()
+    contributor = (entry.get("wire_contributor") or "").strip()
+    if not url or not contributor:
+        return None
+    if not _public_https(url) or (urlsplit(url).hostname or "").lower() != _GN_FEED_HOST:
+        raise ValueError("unreviewed wire issuer transport")
+    payload = fetch(url)
+    items = parse_wire_issuer_feed(payload, contributor=contributor, now=now)
+    after = _wire_issuer_baseline(conn, ticker, url, now)
+    fresh = [item for item in items if datetime.fromisoformat(item["published_at"]) >= after]
+    added = 0
+    for item in fresh[:10]:
+        before = conn.total_changes
+        record_change(conn, ticker=ticker, change_type="company_release_signal", previous_value=None,
+                      new_value={"headline": item["title"], "published_at": item["published_at"]},
+                      source_url=item["url"], source_type="wire", severity="medium",
+                      verification_state="investigation_only",
+                      identity=["wire", canonical_url(item["url"])],
+                      metadata={"feed_url": url, "headline_only": True, "wire_issuer": True,
+                                "identity_source": "wire_issuer_contributor",
+                                "source_published_at": item["published_at"]})
+        added += conn.total_changes > before
+    return {"status": "active", "feed": url, "items": len(fresh), "signals_seen": added,
+            "forward_only_from": after.isoformat(), "baseline_suppressed": len(items) - len(fresh),
+            "checked_at": now.isoformat()}
+
+
 class _PressLinks(HTMLParser):
     """Collect same-host HTTPS anchors that look like press-release index entries."""
 
@@ -200,6 +284,18 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
             observe(conn, "official_feed:" + ticker, {"status": "no_official_site", "checked_at": checked_at}, source_type="company_ir")
             continue
         feed_error = None
+        wire_state = {}
+
+        def wire_fallback():
+            if "result" not in wire_state:
+                try:
+                    wire_state["result"] = _poll_wire_issuer(conn, ticker, entry, fetch=fetch, now=now)
+                except (OSError, ValueError, ET.ParseError, UnicodeError, http.client.HTTPException) as exc:
+                    wire_state["result"] = {"status": "fetch_error", "feed": entry.get("wire_feed_url"),
+                                            "error": f"{type(exc).__name__}: {exc}"[:160],
+                                            "checked_at": now.isoformat()}
+            return wire_state["result"]
+
         try:
             known_feed = entry.get("feed_url")
             items = []
@@ -222,10 +318,16 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                 entries = discover_press_index(site, fetch, entries=True)
                 if feed_error and not entries:
                     errors.append({"ticker": ticker, "error": feed_error})
-                observe(conn, "official_feed:" + ticker,
-                        {"status": "html_fallback" if entries else "fetch_error" if feed_error else "no_rss_found",
+                value = {"status": "html_fallback" if entries else "fetch_error" if feed_error else "no_rss_found",
                          "site": site, "index_links": len(entries), "checked_at": checked_at,
-                         "feed_error": feed_error},
+                         "feed_error": feed_error}
+                wire = None if entries else wire_fallback()
+                if wire:
+                    value["wire_fallback"] = wire
+                    if wire.get("status") == "active":
+                        checked += 1
+                        added += wire.get("signals_seen", 0)
+                observe(conn, "official_feed:" + ticker, value,
                         source_url=site, source_type="company_ir")
                 feed_url = site
                 # An HTML index has no dates: the first sighting is a baseline, only later additions are news.
@@ -253,8 +355,15 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                 added += conn.total_changes > before
         except (OSError, ValueError, ET.ParseError, UnicodeError, http.client.HTTPException) as exc:
             errors.append({"ticker": ticker, "error": f"{type(exc).__name__}: {exc}"[:160]})
-            observe(conn, "official_feed:" + ticker, {"status": "fetch_error", "site": site, "checked_at": checked_at,
-                                                      "error": f"{type(exc).__name__}: {exc}"[:160], "feed_error": feed_error},
+            value = {"status": "fetch_error", "site": site, "checked_at": checked_at,
+                     "error": f"{type(exc).__name__}: {exc}"[:160], "feed_error": feed_error}
+            wire = wire_fallback()
+            if wire:
+                value["wire_fallback"] = wire
+                if wire.get("status") == "active":
+                    checked += 1
+                    added += wire.get("signals_seen", 0)
+            observe(conn, "official_feed:" + ticker, value,
                     source_url=site, source_type="company_ir")
     return {"checked": checked, "signals_seen": added, "errors": errors}
 

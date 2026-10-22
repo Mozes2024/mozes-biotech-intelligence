@@ -196,8 +196,12 @@ def _health(conn, live, refresh, monitor):
                 "last_error": value.get("error") or value.get("feed_error"),
                 "consecutive_failures": value.get("consecutive_failures", 0)}
         if (source["observation_key"].startswith("official_feed:") and status in {"FAILED", "PARTIAL"}
-                and item["in_scope"] and sec_healthy):
-            item["covered_by"] = "sec_8k_6k"
+                and item["in_scope"]):
+            wire = value.get("wire_fallback") or {}
+            if wire.get("status") == "active":
+                item["covered_by"] = "wire_issuer"
+            elif sec_healthy:
+                item["covered_by"] = "sec_8k_6k"
         source_freshness.append(item)
         if not item["in_scope"]:
             info.append({"module": item["source"], "status": "OUTSIDE_CURRENT_CONFIGURATION", "details": item})
