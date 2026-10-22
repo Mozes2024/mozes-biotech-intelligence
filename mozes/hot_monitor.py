@@ -75,6 +75,8 @@ def hot_urls():
 def seed_priority_watches(conn):
     """Ensure every priority issuer is in watch_universe so SEC/halt polls cover them."""
     added = 0
+    from .watch_reconcile import reconcile_retired_watches
+    reconciled = reconcile_retired_watches(conn)
     registry = {row["ticker"]: row for row in ir_entries()}
     for ticker in priority_tickers():
         row = registry.get(ticker) or {}
@@ -82,7 +84,7 @@ def seed_priority_watches(conn):
         db.upsert_watch(conn, ticker, company=row.get("company"), source="priority_hot_lane")
         if not before:
             added += 1
-    return {"seeded": len(priority_tickers()), "new": added}
+    return {"seeded": len(priority_tickers()), "new": added, "retired": reconciled}
 
 
 def _step(conn, details, name, function):
