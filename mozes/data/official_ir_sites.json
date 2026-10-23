@@ -65,7 +65,9 @@
   "IONS": {
     "company": "Ionis",
     "site": "https://ir.ionispharma.com/",
-    "feed_url": "https://ir.ionispharma.com/rss/news-releases.xml"
+    "feed_url": "https://ir.ionispharma.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Ionis",
+    "wire_contributor": "ionis pharmaceuticals"
   },
   "ARWR": {
     "company": "Arrowhead",
@@ -123,7 +125,9 @@
   "EDIT": {
     "company": "Editas Medicine",
     "site": "https://ir.editasmedicine.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Editas%20Medicine",
+    "wire_contributor": "editas medicine"
   },
   "ASND": {
     "company": "Ascendis Pharma",
@@ -160,7 +164,9 @@
   "AXSM": {
     "company": "Axsome",
     "site": "https://axsometherapeuticsinc.gcs-web.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Axsome",
+    "wire_contributor": "axsome therapeutics"
   },
   "RYTM": {
     "company": "Rhythm Pharmaceuticals",
@@ -196,7 +202,9 @@
   "KRYS": {
     "company": "Krystal Biotech",
     "site": "https://ir.krystalbio.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Krystal",
+    "wire_contributor": "krystal biotech"
   },
   "SRPT": {
     "company": "Sarepta",
