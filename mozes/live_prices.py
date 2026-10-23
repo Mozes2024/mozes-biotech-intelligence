@@ -101,9 +101,13 @@ def maybe_refresh_live_prices(conn, *, budget_seconds: float = 300) -> dict:
     import os
     if os.environ.get("MOZES_PRICE_REFRESH") == "0":
         return {"status": "SKIPPED", "reason": "MOZES_PRICE_REFRESH disabled", "best_effort": True}
+    # Gate on the last actual refresh outcome only. The caller records every
+    # decision, including SKIPPED, so counting SKIPPED rows here would re-arm
+    # the interval each monitor cycle and deadlock the refresh permanently.
     row = conn.execute(
         "SELECT status, started_at FROM v2c_operation_runs "
-        "WHERE operation='prices' AND status != 'RUNNING' ORDER BY run_id DESC LIMIT 1").fetchone()
+        "WHERE operation='prices' AND status NOT IN ('RUNNING', 'SKIPPED') "
+        "ORDER BY run_id DESC LIMIT 1").fetchone()
     if row:
         try:
             age_hours = (datetime.now(timezone.utc)
