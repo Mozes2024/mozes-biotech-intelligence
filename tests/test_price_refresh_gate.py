@@ -41,6 +41,46 @@ def test_price_refresh_skips_after_recent_success(tmp_path, monkeypatch):
     assert out["status"] == "SKIPPED" and out["reason"] == "recent_refresh"
 
 
+def test_price_refresh_skipped_rows_do_not_extend_gate(tmp_path, monkeypatch):
+    """Regression: a SKIPPED gate decision is itself recorded as a prices op;
+    counting it would re-arm the interval every monitor cycle and deadlock."""
+    monkeypatch.delenv("MOZES_PRICE_REFRESH", raising=False)
+    conn = _conn(tmp_path)
+    rid_ok = operation_start(conn, "prices")
+    operation_finish(conn, rid_ok, "OK", {})
+    rid_skip = operation_start(conn, "prices")
+    operation_finish(conn, rid_skip, "SKIPPED", {"reason": "recent_refresh"})
+    now = datetime.now(timezone.utc)
+    conn.execute("UPDATE v2c_operation_runs SET started_at=? WHERE run_id=?",
+                 ((now - timedelta(hours=21)).isoformat(timespec="seconds"), rid_ok))
+    conn.execute("UPDATE v2c_operation_runs SET started_at=? WHERE run_id=?",
+                 ((now - timedelta(minutes=30)).isoformat(timespec="seconds"), rid_skip))
+    conn.commit()
+    monkeypatch.setattr(live_prices, "refresh_live_prices", lambda conn, **kw: {"status": "OK"})
+    assert maybe_refresh_live_prices(conn)["status"] == "OK"
+
+
+def test_price_refresh_skip_chain_respects_recent_success(tmp_path, monkeypatch):
+    """A SKIPPED row after a fresh OK must not weaken the gate either."""
+    monkeypatch.delenv("MOZES_PRICE_REFRESH", raising=False)
+    conn = _conn(tmp_path)
+    rid_ok = operation_start(conn, "prices")
+    operation_finish(conn, rid_ok, "OK", {})
+    rid_skip = operation_start(conn, "prices")
+    operation_finish(conn, rid_skip, "SKIPPED", {"reason": "recent_refresh"})
+    now = datetime.now(timezone.utc)
+    conn.execute("UPDATE v2c_operation_runs SET started_at=? WHERE run_id=?",
+                 ((now - timedelta(hours=2)).isoformat(timespec="seconds"), rid_ok))
+    conn.execute("UPDATE v2c_operation_runs SET started_at=? WHERE run_id=?",
+                 ((now - timedelta(minutes=30)).isoformat(timespec="seconds"), rid_skip))
+    conn.commit()
+    monkeypatch.setattr(live_prices, "refresh_live_prices",
+                        lambda conn, **kw: (_ for _ in ()).throw(AssertionError("must not run")))
+    out = maybe_refresh_live_prices(conn)
+    assert out["status"] == "SKIPPED" and out["reason"] == "recent_refresh"
+    assert out["last_status"] == "OK"
+
+
 def test_price_refresh_retries_systemic_failure_sooner(tmp_path, monkeypatch):
     monkeypatch.delenv("MOZES_PRICE_REFRESH", raising=False)
     conn = _conn(tmp_path)
