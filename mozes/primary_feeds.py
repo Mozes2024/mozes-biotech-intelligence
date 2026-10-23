@@ -253,20 +253,37 @@ def poll_wire_feeds(conn, *, fetch, now=None, resolve_headline=None, max_items=3
                 elif not supplied_resolver:
                     issuer = None
                     ticker = None
+                attributions = [(issuer, ticker)]
+                if ticker is None and not supplied_resolver:
+                    # Joint multi-issuer releases ("Merck and Moderna ...") resolve to
+                    # nothing single-issuer, but each named watched issuer is material.
+                    from .clinical_events import resolve_named_issuers
+                    from .priority import priority_tickers
+                    watched = set(priority_tickers())
+                    attributions = [
+                        ({"ticker": row["ticker"], "cik": row.get("cik"), "source": "joint_release"},
+                         row["ticker"])
+                        for row in resolve_named_issuers(conn, item["title"], item.get("summary", ""))
+                        if row["ticker"] in watched
+                    ] or [(None, None)]
                 outcome = classify_clinical(text)
-                before = conn.total_changes
-                record_change(
-                    conn, ticker=ticker, change_type="wire_release_signal", previous_value=None,
-                    new_value={"headline": item["title"], "published_at": item["published_at"],
-                               "summary": item.get("summary", ""), "outcome": outcome},
-                    source_url=item["url"], source_type="wire",
-                    severity="high" if ticker and outcome.get("material") else "medium",
-                    verification_state="investigation_only",
-                    identity=["wire", canonical_url(item["url"])],
-                    metadata={"feed": name, "identity_source": (issuer or {}).get("source"),
-                              "source_published_at": item["published_at"]},
-                )
-                seen += conn.total_changes > before
+                for issuer, ticker in attributions:
+                    identity = ["wire", canonical_url(item["url"])]
+                    if len(attributions) > 1:
+                        identity.append(ticker)
+                    before = conn.total_changes
+                    record_change(
+                        conn, ticker=ticker, change_type="wire_release_signal", previous_value=None,
+                        new_value={"headline": item["title"], "published_at": item["published_at"],
+                                   "summary": item.get("summary", ""), "outcome": outcome},
+                        source_url=item["url"], source_type="wire",
+                        severity="high" if ticker and outcome.get("material") else "medium",
+                        verification_state="investigation_only",
+                        identity=identity,
+                        metadata={"feed": name, "identity_source": (issuer or {}).get("source"),
+                                  "source_published_at": item["published_at"]},
+                    )
+                    seen += conn.total_changes > before
         except (OSError, ValueError, ET.ParseError, TypeError, http.client.HTTPException) as exc:
             errors += 1
             observe(conn, f"wire_feed:{name}", {"status": "fetch_error", "error": str(exc)[:160],

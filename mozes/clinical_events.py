@@ -74,6 +74,53 @@ def resolve_issuer(conn, headline, summary="", ticker=None):
     return issuer
 
 
+def resolve_named_issuers(conn, headline, summary=""):
+    """All issuers named in the text, for joint multi-issuer releases.
+
+    resolve_issuer deliberately returns None on ambiguity, which drops joint
+    releases ("Merck and Moderna ...") entirely even when they move a watched
+    issuer. Evidence, strongest first: exchange-tagged symbols ("(NYSE: MRK)")
+    resolved through the SEC equity map, then the curated watchlist alias
+    registry (company and product names). Raw sponsor-name matching is
+    intentionally not used: normalize_org leaves single generic words
+    ("united", "nasdaq") that match incidentally. Every issuer returned passes
+    the same lifecycle and eligibility gates as resolve_issuer.
+    """
+    from .ir_registry import load_aliases
+    raw = (headline or "") + " " + (summary or "")[:800]
+    found = {}
+    rows = [dict(r) for r in conn.execute(
+        "SELECT * FROM sponsor_ticker_map WHERE source='SEC-v2C-equity' AND confidence>=0.85 AND cik IS NOT NULL")]
+    by_ticker = {row["ticker"]: row for row in rows}
+    symbols = {s.upper() for s in re.findall(
+        r"\b(?:NASDAQ|NYSE)\s*[:：]\s*([A-Z][A-Z0-9]{0,9})\b", raw, re.I)}
+    for symbol in symbols:
+        if symbol in by_ticker:
+            found[symbol] = by_ticker[symbol]
+    for ticker, names in load_aliases().items():
+        if ticker in found:
+            continue
+        for kind, name in names:
+            pattern = r"(?<![\w-])" + re.escape(name).replace(r"\ ", r"[\s-]+") + r"(?![\w-])"
+            if re.search(pattern, raw, re.I):
+                row = by_ticker.get(ticker)
+                found[ticker] = row if row is not None else {
+                    "ticker": ticker, "cik": None, "source": f"alias_{kind}", "sponsor": name}
+                break
+    issuers = []
+    for row in found.values():
+        lifecycle = db.security_lifecycle_row(conn, row["ticker"])
+        if lifecycle and lifecycle["status"] in {"DELISTED", "ACQUIRED", "SUSPENDED"}:
+            continue
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE name='v2c_security_candidates'").fetchone():
+            candidates = conn.execute(
+                "SELECT eligibility FROM v2c_security_candidates WHERE ticker=?", (row["ticker"],)).fetchall()
+            if candidates and (len(candidates) != 1 or candidates[0][0] != "eligible"):
+                continue
+        issuers.append(row)
+    return issuers
+
+
 def _transition(conn, event_id, state, reason=None):
     row = conn.execute("SELECT lifecycle,suppression_reason FROM clinical_events WHERE event_id=?", (event_id,)).fetchone()
     if row and row["lifecycle"] == state and row["suppression_reason"] == reason:
