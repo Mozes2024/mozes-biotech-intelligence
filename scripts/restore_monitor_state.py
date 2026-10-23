@@ -14,6 +14,7 @@ import shutil
 import sqlite3
 import subprocess
 import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 from contextlib import closing
 from pathlib import Path
@@ -22,6 +23,34 @@ from mozes.monitor_recovery import RecoveryConfigurationError, validate_verifica
 
 
 MAX_REWIND = timedelta(minutes=45)
+
+# GitHub artifact egress intermittently returns HTTP 503 "Egress is over the
+# account limit" (2026-10-23: a monitor run and a pages build failed on it).
+# Retry a few times before abandoning a candidate; the lineage design still
+# fails closed if every attempt fails.
+DOWNLOAD_ATTEMPTS = 3
+DOWNLOAD_BACKOFF_SECONDS = (15, 30)
+
+
+def download_monitor_artifact(candidate, tmp, timeout=300):
+    """Download the monitor artifact with bounded retries for transient egress errors."""
+    for attempt in range(DOWNLOAD_ATTEMPTS):
+        try:
+            return gh("run", "download", candidate, "-n", "mozes-live-monitor", "-D", tmp,
+                      timeout=timeout)
+        except subprocess.CalledProcessError:
+            if attempt == DOWNLOAD_ATTEMPTS - 1:
+                raise
+            # Never merge a partial download into the retry.
+            for entry in Path(tmp).iterdir():
+                if entry.is_dir():
+                    shutil.rmtree(entry)
+                else:
+                    entry.unlink()
+            delay = DOWNLOAD_BACKOFF_SECONDS[min(attempt, len(DOWNLOAD_BACKOFF_SECONDS) - 1)]
+            print(f"Artifact download for run {candidate} failed; "
+                  f"retrying in {delay}s (attempt {attempt + 1}/{DOWNLOAD_ATTEMPTS})")
+            time.sleep(delay)
 
 
 def gh(*args, timeout=300):
@@ -188,7 +217,7 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
             continue
         try:
             with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
-                gh("run", "download", candidate, "-n", "mozes-live-monitor", "-D", tmp, timeout=300)
+                download_monitor_artifact(candidate, tmp, timeout=300)
                 root = Path(tmp)
                 source = _find_db(root)
                 if source is None:
