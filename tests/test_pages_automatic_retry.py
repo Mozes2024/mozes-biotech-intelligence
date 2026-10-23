@@ -292,3 +292,45 @@ def test_real_failure_timing_outlasts_dispatch_policy_but_bounded_policy_reselec
     assert clock['waits'] == [20, 30, 40]
     assert clock['now'] < 300
     assert source.read_bytes() == (tmp_path/'consumer.db').read_bytes() == before
+
+
+def _flaky_download_gh(pages, monkeypatch, tmp_path, source, failures):
+    state = {'downloads': 0}
+    def gh(*args, **kwargs):
+        if args[0] == 'api':
+            return json.dumps({'object': {'sha': SHA}})
+        state['downloads'] += 1
+        if state['downloads'] <= failures:
+            (Path(args[-1]) / 'partial').write_text('junk')
+            raise subprocess.CalledProcessError(1, ['gh'])
+        for path in source.iterdir():
+            shutil.copyfile(path, Path(args[-1]) / path.name)
+        return ''
+    monkeypatch.setattr(pages, 'gh', gh)
+    return state
+
+
+def test_transient_download_failure_retries_and_recovers(pages, clock, monkeypatch, tmp_path):
+    incoming = tmp_path / 'source'; incoming.mkdir()
+    source, _, _, run, artifact = fixture(incoming)
+    mock_inventory(monkeypatch, pages, run, artifact)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('GITHUB_REPOSITORY', pages.REPO)
+    monkeypatch.setenv('MOZES_DB_PATH', str(tmp_path / 'consumer.db'))
+    state = _flaky_download_gh(pages, monkeypatch, tmp_path, incoming, failures=1)
+    result = pages.restore(automatic=True, expected_sha=SHA)
+    assert result['schema'] == 1
+    assert state['downloads'] == 2
+
+
+def test_persistent_download_failure_fails_closed_after_bounded_attempts(pages, clock, monkeypatch, tmp_path):
+    incoming = tmp_path / 'source'; incoming.mkdir()
+    source, _, _, run, artifact = fixture(incoming)
+    mock_inventory(monkeypatch, pages, run, artifact)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('GITHUB_REPOSITORY', pages.REPO)
+    monkeypatch.setenv('MOZES_DB_PATH', str(tmp_path / 'consumer.db'))
+    state = _flaky_download_gh(pages, monkeypatch, tmp_path, incoming, failures=100)
+    with pytest.raises(RuntimeError, match='artifact_download_failed'):
+        pages.restore(automatic=True, expected_sha=SHA)
+    assert state['downloads'] == pages.AUTOMATIC_RESTORE_ATTEMPTS

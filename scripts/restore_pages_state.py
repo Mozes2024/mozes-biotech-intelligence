@@ -176,7 +176,12 @@ def _restore_once(*, now=None):
     requested = os.environ.get('SOURCE_RUN_ID')
     require(not requested or requested.isdigit(), 'invalid_advisory_run')
     with tempfile.TemporaryDirectory() as tmp:
-        gh('run', 'download', str(run['id']), '--repo', REPO, '-n', 'mozes-live-monitor', '-D', tmp, timeout=60)
+        try:
+            gh('run', 'download', str(run['id']), '--repo', REPO, '-n', 'mozes-live-monitor', '-D', tmp, timeout=60)
+        except subprocess.CalledProcessError:
+            # Transient GitHub artifact egress failures (HTTP 503) must ride the
+            # same bounded retry path as producer races, not fail the publish.
+            raise RuntimeError('artifact_download_failed')
         source, receipt = validate(Path(tmp), run, artifact, now)
         latest_run, latest_artifact = newest()
         require((latest_run['id'], latest_artifact['id']) == (run['id'], artifact['id']), 'checkpoint_changed')
@@ -221,7 +226,8 @@ def restore(*, now=None, automatic=False, expected_sha=None):
                 print('pages_consumer_restore PASS')
                 return result
             except RuntimeError as exc:
-                if str(exc) not in ('producer_busy', 'checkpoint_changed', 'inventory_changed'):
+                if str(exc) not in ('producer_busy', 'checkpoint_changed', 'inventory_changed',
+                                    'artifact_download_failed'):
                     raise
                 if attempt == attempts - 1:
                     print(f'publication_blocked category={exc} attempts={attempts}', flush=True)
