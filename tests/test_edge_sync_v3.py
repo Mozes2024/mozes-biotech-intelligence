@@ -27,3 +27,31 @@ def test_edge_sync_uses_stored_cik_and_never_posts_without_token(tmp_path, monke
         return Reply()
     assert sync(conn, url="https://edge.example/edge/sync", token="secret", opener=opener) == {"status": "OK", "count": 1}
     assert calls[0][0]["issuers"][0]["ticker"] == "ZZZZ"
+
+
+def test_edge_sync_run_survives_edge_outage(tmp_path, monkeypatch):
+    from urllib.error import URLError
+    from mozes import edge_sync
+
+    conn = db.connect(tmp_path / "edge2.db")
+    db.upsert_watch(conn, "ZZZZ", company="Novel Bio", cik="123", source="dynamic_news_discovery")
+
+    def down(request, timeout):
+        raise URLError("connection refused")
+    monkeypatch.setenv("MOZES_EDGE_SYNC_URL", "https://edge.example/edge/sync")
+    monkeypatch.setenv("EDGE_SYNC_TOKEN", "secret")
+    monkeypatch.setattr(edge_sync, "capture_health", lambda conn: None)
+    out = edge_sync.run(conn)
+    assert out["status"] == "FAILED" and out["best_effort"] is True
+
+
+def test_edge_sync_run_keeps_config_errors_fatal(tmp_path, monkeypatch):
+    from mozes import edge_sync
+
+    conn = db.connect(tmp_path / "edge3.db")
+    db.upsert_watch(conn, "ZZZZ", company="Novel Bio", cik="123", source="dynamic_news_discovery")
+    monkeypatch.setenv("MOZES_EDGE_SYNC_URL", "https://edge.example/edge/sync")
+    monkeypatch.delenv("EDGE_SYNC_TOKEN", raising=False)
+    monkeypatch.setattr(edge_sync, "capture_health", lambda conn: None)
+    with pytest.raises(RuntimeError, match="incomplete"):
+        edge_sync.run(conn)
