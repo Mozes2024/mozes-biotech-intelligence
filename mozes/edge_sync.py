@@ -60,10 +60,22 @@ def capture_health(conn, *, opener=urllib.request.urlopen):
     observe(conn, "edge_health", health, source_url=health_url, source_type="edge")
 
 
+def run(conn):
+    """Sync best-effort: an edge transport/outage failure must not kill the whole
+    monitor run (hot feeds, checkpoint and Pages publication still matter). The
+    failure stays visible through the edge_health observation and retries next
+    run. Configuration and content errors (RuntimeError) remain fatal."""
+    try:
+        result = sync(conn)
+    except OSError as exc:
+        result = {"status": "FAILED", "best_effort": True, "error": type(exc).__name__}
+    capture_health(conn)
+    return result
+
+
 if __name__ == "__main__":
     connection = db.connect(os.environ.get("MOZES_DB_PATH", DB_PATH))
     try:
-        print(json.dumps(sync(connection)))
-        capture_health(connection)
+        print(json.dumps(run(connection)))
     finally:
         connection.close()

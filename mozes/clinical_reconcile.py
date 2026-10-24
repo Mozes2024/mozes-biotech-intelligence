@@ -7,7 +7,7 @@ import json
 import os
 import re
 from pathlib import Path
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 
 from . import db
@@ -76,7 +76,13 @@ def main():
             except HTTPError as error:
                 if error.code==404:
                     print(json.dumps({'status':'WAITING_DEPLOYMENT'}));return
+                if 500<=error.code<600:
+                    # Edge outage: skip this run's candidate processing instead of
+                    # killing the monitor; unprocessed candidates retry next run.
+                    print(json.dumps({'status':'EDGE_UNREACHABLE','best_effort':True,'error':error.code}));return
                 raise
+            except URLError:
+                print(json.dumps({'status':'EDGE_UNREACHABLE','best_effort':True}));return
             receipts=process_candidates(conn,rows,github_run_id=run_id)
             print(json.dumps({'status':'OK','processed':len(receipts)}))
         else:
