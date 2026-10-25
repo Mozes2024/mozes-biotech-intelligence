@@ -55,3 +55,30 @@ def test_edge_sync_run_keeps_config_errors_fatal(tmp_path, monkeypatch):
     monkeypatch.setattr(edge_sync, "capture_health", lambda conn: None)
     with pytest.raises(RuntimeError, match="incomplete"):
         edge_sync.run(conn)
+
+
+def test_capture_health_is_spaced_to_protect_d1_read_cap(tmp_path, monkeypatch):
+    from mozes import edge_sync
+
+    conn = db.connect(tmp_path / "edge4.db")
+    monkeypatch.setenv("MOZES_EDGE_SYNC_URL", "https://edge.example/edge/sync")
+
+    calls = []
+    class Reply:
+        status = 200
+        def read(self, *_args): return json.dumps({"status": "OK", "sources": {}}).encode()
+        def __enter__(self): return self
+        def __exit__(self, *_args): return False
+    def opener(request, timeout):
+        calls.append(request.full_url)
+        return Reply()
+
+    edge_sync.capture_health(conn, opener=opener)
+    edge_sync.capture_health(conn, opener=opener)
+    assert calls == ["https://edge.example/edge/health"]
+
+    conn.execute("UPDATE monitor_observations SET observed_at=? WHERE observation_key='edge_health'",
+                 ("2000-01-01T00:00:00+00:00",))
+    conn.commit()
+    edge_sync.capture_health(conn, opener=opener)
+    assert calls == ["https://edge.example/edge/health"] * 2

@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import urllib.request
+from datetime import datetime, timezone
 
 from . import db
 from .config import DB_PATH
@@ -45,10 +46,27 @@ def sync(conn, *, url=None, token=None, opener=None):
     return {"status": "OK", "count": len(payload["issuers"])}
 
 
+# The edge worker recomputes whole-history D1 summary scans for every health
+# request (its summaries cache is not active in the deployed bundle), so each
+# capture costs thousands of D1 rows_read against the free daily cap. Space
+# captures; snapshot_at in the stored observation stays the honest freshness
+# signal for the site's edge panel.
+CAPTURE_HEALTH_MIN_INTERVAL_SECONDS = 300
+
+
 def capture_health(conn, *, opener=urllib.request.urlopen):
     url = os.environ.get("MOZES_EDGE_SYNC_URL")
     if not url:
         return
+    row = conn.execute(
+        "SELECT observed_at FROM monitor_observations WHERE observation_key='edge_health'").fetchone()
+    if row and row["observed_at"]:
+        try:
+            last = datetime.fromisoformat(row["observed_at"])
+            if (datetime.now(timezone.utc) - last).total_seconds() < CAPTURE_HEALTH_MIN_INTERVAL_SECONDS:
+                return
+        except ValueError:
+            pass
     health_url = url.rsplit("/", 1)[0] + "/health"
     try:
         request = urllib.request.Request(health_url, headers={"User-Agent": "MOZES-EdgeSync/1.0"})
