@@ -55,7 +55,9 @@
     const target=document.getElementById('edgeHealthMetrics');
     if(target)target.innerHTML=edgeHealthHtml();
   }
-  if(typeof window!=='undefined'){setTimeout(refreshEdgeHealth,1000);setInterval(refreshEdgeHealth,60000);}
+  // Poll on a 5-minute cadence and skip hidden tabs: every /edge/health call triggers
+  // whole-history D1 summary scans on the worker (free-tier daily read cap).
+  if(typeof window!=='undefined'){setTimeout(refreshEdgeHealth,1000);setInterval(()=>{if(document.visibilityState!=='hidden')refreshEdgeHealth();},300000);}
 
   function healthBanner(){
     // Technical health stays at the bottom of the home page, collapsed by default.
