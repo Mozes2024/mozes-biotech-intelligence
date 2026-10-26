@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import http.client
 import json
+import random
 import re
+import time
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
@@ -64,11 +66,23 @@ def _eastern():
         return timezone(timedelta(hours=-4))
 
 
-def fetch_feed(url, *, timeout=12):
-    request = urllib.request.Request(url, headers={
-        "User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.5"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read(4_000_000)
+def fetch_feed(url, *, timeout=12, retries=1):
+    # Bounded retry for transient conditions only: 5xx and network errors.
+    # 403 is an active refusal - never retried. 429 throttling is honored by waiting
+    # for the next scheduled cycle, not a quick in-pass retry.
+    for attempt in range(retries + 1):
+        request = urllib.request.Request(url, headers={
+            "User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.5"})
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return response.read(4_000_000)
+        except urllib.error.HTTPError as exc:
+            if attempt >= retries or exc.code not in (500, 502, 503, 504):
+                raise
+        except urllib.error.URLError:
+            if attempt >= retries:
+                raise
+        time.sleep(3.0 + random.random())
 
 
 _TRACKING_PARAM = re.compile(r"^(?:utm_\w+|feedref|ref|src|source|cmpid|mc_\w+)$", re.I)

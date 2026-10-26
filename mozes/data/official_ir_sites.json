@@ -112,8 +112,8 @@
   },
   "CRSP": {
     "company": "CRISPR Therapeutics",
-    "site": "https://investors.crisprtx.com/",
-    "feed_url": null
+    "site": "https://ir.crisprtx.com/",
+    "feed_url": "https://ir.crisprtx.com/rss/news-releases.xml"
   },
   "BEAM": {
     "company": "Beam Therapeutics",
@@ -144,7 +144,9 @@
   "LEGN": {
     "company": "Legend Biotech",
     "site": "https://investors.legendbiotech.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Legend%20Biotech",
+    "wire_contributor": "legend biotech"
   },
   "INSM": {
     "company": "Insmed",
@@ -209,7 +211,9 @@
   "SRPT": {
     "company": "Sarepta",
     "site": "https://investorrelations.sarepta.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Sarepta",
+    "wire_contributor": "sarepta"
   },
   "INCY": {
     "company": "Incyte",
