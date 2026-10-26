@@ -136,7 +136,7 @@ def test_production_registry_wire_urls_are_unique_official_and_prefetched():
     from mozes.ir_registry import ir_entries
     from mozes.priority import priority_tickers
     wired = [r for r in ir_entries() if r.get("wire_feed_url")]
-    assert len(wired) == 17
+    assert len(wired) == 19  # +LEGN, SRPT (verified self-issuing via GlobeNewswire)
     assert all(urlsplit(r["wire_feed_url"]).hostname == "rss.globenewswire.com" for r in wired)
     urls = set(hot_urls())
     hot = set(priority_tickers())
