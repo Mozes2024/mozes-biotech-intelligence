@@ -12,7 +12,8 @@
   "MRNA": {
     "company": "Moderna",
     "site": "https://investors.modernatx.com/",
-    "feed_url": "https://investors.modernatx.com/feed/rss2"
+    "feed_url": "https://investors.modernatx.com/feed/rss2",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Moderna"
   },
   "GMAB": {
     "company": "Genmab",
@@ -43,7 +44,8 @@
   "AMGN": {
     "company": "Amgen",
     "site": "https://investors.amgen.com/",
-    "feed_url": "https://investors.amgen.com/rss/news-releases.xml"
+    "feed_url": "https://investors.amgen.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Amgen"
   },
   "BIIB": {
     "company": "Biogen",
@@ -60,7 +62,8 @@
   "EXEL": {
     "company": "Exelixis",
     "site": "https://ir.exelixis.com/",
-    "feed_url": "https://ir.exelixis.com/rss/news-releases.xml"
+    "feed_url": "https://ir.exelixis.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Exelixis"
   },
   "IONS": {
     "company": "Ionis",
@@ -72,7 +75,8 @@
   "ARWR": {
     "company": "Arrowhead",
     "site": "https://ir.arrowheadpharma.com/",
-    "feed_url": "https://ir.arrowheadpharma.com/rss/news-releases.xml"
+    "feed_url": "https://ir.arrowheadpharma.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Arrowhead%20Pharmaceuticals"
   },
   "ALNY": {
     "company": "Alnylam",
@@ -112,8 +116,8 @@
   },
   "CRSP": {
     "company": "CRISPR Therapeutics",
-    "site": "https://investors.crisprtx.com/",
-    "feed_url": null
+    "site": "https://ir.crisprtx.com/",
+    "feed_url": "https://ir.crisprtx.com/rss/news-releases.xml"
   },
   "BEAM": {
     "company": "Beam Therapeutics",
@@ -144,7 +148,8 @@
   "LEGN": {
     "company": "Legend Biotech",
     "site": "https://investors.legendbiotech.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Legend%20Biotech"
   },
   "INSM": {
     "company": "Insmed",
@@ -197,7 +202,8 @@
   "RCKT": {
     "company": "Rocket Pharmaceuticals",
     "site": "https://ir.rocketpharma.com/",
-    "feed_url": "https://ir.rocketpharma.com/rss/news-releases.xml"
+    "feed_url": "https://ir.rocketpharma.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Rocket%20Pharmaceuticals"
   },
   "KRYS": {
     "company": "Krystal Biotech",
@@ -209,7 +215,8 @@
   "SRPT": {
     "company": "Sarepta",
     "site": "https://investorrelations.sarepta.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Sarepta"
   },
   "INCY": {
     "company": "Incyte",
