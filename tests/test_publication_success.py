@@ -49,6 +49,23 @@ def test_unchanged_checkpoint_cadence_uses_success_only(tmp_path, age, due):
     assert pipeline.publication_due(payload, now=NOW, receipt_path=receipt) is due
 
 
+def test_source_recovery_triggers_publication_but_check_times_do_not(tmp_path):
+    source = {'source': 'official_feed:AMGN', 'in_scope': True, 'status': 'FAILED',
+              'observation_status': 'fetch_error', 'alternates': [
+                  {'kind': 'official_mirror', 'status': 'fetch_error', 'checked_at': NOW.isoformat()}]}
+    payload = {'live': [], 'build': {'change_ledger': 'a' * 64},
+               'health': {'source_freshness': [source]}}
+    path = tmp_path / 'receipt.json'
+    path.write_text(json.dumps({'schema': 2, 'change_ledger': 'a' * 64,
+        'fingerprint': pipeline.semantic_fingerprint(payload),
+        'checkpoint': {'checkpoint_at': NOW.isoformat()}}))
+    source['alternates'][0]['checked_at'] = (NOW + timedelta(minutes=1)).isoformat()
+    assert not pipeline.publication_due(payload, now=NOW + timedelta(minutes=1), receipt_path=path)
+    source['alternates'][0]['status'] = 'active'
+    source['covered_by'] = 'official_mirror'
+    assert pipeline.publication_due(payload, now=NOW + timedelta(minutes=1), receipt_path=path)
+
+
 @pytest.mark.parametrize('receipt', [{}, {'change_ledger':'a'*64},
     {'schema':2,'checkpoint':{'checkpoint_at':None}},
     {'schema':2,'checkpoint':{'checkpoint_at':'2026-10-13T00:00:00+00:00'}}])
