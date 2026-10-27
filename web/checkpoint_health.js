@@ -67,7 +67,12 @@ globalThis.MozesCheckpointHealth = function(data, now = Date.now()) {
 globalThis.MozesSourceHealthDetails = function(rows, now = Date.now()) {
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const time = value => {
-    try { MozesCheckpointTime(value, now); return `<bdi>${esc(value)}</bdi>`; }
+    try {
+      const at = MozesCheckpointTime(value, now);
+      const label = new Intl.DateTimeFormat('he-IL', {timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',
+        hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(at));
+      return `<time datetime="${esc(value)}" title="${esc(value)}">${esc(label)}</time>`;
+    }
     catch { return 'לא ידוע'; }
   };
   const labels = {active:'פיד פעיל',html_fallback:'אינדקס HTML בלבד',no_rss_found:'לא נמצא פיד או אינדקס הודעות מאומת',
@@ -90,11 +95,12 @@ globalThis.MozesSourceHealthDetails = function(rows, now = Date.now()) {
       const fresh = Number.isFinite(at) && now-at <= 1800000;
       const state = alt.status === 'active' ? (fresh ? 'פעיל · כיסוי חלקי' : 'בדיקה ישנה או לא ידועה') : 'נכשל';
       return `<div>${esc(alternateLabels[alt.kind] || 'מקור חלופי')} · ${state}<br>נבדק: ${time(alt.checked_at)}${alt.error?'<br>'+esc(alt.error):''}<br>${link(alt.feed)}</div>`;
-    }).join('') || (row.covered_by ? esc(alternateLabels[row.covered_by] || 'מקור חלופי')+' · כיסוי חלקי בלבד' : 'אין גיבוי מאומת בתמונה');
+    }).join('') || (row.covered_by ? esc(alternateLabels[row.covered_by] || 'מקור חלופי')+' · כיסוי חלקי בלבד' : row.status==='OK' ? 'המקור הראשי תקין' : 'אין גיבוי מאומת בתמונה');
     const reason = /\b403\b/.test(row.last_error || '') ? 'הגישה נדחתה (HTTP 403)' : /\b429\b/.test(row.last_error || '') ? 'המקור הגביל את קצב הבקשות (HTTP 429)' : labels[row.observation_status] || row.observation_status || 'לא נמסרה סיבה';
     return `<tr><th scope="row"><bdi>${esc(row.source)}</bdi><br>${esc(row.status)}${stale?' · בדיקה ישנה או לא ידועה':''}</th><td>${esc(reason)}${row.last_error?'<br><bdi>'+esc(row.last_error)+'</bdi>':''}<br>${link(row.source_url)}</td><td>בדיקה: ${time(row.last_checked_at)}<br>הצלחה: ${time(row.last_success_at)}<br>כשלים רצופים: ${esc(row.consecutive_failures ?? 'לא ידוע')}</td><td>${alternates}</td></tr>`;
   }).join('')}</tbody></table></div>`;
-  const active = rows.filter(row => row.in_scope !== false);
+  const rank = {FAILED:0,PARTIAL:1,OK:2};
+  const active = rows.filter(row => row.in_scope !== false).sort((a,b) => (rank[a.status]??1)-(rank[b.status]??1));
   const outside = rows.filter(row => row.in_scope === false);
   return (active.length ? table(active) : '<p>אין בדיקות מקורות מתועדות בתמונה.</p>') +
     (outside.length ? `<details><summary>תצפיות מחוץ להיקף המוגדר (${outside.length}) — אינן נכללות בספירת הכשלים</summary>${table(outside)}</details>` : '');

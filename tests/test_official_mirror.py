@@ -113,14 +113,19 @@ def test_stale_mirror_does_not_claim_current_coverage(tmp_path):
 
 
 def test_readonly_probe_uses_disposable_state_and_preserves_primary_denial(tmp_path, monkeypatch):
-    from scripts.probe_ir_coverage import inspect
+    import importlib.util
+    from pathlib import Path
     import tempfile
+    spec = importlib.util.spec_from_file_location('probe_ir_coverage',
+        Path(__file__).resolve().parents[1] / 'scripts' / 'probe_ir_coverage.py')
+    probe = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(probe)
     monkeypatch.setattr(tempfile, 'tempdir', str(tmp_path))
     def fetch(url):
         if url == FEED:
             return rss()
         raise HTTPError(url, 403, 'Forbidden', {}, None)
-    result = inspect(['TYRA'], fetch=fetch, now=NOW)
+    result = probe.inspect(['TYRA'], fetch=fetch, now=NOW)
     assert result['read_only'] is True
     assert result['sources'][0]['primary_status'] == 'fetch_error'
     assert result['sources'][0]['official_mirror']['status'] == 'active'

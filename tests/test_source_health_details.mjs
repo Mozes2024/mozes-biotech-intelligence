@@ -62,3 +62,14 @@ test('future or old alternate timestamps never display active coverage', () => {
     assert.match(html,/בדיקה ישנה או לא ידועה/);
   }
 });
+
+test('failed sources lead the table and times use Jerusalem without losing exact timestamps', () => {
+  const html = c.MozesSourceHealthDetails([
+    {source:'healthy-source',status:'OK',last_checked_at:recent,last_success_at:recent},
+    {source:'failed-source',status:'FAILED',last_checked_at:recent},
+  ],now);
+  assert.ok(html.indexOf('failed-source') < html.indexOf('healthy-source'));
+  assert.match(html,/datetime="2026-10-27T11:59:00Z"/);
+  assert.match(html,/13:59:00/); // Israel standard time on October 27
+  assert.match(html,/המקור הראשי תקין/);
+});

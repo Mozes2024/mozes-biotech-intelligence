@@ -81,13 +81,21 @@ Local Windows checks need a writable pytest base directory. The repository also
 has Linux-oriented tests invoking `python3` and local Wrangler; report these
 separately from changed-source regressions and validate them in Ubuntu CI.
 
-Local results on the review candidate: 44 focused source regressions and 118
+Local results on the review candidate: 44 focused source regressions and 119
 frontend regressions pass; Python compilation, JavaScript syntax and diff checks
 pass. The first broad Windows run had 1,728 passes and three platform failures:
 two subprocess-output tests pass when rerun with `PYTHONUTF8=1`; the Stage A
 fairness test invokes unavailable `python3`. The separate local workerd runtime
 test also requires that Linux-oriented toolchain. Ubuntu CI is the corresponding
 release check; neither environment failure is reported as a pass.
+
+The isolated runner probe at
+<https://github.com/Mozes2024/mozes-biotech-intelligence/actions/runs/40504199461>
+observed active alternate feeds for TYRA, CYTK and TVTX at
+`2026-10-27T12:30:03.747705+00:00`, with zero historical signals for all three.
+TYRA's original IR source still returned HTTP 403; CYTK/TVTX original sources
+still returned `no_rss_found`. This is runner-network evidence, not a production
+activation/ACK receipt.
 
 This repair adds alternate collection for three issuers; it does **not** remove
 the 27 publisher refusals or provide comprehensive coverage of the full watch
