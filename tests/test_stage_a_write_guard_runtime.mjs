@@ -24,11 +24,11 @@ const wrangler = (args, options = {}) =>
 wrangler(['d1', 'migrations', 'apply', 'mozes-alerts', '--local']);
 const d1 = (sql) => wrangler(['d1', 'execute', 'mozes-alerts', '--local', '--command', sql]);
 
-const PORT = 8730 + Math.floor(Math.random() * 200);
+const PORT = 18730 + Math.floor(Math.random() * 200);
 const BASE = `http://127.0.0.1:${PORT}`;
 // EDGE_FORWARD_ONLY_FROM is a dashboard-set production var (keep_vars=true),
 // required by the forward-only fence in /edge/health; seeded here for local dev.
-const dev = spawn(wcmd, wargs(['dev', '--local', '--port', String(PORT), '--config', 'wrangler.toml',
+const dev = spawn(wcmd, wargs(['dev', '--local', '--port', String(PORT), '--inspector-port', '0', '--config', 'wrangler.toml',
   '--var', 'EDGE_FORWARD_ONLY_FROM:2026-10-21T00:00:00Z', '--var', 'EDGE_SYNC_TOKEN:test-sync']),
   { cwd: cf, env, stdio: 'pipe' });
 let devLog = '';
