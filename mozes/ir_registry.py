@@ -30,6 +30,11 @@ def _normalize_entry(ticker, value):
     if wire_feed and wire_contributor:
         row["wire_feed_url"] = wire_feed
         row["wire_contributor"] = wire_contributor
+    mirror_site = (value.get("mirror_site") or "").strip()
+    mirror_feed = (value.get("mirror_feed_url") or "").strip()
+    if mirror_site and mirror_feed:
+        row["mirror_site"] = mirror_site
+        row["mirror_feed_url"] = mirror_feed
     return row
 
 

@@ -35,11 +35,12 @@ function payload(){const cp=checkpoint();return {...clone(fixture),generated_at:
  checkpoint_at:cp.checkpoint_at,consumer_checkpoint:cp};}
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
-test('changed dashboard assets use one new compatible version while checkpoint health keeps its version',()=>{
+test('source coverage and composed dashboard assets use the new compatible cache version',()=>{
  const versions=new Map(scripts.map(src=>{const url=new URL(src,'https://example.invalid/');return [url.pathname,url.searchParams.get('v')];}));
  const version=versions.get('/app.js');assert.ok(version);assert.notEqual(version,'checkpoint-timezone-v3');
  assert.equal(versions.get('/live_intelligence_ui.js'),version);
- assert.equal(versions.get('/checkpoint_health.js'),'checkpoint-timezone-v3');
+ assert.equal(versions.get('/checkpoint_health.js'),version);
+ assert.equal(version,'source-coverage-v4');
 });
 
 async function harness(initial=payload(),now='2026-10-12T13:00:00Z'){
@@ -76,6 +77,21 @@ async function harness(initial=payload(),now='2026-10-12T13:00:00Z'){
   setFeed:value=>{feed=value;},snapshot:()=>vm.runInContext('D',c),timers};
 }
 const ids=html=>Array.from(html.matchAll(/<article class="focus-card [^"]+" data-event="([^"]+)"/g),m=>m[1]);
+
+test('final production script chain renders the source table and separate alternate state',async()=>{
+ const value=payload();
+ value.health={source_freshness:[{source:'official_feed:TYRA',status:'FAILED',in_scope:true,
+   observation_status:'fetch_error',last_checked_at:value.checkpoint_at,last_success_at:null,
+   last_error:'HTTP 403',consecutive_failures:12,covered_by:'official_mirror',
+   alternate_checked_at:value.checkpoint_at,alternates:[{kind:'official_mirror',status:'active',
+     checked_at:value.checkpoint_at,feed:'https://tyrabio.investorroom.com/news-releases?pagetemplate=rss'}]}]};
+ const h=await harness(value,'2026-10-12T12:41:00Z');
+ assert.match(h.html(),/class="source-health"/);
+ assert.match(h.html(),/מקורות: 1 כשלו/);
+ assert.match(h.html(),/אתר רשמי חלופי · פעיל · כיסוי חלקי/);
+ assert.match(h.html(),/הצלחה: לא ידוע/);
+ assert.match(h.html(),/כשלים רצופים: 12/);
+});
 function research(html){return html.match(/<section class="[^"]*research-priority"[\s\S]*?<\/section>/)?.[0]||'';}
 function assertComposed(h){
  const html=h.html(),section=research(html);

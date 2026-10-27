@@ -177,9 +177,11 @@ def _poll_wire_issuer(conn, ticker, entry, *, fetch, now):
     if not _public_https(url) or (urlsplit(url).hostname or "").lower() != _GN_FEED_HOST:
         raise ValueError("unreviewed wire issuer transport")
     payload = fetch(url)
+    if ET.fromstring(payload).tag != "rss":
+        raise ValueError("issuer wire did not return RSS")
     items = parse_wire_issuer_feed(payload, contributor=contributor, now=now)
     after = _wire_issuer_baseline(conn, ticker, url, now)
-    fresh = [item for item in items if datetime.fromisoformat(item["published_at"]) >= after]
+    fresh = [item for item in items if after < datetime.fromisoformat(item["published_at"]) <= now]
     added = 0
     known_urls = recorded_release_urls(conn)  # releases already alerted via the categorical wire feeds
     for item in fresh[:10]:
@@ -198,6 +200,60 @@ def _poll_wire_issuer(conn, ticker, entry, *, fetch, now):
     return {"status": "active", "feed": url, "items": len(fresh), "signals_seen": added,
             "forward_only_from": after.isoformat(), "baseline_suppressed": len(items) - len(fresh),
             "checked_at": now.isoformat()}
+
+
+def _poll_official_mirror(conn, ticker, entry, *, fetch, now):
+    """Only an explicitly reviewed company mirror may supplement blocked IR.
+
+    New transports establish their own forward-only boundary, even when an old
+    IR/HTML baseline already exists. An empty valid RSS scan can be successful;
+    HTML challenges and off-host article URLs cannot manufacture coverage.
+    """
+    site, url = entry.get("mirror_site"), entry.get("mirror_feed_url")
+    if not site or not url:
+        return None
+    if not _same_official_host(url, site):
+        raise ValueError("unreviewed official mirror transport")
+    payload = fetch(url)
+    root = ET.fromstring(payload)
+    if root.tag not in {"rss", "{http://www.w3.org/2005/Atom}feed"}:
+        raise ValueError("official mirror did not return RSS/Atom")
+    entries = root.findall('./channel/item') if root.tag == 'rss' else root.findall('{http://www.w3.org/2005/Atom}entry')
+    if entries and not parse_official_feed(payload, site=site, now=now, max_age_hours=24*365*10):
+        raise ValueError("official mirror has no valid dated same-host releases")
+    items = parse_official_feed(payload, site=site, now=now)
+    key = "official_mirror_baseline:" + ticker
+    prior = conn.execute("SELECT value_json FROM monitor_observations WHERE observation_key=?", (key,)).fetchone()
+    if prior:
+        value = json.loads(prior[0])
+        after = datetime.fromisoformat(value["activated_at"])
+        if value.get("transport_url") != url or after.tzinfo is None or after > now:
+            raise ValueError("invalid official mirror activation evidence")
+    else:
+        after = now
+        observe(conn, key, {"transport_url": url, "activated_at": after.isoformat(), "policy": "forward_only_v1"},
+                source_url=url, source_type="company_ir")
+    # First activation suppresses everything already present. Future timestamps
+    # accepted by the parser's clock tolerance remain pending until their time.
+    fresh = [item for item in items if after < datetime.fromisoformat(item["published_at"]) <= now] if prior else []
+    known = recorded_release_urls(conn)
+    added = 0
+    for item in fresh[:10]:
+        if canonical_url(item["url"]) in known:
+            continue
+        before = conn.total_changes
+        record_change(conn, ticker=ticker, change_type="company_release_signal", previous_value=None,
+                      new_value={"headline": item["title"], "published_at": item["published_at"]},
+                      source_url=item["url"], source_type="company_ir", severity="medium",
+                      verification_state="investigation_only",
+                      identity=["company_release", ticker, item["url"]],
+                      metadata={"feed_url": url, "headline_only": True, "official_mirror": True,
+                                "source_published_at": item["published_at"]})
+        added += conn.total_changes > before
+        known.add(canonical_url(item["url"]))
+    return {"status": "active", "feed": url, "checked_at": now.isoformat(),
+            "items": len(fresh), "signals_seen": added, "forward_only_from": after.isoformat(),
+            "baseline_suppressed": len(items) - len(fresh)}
 
 
 class _PressLinks(HTMLParser):
@@ -289,7 +345,7 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
         feed_error = None
         wire_state = {}
 
-        def wire_fallback():
+        def alternate_sources(value):
             if "result" not in wire_state:
                 try:
                     wire_state["result"] = _poll_wire_issuer(conn, ticker, entry, fetch=fetch, now=now)
@@ -297,7 +353,17 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                     wire_state["result"] = {"status": "fetch_error", "feed": entry.get("wire_feed_url"),
                                             "error": f"{type(exc).__name__}: {exc}"[:160],
                                             "checked_at": now.isoformat()}
-            return wire_state["result"]
+            wire = wire_state["result"]
+            if wire:
+                value["wire_fallback"] = wire
+            try:
+                mirror = _poll_official_mirror(conn, ticker, entry, fetch=fetch, now=now)
+            except (OSError, ValueError, KeyError, ET.ParseError, UnicodeError, http.client.HTTPException) as exc:
+                mirror = {"status": "fetch_error", "feed": entry.get("mirror_feed_url"),
+                          "error": f"{type(exc).__name__}: {exc}"[:160], "checked_at": checked_at}
+            if mirror:
+                value["official_mirror"] = mirror
+            return [row for row in (wire, mirror) if row and row.get("status") == "active"]
 
         try:
             known_feed = entry.get("feed_url")
@@ -324,12 +390,9 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                 value = {"status": "html_fallback" if entries else "fetch_error" if feed_error else "no_rss_found",
                          "site": site, "index_links": len(entries), "checked_at": checked_at,
                          "feed_error": feed_error}
-                wire = None if entries else wire_fallback()
-                if wire:
-                    value["wire_fallback"] = wire
-                    if wire.get("status") == "active":
-                        checked += 1
-                        added += wire.get("signals_seen", 0)
+                for alternate in ([] if entries else alternate_sources(value)):
+                    checked += 1
+                    added += alternate.get("signals_seen", 0)
                 observe(conn, "official_feed:" + ticker, value,
                         source_url=site, source_type="company_ir")
                 feed_url = site
@@ -360,12 +423,9 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
             errors.append({"ticker": ticker, "error": f"{type(exc).__name__}: {exc}"[:160]})
             value = {"status": "fetch_error", "site": site, "checked_at": checked_at,
                      "error": f"{type(exc).__name__}: {exc}"[:160], "feed_error": feed_error}
-            wire = wire_fallback()
-            if wire:
-                value["wire_fallback"] = wire
-                if wire.get("status") == "active":
-                    checked += 1
-                    added += wire.get("signals_seen", 0)
+            for alternate in alternate_sources(value):
+                checked += 1
+                added += alternate.get("signals_seen", 0)
             observe(conn, "official_feed:" + ticker, value,
                     source_url=site, source_type="company_ir")
     return {"checked": checked, "signals_seen": added, "errors": errors}

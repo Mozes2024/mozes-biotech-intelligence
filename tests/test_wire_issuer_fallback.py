@@ -3,6 +3,8 @@ import json
 import urllib.error
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from mozes import db
 from mozes.news_signals import parse_wire_issuer_feed, poll_official_feeds
 from mozes.payload_v3 import _health
@@ -52,7 +54,9 @@ def _fetch_factory(wire_payload):
 def test_blocked_ir_falls_back_to_wire_feed_with_forward_only_baseline(tmp_path):
     conn = db.connect(tmp_path / "wire.db")
     issuer = {"ticker": "BCRX", "sponsor": "BioCryst"}
-    result = poll_official_feeds(conn, [issuer], fetch=_fetch_factory(_gn_feed(ITEMS)), now=datetime.now(timezone.utc))
+    now = datetime.now(timezone.utc)
+    items = [(*item[:2], (now-timedelta(hours=1)).strftime('%a, %d %b %Y %H:%M:%S GMT'), item[3]) for item in ITEMS]
+    result = poll_official_feeds(conn, [issuer], fetch=_fetch_factory(_gn_feed(items)), now=now)
     assert result["signals_seen"] == 0  # first activation is a baseline, never a replay
     obs = json.loads(conn.execute(
         "SELECT value_json FROM monitor_observations WHERE observation_key='official_feed:BCRX'").fetchone()[0])
@@ -83,6 +87,33 @@ def test_new_wire_release_is_recorded_once_after_baseline(tmp_path):
     again = poll_official_feeds(conn, [issuer], fetch=_fetch_factory(_gn_feed(fresh)), now=later)
     assert again["signals_seen"] == 0
     assert conn.execute("SELECT COUNT(*) FROM change_events").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize('minutes', [0, 5])
+def test_new_wire_feed_never_replays_activation_timestamp_or_future_release(tmp_path, minutes):
+    conn = db.connect(tmp_path / 'activation-edge.db')
+    issuer = {'ticker':'TVTX'}
+    def fetch(url):
+        if 'globenewswire.com' in url:
+            return _gn_feed([('Travere Reports Phase Two Trial Results',
+                'https://www.globenewswire.com/news-release/2026/10/22/1/0/en/trial.html',
+                (NOW+timedelta(minutes=minutes)).strftime('%a, %d %b %Y %H:%M:%S GMT'), 'Travere Therapeutics, Inc.')])
+        raise urllib.error.HTTPError(url, 403, 'Forbidden', {}, None)
+    assert poll_official_feeds(conn, [issuer], fetch=fetch, now=NOW)['signals_seen'] == 0
+    assert conn.execute('SELECT COUNT(*) FROM change_events').fetchone()[0] == 0
+    later = poll_official_feeds(conn, [issuer], fetch=fetch, now=NOW+timedelta(minutes=10))
+    assert later['signals_seen'] == (1 if minutes else 0)
+
+
+def test_valid_html_response_is_not_a_successful_wire_scan(tmp_path):
+    conn = db.connect(tmp_path / 'html-challenge.db')
+    def fetch(url):
+        if url == WIRE_URL:
+            return b'<html><body>Challenge</body></html>'
+        raise urllib.error.HTTPError(url, 403, 'Forbidden', {}, None)
+    poll_official_feeds(conn, [{'ticker':'BCRX'}], fetch=fetch, now=NOW)
+    obs = json.loads(conn.execute("SELECT value_json FROM monitor_observations WHERE observation_key='official_feed:BCRX'").fetchone()[0])
+    assert obs['wire_fallback']['status'] == 'fetch_error'
 
 
 def test_wire_fallback_failure_is_visible_and_fail_closed(tmp_path):
@@ -136,7 +167,7 @@ def test_production_registry_wire_urls_are_unique_official_and_prefetched():
     from mozes.ir_registry import ir_entries
     from mozes.priority import priority_tickers
     wired = [r for r in ir_entries() if r.get("wire_feed_url")]
-    assert len(wired) == 19  # +LEGN, SRPT (verified self-issuing via GlobeNewswire)
+    assert len(wired) == 21  # +CYTK, TVTX: contributor-verified issuer releases
     assert all(urlsplit(r["wire_feed_url"]).hostname == "rss.globenewswire.com" for r in wired)
     urls = set(hot_urls())
     hot = set(priority_tickers())

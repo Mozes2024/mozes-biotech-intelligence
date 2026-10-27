@@ -71,6 +71,8 @@ def hot_urls():
             urls.append(row.get("feed_url") or row["site"])
             if row.get("wire_feed_url"):
                 urls.append(row["wire_feed_url"])
+            if row.get("mirror_feed_url"):
+                urls.append(row["mirror_feed_url"])
     return urls
 
 
@@ -139,7 +141,7 @@ def run_hot_pass(conn, *, include_sec=True, include_wires=True, dispatch=True, f
             registry=ir_entries()
             observed={r['observation_key'].split(':',1)[1]:r['observed_at'] for r in conn.execute("SELECT observation_key,observed_at FROM monitor_observations WHERE observation_key LIKE 'official_feed:%'")}
             broader=sorted([r for r in registry if r['ticker'] not in hot],key=lambda r:(observed.get(r['ticker'],''),r['ticker']))[:8]
-            if isinstance(fetch,PassFetcher):fetch.prefetch([u for r in broader for u in (r.get('feed_url') or r['site'], r.get('wire_feed_url')) if u])
+            if isinstance(fetch,PassFetcher):fetch.prefetch([u for r in broader for u in (r.get('feed_url') or r['site'], r.get('wire_feed_url'), r.get('mirror_feed_url')) if u])
             issuers = [{"ticker": row["ticker"], "sponsor": row.get("company") or row["ticker"]}
                        for row in registry if row["ticker"] in hot]+[{'ticker':r['ticker'],'sponsor':r['company']} for r in broader]
             return poll_official_feeds(conn, issuers, fetch=fetch, now=datetime.now(timezone.utc))
