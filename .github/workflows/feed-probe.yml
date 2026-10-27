@@ -15,7 +15,7 @@ on:
         type: boolean
         default: false
       ir_coverage:
-        description: 'Read-only TYRA/CYTK/TVTX/ALNY/ARGX source check in a disposable database'
+        description: 'Read-only issuer source check in a disposable database'
         type: boolean
         default: false
       rapp_incident:
@@ -48,7 +48,7 @@ jobs:
         run: python scripts/probe_tyra_ir.py
       - name: Inspect reviewed issuer fallback sources without production state
         if: inputs.ir_coverage
-        run: python scripts/probe_ir_coverage.py --output .diagnostics/ir-coverage.json
+        run: python scripts/probe_ir_coverage.py --tickers TYRA CYTK TVTX ALNY ARGX AMGN --output .diagnostics/ir-coverage.json
       - uses: actions/upload-artifact@v4
         if: inputs.ir_coverage
         with:
