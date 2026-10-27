@@ -475,6 +475,95 @@ def discover_press_index(site, fetch, *, entries=False):
     return list(dict.fromkeys(parser.links))[:12]
 
 
+class _ArrowheadNews(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.depth, self.field, self.row, self.rows = 0, None, None, []
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == 'div':
+            if self.depth:
+                self.depth += 1
+            elif 'news' in a.get('class', '').split():
+                self.depth, self.row = 1, {'title': '', 'date': '', 'url': None}
+        elif self.depth and tag == 'p' and 'date' in a.get('class', '').split():
+            self.field = 'date'
+        elif self.depth and tag == 'a' and self.row['url'] is None:
+            self.row['url'] = a.get('href')
+        elif self.depth and tag == 'h2':
+            self.field = 'title'
+
+    def handle_endtag(self, tag):
+        if (tag == 'p' and self.field == 'date') or (tag == 'h2' and self.field == 'title'):
+            self.field = None
+        if tag == 'div' and self.depth:
+            self.depth -= 1
+            if not self.depth:
+                self.rows.append(self.row)
+                self.row = None
+
+    def handle_data(self, data):
+        if self.depth and self.field:
+            self.row[self.field] += data
+
+
+def _poll_arrowhead_newsroom(conn, ticker, *, fetch, now):
+    """Follow Arrowhead's dated index with forward-only, gap-detecting scans."""
+    if ticker != 'ARWR':
+        return None
+    site = 'https://arrowheadpharma.com/en-us/newsroom'
+    payload = fetch(site)
+    parser = _ArrowheadNews()
+    parser.feed(payload.decode('utf-8', errors='replace') if isinstance(payload, bytes) else str(payload))
+    rows = []
+    for row in parser.rows[:12]:
+        if not isinstance(row['url'], str):
+            raise ValueError('invalid Arrowhead newsroom URL')
+        link = urllib.parse.urljoin(site, row['url'])
+        if not _same_official_host(link, site) or not urlsplit(link).path.startswith('/en-us/newsroom/'):
+            raise ValueError('invalid Arrowhead newsroom URL')
+        date = datetime.strptime(' '.join(row['date'].split()), '%B %d, %Y').date()
+        title = ' '.join(row['title'].split())
+        if not title or date > now.date():
+            raise ValueError('invalid Arrowhead newsroom date or title')
+        rows.append({'url': link, 'title': title, 'date': date.isoformat()})
+    if len(rows) != 12 or any(a['date'] < b['date'] for a, b in zip(rows, rows[1:])):
+        raise ValueError('Arrowhead newsroom is incomplete or not date ordered')
+    key = 'official_newsroom_baseline:ARWR'
+    prior = conn.execute('SELECT value_json FROM monitor_observations WHERE observation_key=?', (key,)).fetchone()
+    baseline = json.loads(prior[0]) if prior else {}
+    if prior and (baseline.get('site') != site or not isinstance(baseline.get('urls'), list)
+                  or not isinstance(baseline.get('activated_on'), str)):
+        raise ValueError('invalid Arrowhead newsroom baseline')
+    seen = set(baseline.get('urls', []))
+    if prior and len(rows) >= 12 and not any(row['url'] in seen for row in rows):
+        raise ValueError('Arrowhead newsroom scan has a possible coverage gap')
+    activated_on = baseline.get('activated_on', now.date().isoformat())
+    fresh = [row for row in rows if prior and row['url'] not in seen and row['date'] >= activated_on]
+    known = recorded_release_urls(conn)
+    added = 0
+    for row in fresh[:10]:
+        if canonical_url(row['url']) in known:
+            continue
+        before = conn.total_changes
+        record_change(conn, ticker=ticker, change_type='company_release_signal', previous_value=None,
+                      new_value={'headline': row['title'], 'published_at': now.isoformat()},
+                      source_url=row['url'], source_type='company_ir', severity='medium',
+                      verification_state='investigation_only', identity=['company_release', ticker, row['url']],
+                      metadata={'feed_url': site, 'headline_only': True, 'official_mirror': True,
+                                'date_precision': 'day', 'observed_at': now.isoformat()})
+        added += conn.total_changes > before
+        known.add(canonical_url(row['url']))
+    pending = {row['url'] for row in fresh[10:]}
+    merged = list(dict.fromkeys([row['url'] for row in rows if row['url'] not in pending]
+                               + baseline.get('urls', [])))[:1000]
+    observe(conn, key, {'site': site, 'urls': merged, 'activated_on': activated_on},
+            source_url=site, source_type='company_ir')
+    return {'status': 'active', 'feed': site, 'checked_at': now.isoformat(),
+            'items': len(fresh), 'signals_seen': added, 'baseline_suppressed': len(rows) - len(fresh)}
+
+
 def poll_official_feeds(conn, issuers, *, fetch, now):
     """Follow official company releases for the bounded late-stage news cohort."""
     checked = added = 0
@@ -514,6 +603,7 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
             try:
                 mirror = (_poll_amgen_newsroom(conn, ticker, fetch=fetch, now=now) if ticker == 'AMGN'
                           else _poll_gilead_newsroom(conn, ticker, fetch=fetch, now=now) if ticker == 'GILD'
+                          else _poll_arrowhead_newsroom(conn, ticker, fetch=fetch, now=now) if ticker == 'ARWR'
                           else _poll_official_mirror(conn, ticker, entry, fetch=fetch, now=now))
             except (OSError, ValueError, KeyError, ET.ParseError, UnicodeError, http.client.HTTPException) as exc:
                 mirror = {"status": "fetch_error", "feed": entry.get("mirror_feed_url"),
