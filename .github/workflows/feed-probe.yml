@@ -15,7 +15,7 @@ on:
         type: boolean
         default: false
       ir_coverage:
-        description: 'Read-only TYRA/CYTK/TVTX fallback check in a disposable database'
+        description: 'Read-only TYRA/CYTK/TVTX/ALNY/ARGX source check in a disposable database'
         type: boolean
         default: false
       rapp_incident:

@@ -2,7 +2,7 @@
 
 No production database, Edge endpoint, alert delivery, credential or checkpoint
 is opened. HTTP 403 is retained as a failure; approved alternate sources are
-tested independently. The default scope is the three newly added fallbacks.
+tested independently. The default scope is the five reviewed issuer sources.
 """
 from __future__ import annotations
 
@@ -38,6 +38,7 @@ def inspect(tickers, *, fetch=None, now=None):
                                                ('official_feed:'+ticker,)).fetchone()[0])
                 rows.append({'ticker':ticker, 'primary_status':value['status'],
                              'primary_error':value.get('error') or value.get('feed_error'),
+                             'index_links':value.get('index_links'),
                              'wire_fallback':value.get('wire_fallback'),
                              'official_mirror':value.get('official_mirror'),
                              'historical_signals':result['signals_seen']})
@@ -50,7 +51,7 @@ def inspect(tickers, *, fetch=None, now=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--tickers', nargs='+', default=['TYRA','CYTK','TVTX'])
+    parser.add_argument('--tickers', nargs='+', default=['TYRA','CYTK','TVTX','ALNY','ARGX'])
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     report = inspect(args.tickers)
