@@ -321,6 +321,91 @@ def _poll_amgen_newsroom(conn, ticker, *, fetch, now):
             'items': len(fresh), 'signals_seen': added, 'baseline_suppressed': len(releases) - len(fresh)}
 
 
+class _GileadResult(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.capture = None
+        self.title = ''
+        self.date = ''
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        if tag == 'h5':
+            self.capture = 'title'
+        elif tag == 'div' and 'field-news-date' in attributes.get('class', '').split():
+            self.capture = 'date'
+
+    def handle_endtag(self, tag):
+        if (tag == 'h5' and self.capture == 'title') or (tag == 'div' and self.capture == 'date'):
+            self.capture = None
+
+    def handle_data(self, data):
+        if self.capture:
+            setattr(self, self.capture, getattr(self, self.capture) + data)
+
+
+def _poll_gilead_newsroom(conn, ticker, *, fetch, now):
+    """Read Gilead's date-sorted newsroom; detect gaps between bounded scans."""
+    if ticker != 'GILD':
+        return None
+    site = 'https://www.gilead.com'
+    url = (site + '/sxa/search/results/?s=%7B276E1983-B53E-4B38-8908-26E0B8F4DA3C%7D'
+           '&itemid=%7BA4D0C034-D2C5-4144-B486-FFAEDC2EBD77%7D&sig=news'
+           '&v=%7B2A9EDDAC-CB70-42FB-A43E-582BFD84406B%7D&p=8&o=News%20Date%2CDescending')
+    data = json.loads(fetch(url))
+    if (not isinstance(data, dict) or data.get('Signature') != 'news'
+            or not isinstance(data.get('Results'), list) or type(data.get('Count')) is not int
+            or data['Count'] < len(data['Results'])
+            or len(data['Results']) != min(data['Count'], 8)):
+        raise ValueError('invalid Gilead newsroom response')
+    releases = []
+    for row in data['Results']:
+        if not isinstance(row, dict) or not isinstance(row.get('Url'), str) or not isinstance(row.get('Html'), str):
+            raise ValueError('invalid Gilead newsroom release')
+        link = urllib.parse.urljoin(site, row['Url'])
+        if not _same_official_host(link, site) or not urlsplit(link).path.startswith('/news/news-details/'):
+            raise ValueError('invalid Gilead newsroom release URL')
+        parser = _GileadResult()
+        parser.feed(row['Html'])
+        title = ' '.join(parser.title.split())
+        date = datetime.strptime(' '.join(parser.date.split()), '%B %d, %Y').date()
+        if not title or date > now.date():
+            raise ValueError('invalid Gilead newsroom release date or title')
+        releases.append({'title': title, 'url': link, 'date': date.isoformat()})
+    if not releases or any(a['date'] < b['date'] for a, b in zip(releases, releases[1:])):
+        raise ValueError('Gilead newsroom is empty or not ordered by date')
+    key = 'official_newsroom_baseline:GILD'
+    prior = conn.execute('SELECT value_json FROM monitor_observations WHERE observation_key=?', (key,)).fetchone()
+    baseline = json.loads(prior[0]) if prior else {}
+    if prior and (baseline.get('site') != site or not isinstance(baseline.get('urls'), list)
+                  or not isinstance(baseline.get('activated_on'), str)):
+        raise ValueError('invalid Gilead newsroom baseline')
+    seen = set(baseline.get('urls', []))
+    if prior and len(releases) >= 8 and not any(row['url'] in seen for row in releases):
+        raise ValueError('Gilead newsroom scan has a possible coverage gap')
+    activated_on = baseline.get('activated_on', now.date().isoformat())
+    fresh = [row for row in releases if prior and row['url'] not in seen and row['date'] >= activated_on]
+    known = recorded_release_urls(conn)
+    added = 0
+    for row in fresh:
+        if canonical_url(row['url']) in known:
+            continue
+        before = conn.total_changes
+        record_change(conn, ticker=ticker, change_type='company_release_signal', previous_value=None,
+                      new_value={'headline': row['title'], 'published_at': now.isoformat()},
+                      source_url=row['url'], source_type='company_ir', severity='medium',
+                      verification_state='investigation_only', identity=['company_release', ticker, row['url']],
+                      metadata={'feed_url': url, 'headline_only': True, 'official_mirror': True,
+                                'date_precision': 'day', 'observed_at': now.isoformat()})
+        added += conn.total_changes > before
+        known.add(canonical_url(row['url']))
+    merged = list(dict.fromkeys([row['url'] for row in releases] + baseline.get('urls', [])))[:1000]
+    observe(conn, key, {'site': site, 'urls': merged, 'activated_on': activated_on},
+            source_url=url, source_type='company_ir')
+    return {'status': 'active', 'feed': url, 'checked_at': now.isoformat(),
+            'items': len(fresh), 'signals_seen': added, 'baseline_suppressed': len(releases) - len(fresh)}
+
+
 class _PressLinks(HTMLParser):
     """Collect same-host HTTPS anchors that look like press-release index entries."""
 
@@ -428,6 +513,7 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                 value["wire_fallback"] = wire
             try:
                 mirror = (_poll_amgen_newsroom(conn, ticker, fetch=fetch, now=now) if ticker == 'AMGN'
+                          else _poll_gilead_newsroom(conn, ticker, fetch=fetch, now=now) if ticker == 'GILD'
                           else _poll_official_mirror(conn, ticker, entry, fetch=fetch, now=now))
             except (OSError, ValueError, KeyError, ET.ParseError, UnicodeError, http.client.HTTPException) as exc:
                 mirror = {"status": "fetch_error", "feed": entry.get("mirror_feed_url"),
