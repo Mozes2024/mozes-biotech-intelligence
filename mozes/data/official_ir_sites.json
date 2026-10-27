@@ -2,7 +2,9 @@
   "TYRA": {
     "company": "Tyra Biosciences, Inc.",
     "site": "https://ir.tyra.bio/",
-    "feed_url": "https://ir.tyra.bio/rss/news-releases.xml"
+    "feed_url": "https://ir.tyra.bio/rss/news-releases.xml",
+    "mirror_site": "https://tyrabio.investorroom.com/",
+    "mirror_feed_url": "https://tyrabio.investorroom.com/news-releases?pagetemplate=rss"
   },
   "SLS": {
     "company": "SELLAS Life Sciences",
@@ -89,7 +91,9 @@
   "CYTK": {
     "company": "Cytokinetics",
     "site": "https://ir.cytokinetics.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Cytokinetics",
+    "wire_contributor": "cytokinetics"
   },
   "VKTX": {
     "company": "Viking Therapeutics",
@@ -180,7 +184,9 @@
   "TVTX": {
     "company": "Travere",
     "site": "https://ir.travere.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Travere",
+    "wire_contributor": "travere therapeutics"
   },
   "IOVA": {
     "company": "Iovance",

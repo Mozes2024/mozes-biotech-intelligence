@@ -209,11 +209,21 @@ def _health(conn, live, refresh, monitor):
                 "last_error_at": value.get("last_error_at"),
                 "last_error": value.get("error") or value.get("feed_error"),
                 "consecutive_failures": value.get("consecutive_failures", 0)}
+        if source["observation_key"].startswith("official_feed:"):
+            entry = registry.get(ticker) or {}
+            item["source_url"] = value.get("feed") or value.get("site") or entry.get("feed_url") or entry.get("site")
+            item["alternates"] = [dict(value[key], kind=kind) for key, kind in (
+                ("official_mirror", "official_mirror"), ("wire_fallback", "wire_issuer")) if value.get(key)]
         if (source["observation_key"].startswith("official_feed:") and status in {"FAILED", "PARTIAL"}
                 and item["in_scope"]):
             wire = value.get("wire_fallback") or {}
-            if wire.get("status") == "active" and _fresh({"last_success_at": wire.get("checked_at")}):
+            mirror = value.get("official_mirror") or {}
+            if mirror.get("status") == "active" and _fresh({"last_success_at": mirror.get("checked_at")}):
+                item["covered_by"] = "official_mirror"
+                item["alternate_checked_at"] = mirror.get("checked_at")
+            elif wire.get("status") == "active" and _fresh({"last_success_at": wire.get("checked_at")}):
                 item["covered_by"] = "wire_issuer"
+                item["alternate_checked_at"] = wire.get("checked_at")
             elif sec_healthy:
                 item["covered_by"] = "sec_8k_6k"
             if item.get("covered_by"):

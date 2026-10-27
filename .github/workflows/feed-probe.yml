@@ -14,6 +14,10 @@ on:
         description: 'Fixed read-only SELECT of backlog age, retries and completion evidence'
         type: boolean
         default: false
+      ir_coverage:
+        description: 'Read-only TYRA/CYTK/TVTX fallback check in a disposable database'
+        type: boolean
+        default: false
       rapp_incident:
         description: 'Read-only SEC and retained Edge evidence for accession 0001193125-26-425647'
         type: boolean
@@ -42,6 +46,15 @@ jobs:
       - name: Inspect official TYRA RSS and HTML without monitor state
         if: inputs.tyra
         run: python scripts/probe_tyra_ir.py
+      - name: Inspect reviewed issuer fallback sources without production state
+        if: inputs.ir_coverage
+        run: python scripts/probe_ir_coverage.py --output .diagnostics/ir-coverage.json
+      - uses: actions/upload-artifact@v4
+        if: inputs.ir_coverage
+        with:
+          name: ir-coverage-readonly
+          path: .diagnostics/ir-coverage.json
+          retention-days: 7
       - name: Read Edge backlog without mutations
         if: inputs.edge_backlog
         env:
