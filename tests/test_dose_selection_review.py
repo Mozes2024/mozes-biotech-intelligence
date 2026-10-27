@@ -69,6 +69,12 @@ def test_fresh_wire_persists_neutral_candidate_without_positive_claim(tmp_path):
     assert payload['verification_state'] == 'investigation_only'
     assert payload['outcome']['actionable'] is False
     assert payload['outcome']['polarity'] == 'unknown'
+    assert payload['verified_issuer_cik'] is None  # UNKNOWN lifecycle not overridden.
+    from mozes.alert_feed import build_feed, browser_feed
+    feed = build_feed(conn)
+    assert len(feed['alerts']) == 1  # P2 neutral candidate is visible in review list.
+    assert browser_feed(feed)['alerts'] == []  # Not an eligible confirmed popup.
     before = conn.execute('SELECT COUNT(*) FROM alert_outbox').fetchone()[0]
+    assert before == 1
     poll_wire_feeds(conn, fetch=lambda _: rss, now=datetime(2026, 10, 25, 9, 8, tzinfo=timezone.utc))
     assert conn.execute('SELECT COUNT(*) FROM alert_outbox').fetchone()[0] == before
