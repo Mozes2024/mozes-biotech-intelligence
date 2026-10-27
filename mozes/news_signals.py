@@ -353,7 +353,10 @@ def _poll_gilead_newsroom(conn, ticker, *, fetch, now):
            '&itemid=%7BA4D0C034-D2C5-4144-B486-FFAEDC2EBD77%7D&sig=news'
            '&v=%7B2A9EDDAC-CB70-42FB-A43E-582BFD84406B%7D&p=8&o=News%20Date%2CDescending')
     data = json.loads(fetch(url))
-    if not isinstance(data, dict) or data.get('Signature') != 'news' or not isinstance(data.get('Results'), list):
+    if (not isinstance(data, dict) or data.get('Signature') != 'news'
+            or not isinstance(data.get('Results'), list) or type(data.get('Count')) is not int
+            or data['Count'] < len(data['Results'])
+            or len(data['Results']) != min(data['Count'], 8)):
         raise ValueError('invalid Gilead newsroom response')
     releases = []
     for row in data['Results']:

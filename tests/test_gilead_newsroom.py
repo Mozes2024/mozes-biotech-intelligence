@@ -16,7 +16,7 @@ def result(index, date='October 27, 2026', host=''):
 
 
 def payload(*rows):
-    return json.dumps({'Signature': 'news', 'Results': rows}).encode()
+    return json.dumps({'Signature': 'news', 'Count': len(rows), 'Results': rows}).encode()
 
 
 def test_forward_only_baseline_and_new_release(tmp_path):
@@ -56,6 +56,7 @@ def test_partial_primary_retained_with_official_mirror(tmp_path):
 
 
 @pytest.mark.parametrize('data', [b'<html>blocked</html>', b'{}', payload(),
+    json.dumps({'Signature': 'news', 'Count': 20, 'Results': [result(1)]}).encode(),
     payload(result(1, host='https://evil.example')),
     payload(result(1, 'bad-date')),
     payload(result(1, 'October 26, 2026'), result(2, 'October 27, 2026'))])
