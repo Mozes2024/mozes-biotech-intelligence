@@ -32,6 +32,15 @@ def classify_clinical(text, outcome=None):
     catalyst = relevant and future and (has("data") or has("regulatory") or has("milestone")) and not routine and not management
     actionable = not future and not routine and not management and (bool(outcome["material"]) or has("regulatory_event"))
     material = actionable or catalyst and (has("important") or has("regulatory")) or relevant and has('milestone') and has('important') and not routine and not management
+    # An observed Phase 1 dose-selection readout is worth review even without
+    # a directional endpoint claim. Scheduling and plans alone are not results.
+    reported_dose_data = (
+        relevant and not future and not routine and not management
+        and bool(re.search(r"\bphase\s*1\b.{0,90}\bdose[ -]selection\b.{0,35}\b(?:data|results)\b", sample[:350], re.I))
+        and bool(re.search(r"\b(?:presents|presented|reports|reported|announces|announced)\b", sample[:350], re.I))
+        and not re.search(r"\b(?:webcast|conference\s+call|plans?|planning|will|to\s+(?:present|report|announce|discuss)|no\s+(?:new\s+)?(?:data|results))\b", sample[:350], re.I)
+    )
+    material = material or reported_dose_data
     kind = "routine_conference" if routine else "management_update" if management else "upcoming_catalyst" if catalyst else "confirmed_development" if actionable else "clinical_update" if relevant else "outside_scope"
     return dict(relevant=relevant, material=material, actionable=actionable, catalyst=catalyst,
                 polarity="unknown" if future or routine or management else outcome["polarity"], kind=kind,
