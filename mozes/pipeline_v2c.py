@@ -175,10 +175,20 @@ def semantic_fingerprint(payload):
                      'financial_source': financial.get('source_hash'), 'runway_band': financial.get('runway_band'),
                      'financing': digest(row.get('financing_events', []))})
     health = payload.get('health') or {}
+    source_states = []
+    for source in health.get('source_freshness') or []:
+        if not source.get('in_scope'):
+            continue
+        alternates = sorted((row.get('kind'), row.get('status'))
+                            for row in source.get('alternates', []) if row.get('kind'))
+        source_states.append((source.get('source'), source.get('status'),
+                              source.get('observation_status'), source.get('covered_by'), alternates))
+    source_states.sort(key=lambda row: row[0] or '')
     return digest({'live': live, 'summary': payload.get('summary'),
                    'alerts': payload.get('alerts'), 'alert_config': {
                        k: (payload.get('alert_config') or {}).get(k) for k in ('enabled_channels', 'feed_url')},
-                   'health': {'status': health.get('status'), 'warnings': health.get('warnings')},
+                   'health': {'status': health.get('status'), 'warnings': health.get('warnings'),
+                              'source_states': source_states},
                    'change_cursor': (payload.get('build') or {}).get('change_cursor'),
                    'change_ledger': (payload.get('build') or {}).get('change_ledger'),
                    'official_feeds': [(item['ticker'], item.get('status'), item.get('feed'))
