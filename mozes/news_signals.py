@@ -256,6 +256,71 @@ def _poll_official_mirror(conn, ticker, entry, *, fetch, now):
             "baseline_suppressed": len(items) - len(fresh)}
 
 
+def _poll_amgen_newsroom(conn, ticker, *, fetch, now):
+    """Read Amgen's own newsroom index, retaining a forward-only URL baseline."""
+    if ticker != 'AMGN':
+        return None
+    site = 'https://www.amgen.com'
+    url = (site + '/MyApi/Custom/NewsListing/GetNewsReleasesV2?'
+           'rootId=%7B623B9876-33FF-40EB-BDA0-8465365C59C8%7D'
+           f'&selectedYear={now.year}&isNasdaq=true')
+    groups = json.loads(fetch(url))
+    if not isinstance(groups, list) or not groups:
+        raise ValueError('Amgen newsroom returned no release groups')
+    releases = []
+    for group in groups:
+        if not isinstance(group, dict) or not isinstance(group.get('NewsReleases'), list):
+            raise ValueError('invalid Amgen newsroom response')
+        for row in group['NewsReleases']:
+            if not isinstance(row, dict):
+                raise ValueError('invalid Amgen newsroom release')
+            title, path, stamp = row.get('Title'), row.get('Url'), row.get('Date')
+            if (not isinstance(title, str) or not title.strip() or not isinstance(path, str)
+                    or not isinstance(stamp, str)):
+                raise ValueError('invalid Amgen newsroom release')
+            link = urllib.parse.urljoin(site, path)
+            if not _same_official_host(link, site) or not urlsplit(link).path.startswith('/newsroom/press-releases/'):
+                raise ValueError('invalid Amgen newsroom release URL')
+            date = datetime.strptime(stamp, '%m.%d.%Y').date()
+            if date > now.date() or date.year != now.year:
+                raise ValueError('invalid Amgen newsroom release date')
+            releases.append({'title': title.strip(), 'url': link, 'date': date.isoformat()})
+    if not releases:
+        raise ValueError('Amgen newsroom returned no releases')
+    key = 'official_newsroom_baseline:AMGN'
+    prior = conn.execute('SELECT value_json FROM monitor_observations WHERE observation_key=?', (key,)).fetchone()
+    value = json.loads(prior[0]) if prior else {}
+    if prior and (value.get('site') != site or not isinstance(value.get('urls'), list)
+                  or not isinstance(value.get('activated_on'), str)):
+        raise ValueError('invalid Amgen newsroom baseline')
+    seen = set(value.get('urls', []))
+    activated_on = value.get('activated_on', now.date().isoformat())
+    fresh = [row for row in releases if prior and row['url'] not in seen and row['date'] >= activated_on]
+    known = recorded_release_urls(conn)
+    added = 0
+    for row in fresh[:10]:
+        if canonical_url(row['url']) in known:
+            continue
+        before = conn.total_changes
+        record_change(conn, ticker=ticker, change_type='company_release_signal', previous_value=None,
+                      new_value={'headline': row['title'], 'published_at': now.isoformat()},
+                      source_url=row['url'], source_type='company_ir', severity='medium',
+                      verification_state='investigation_only',
+                      identity=['company_release', ticker, row['url']],
+                      metadata={'feed_url': url, 'headline_only': True, 'official_mirror': True,
+                                'date_precision': 'day', 'observed_at': now.isoformat()})
+        added += conn.total_changes > before
+        known.add(canonical_url(row['url']))
+    # Leave releases beyond the per-pass cap pending for the next scan.
+    pending = {row['url'] for row in fresh[10:]}
+    merged = list(dict.fromkeys([row['url'] for row in releases if row['url'] not in pending]
+                               + value.get('urls', [])))[:1000]
+    observe(conn, key, {'site': site, 'urls': merged, 'activated_on': activated_on},
+            source_url=url, source_type='company_ir')
+    return {'status': 'active', 'feed': url, 'checked_at': now.isoformat(),
+            'items': len(fresh), 'signals_seen': added, 'baseline_suppressed': len(releases) - len(fresh)}
+
+
 class _PressLinks(HTMLParser):
     """Collect same-host HTTPS anchors that look like press-release index entries."""
 
@@ -362,7 +427,8 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
             if wire:
                 value["wire_fallback"] = wire
             try:
-                mirror = _poll_official_mirror(conn, ticker, entry, fetch=fetch, now=now)
+                mirror = (_poll_amgen_newsroom(conn, ticker, fetch=fetch, now=now) if ticker == 'AMGN'
+                          else _poll_official_mirror(conn, ticker, entry, fetch=fetch, now=now))
             except (OSError, ValueError, KeyError, ET.ParseError, UnicodeError, http.client.HTTPException) as exc:
                 mirror = {"status": "fetch_error", "feed": entry.get("mirror_feed_url"),
                           "error": f"{type(exc).__name__}: {exc}"[:160], "checked_at": checked_at}
