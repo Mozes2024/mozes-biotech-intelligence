@@ -292,13 +292,18 @@ class _PressLinks(HTMLParser):
 
 
 _ARTICLE_SLUG = re.compile(r"(?:\d{4,}|[a-z0-9]+(?:-[a-z0-9]+){3,})", re.I)
+_RELEASE_UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", re.I)
+_HTML_BASELINE_VERSION = 2
 
 
 def _looks_like_release(entry):
     """Index/navigation links ('press-releases', 'default.aspx') are not releases."""
-    last = (urlsplit(entry["url"]).path or "").rstrip("/").rsplit("/", 1)[-1]
+    parts = urlsplit(entry["url"])
+    last = (parts.path or "").rstrip("/").rsplit("/", 1)[-1]
     title = entry.get("title") or ""
-    return bool(_ARTICLE_SLUG.search(last)) and len(title) >= 25 and len(title.split()) >= 4
+    ids = urllib.parse.parse_qs(parts.query, keep_blank_values=True).get('id', [])
+    query_release = last.lower() in {'press-release', 'news-release'} and len(ids) == 1 and bool(_RELEASE_UUID.fullmatch(ids[0]))
+    return (bool(_ARTICLE_SLUG.search(last)) or query_release) and len(title) >= 25 and len(title.split()) >= 4
 
 
 def discover_press_index(site, fetch, *, entries=False):
@@ -400,10 +405,14 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                 seen_key = "official_html_seen:" + ticker
                 prior = conn.execute("SELECT value_json FROM monitor_observations WHERE observation_key=?",
                                      (seen_key,)).fetchone()
-                seen_urls = set(json.loads(prior[0]).get("urls", [])) if prior else None
+                prior_value = json.loads(prior[0]) if prior else {}
+                previous_urls = set(prior_value.get('urls', []))
+                compatible = prior_value.get('site') == site and prior_value.get('parser_version') == _HTML_BASELINE_VERSION
+                seen_urls = previous_urls if compatible else None
                 if entries:
-                    merged = list(dict.fromkeys([e["url"] for e in entries] + sorted(seen_urls or [])))[:200]
-                    observe(conn, seen_key, {"urls": merged}, source_url=site, source_type="company_ir")
+                    merged = list(dict.fromkeys([e["url"] for e in entries] + sorted(previous_urls)))[:200]
+                    observe(conn, seen_key, {"urls": merged, 'site': site, 'parser_version': _HTML_BASELINE_VERSION},
+                            source_url=site, source_type="company_ir")
                     checked += 1
                 if seen_urls is not None:
                     for entry in entries[:5]:

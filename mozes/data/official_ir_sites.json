@@ -78,7 +78,7 @@
   },
   "ALNY": {
     "company": "Alnylam",
-    "site": "https://investors.alnylam.com/",
+    "site": "https://investors.alnylam.com/press-releases",
     "feed_url": null
   },
   "MDGL": {
@@ -143,7 +143,9 @@
   "ARGX": {
     "company": "argenx",
     "site": "https://argenx.com/investors",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/Organization/2l6VaQppBelbJuj0TwBXvg==",
+    "wire_contributor": "argenx"
   },
   "LEGN": {
     "company": "Legend Biotech",
