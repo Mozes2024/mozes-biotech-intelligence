@@ -9,7 +9,9 @@
   "SLS": {
     "company": "SELLAS Life Sciences",
     "site": "https://ir.sellaslifesciences.com/",
-    "feed_url": null
+    "feed_url": null,
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/Organization/Xh-RfjSN_ddYlwURi9qAmA==",
+    "wire_contributor": "SELLAS Life Sciences Group, Inc."
   },
   "MRNA": {
     "company": "Moderna",
@@ -117,7 +119,9 @@
   "CRSP": {
     "company": "CRISPR Therapeutics",
     "site": "https://ir.crisprtx.com/",
-    "feed_url": "https://ir.crisprtx.com/rss/news-releases.xml"
+    "feed_url": "https://ir.crisprtx.com/rss/news-releases.xml",
+    "wire_feed_url": "https://rss.globenewswire.com/RssFeed/Organization/yZonBXkVeWlY2q7tH3QlaQ==",
+    "wire_contributor": "CRISPR Therapeutics AG"
   },
   "BEAM": {
     "company": "Beam Therapeutics",

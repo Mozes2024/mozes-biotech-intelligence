@@ -48,7 +48,7 @@ jobs:
         run: python scripts/probe_tyra_ir.py
       - name: Inspect reviewed issuer fallback sources without production state
         if: inputs.ir_coverage
-        run: python scripts/probe_ir_coverage.py --tickers TYRA CYTK TVTX ALNY ARGX AMGN --output .diagnostics/ir-coverage.json
+        run: python scripts/probe_ir_coverage.py --tickers TYRA CYTK TVTX ALNY ARGX AMGN CRSP SLS --output .diagnostics/ir-coverage.json
       - uses: actions/upload-artifact@v4
         if: inputs.ir_coverage
         with:

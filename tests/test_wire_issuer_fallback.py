@@ -13,6 +13,20 @@ NOW = datetime(2026, 10, 22, 12, 0, tzinfo=timezone.utc)
 WIRE_URL = "https://rss.globenewswire.com/RssFeed/keyword/BioCryst"
 
 
+@pytest.mark.parametrize(('ticker', 'feed_id', 'contributor'), [
+    ('CRSP', 'yZonBXkVeWlY2q7tH3QlaQ==', 'CRISPR Therapeutics AG'),
+    ('SLS', 'Xh-RfjSN_ddYlwURi9qAmA==', 'SELLAS Life Sciences Group, Inc.'),
+])
+def test_reviewed_organization_feeds_are_registered_and_prefetched(ticker, feed_id, contributor, monkeypatch):
+    from mozes import hot_monitor
+    from mozes.ir_registry import load_ir_registry
+    entry = load_ir_registry()[ticker]
+    assert entry['wire_feed_url'] == 'https://rss.globenewswire.com/RssFeed/Organization/' + feed_id
+    assert entry['wire_contributor'] == contributor
+    monkeypatch.setattr(hot_monitor, 'priority_tickers', lambda: [ticker])
+    assert entry['wire_feed_url'] in hot_monitor.hot_urls()
+
+
 def _gn_feed(items):
     body = "".join(
         f'<item><title>{t}</title><link>{u}</link><pubDate>{d}</pubDate>'
@@ -167,7 +181,7 @@ def test_production_registry_wire_urls_are_unique_official_and_prefetched():
     from mozes.ir_registry import ir_entries
     from mozes.priority import priority_tickers
     wired = [r for r in ir_entries() if r.get("wire_feed_url")]
-    assert len(wired) == 22  # +ARGX: organization feed, contributor-verified issuer releases
+    assert len(wired) == 24  # CRSP and SLS add reviewed organization feeds
     assert all(urlsplit(r["wire_feed_url"]).hostname == "rss.globenewswire.com" for r in wired)
     urls = set(hot_urls())
     hot = set(priority_tickers())
