@@ -37,6 +37,16 @@ const dev = spawn(wcmd, wargs(['dev', '--local', '--port', String(PORT), '--conf
   '--var', 'EDGE_FORWARD_ONLY_FROM:2026-10-21T00:00:00Z']),
   { cwd: cf, env, stdio: 'pipe' });
 let devLog = '';
+// Local Wrangler/D1 CLI operations can close idle keep-alive sockets. Cache
+// assertions concern workerd's Cache API across requests, not socket reuse.
+// Use fresh HTTP connections, retaining every status/body/cache assertion.
+const fetch = async (url, init = {}) => {
+  try {
+    return await globalThis.fetch(url, { ...init, headers: { ...init.headers, Connection: 'close' } });
+  } catch (cause) {
+    throw new Error(`Local workerd request failed: ${init.method || 'GET'} ${url}`, { cause });
+  }
+};
 dev.stdout.on('data', (chunk) => { devLog += chunk; });
 dev.stderr.on('data', (chunk) => { devLog += chunk; });
 test.after(() => { dev.kill('SIGINT'); });

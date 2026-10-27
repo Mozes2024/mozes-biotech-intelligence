@@ -41,6 +41,7 @@ test('source coverage and composed dashboard assets use the new compatible cache
  assert.equal(versions.get('/live_intelligence_ui.js'),version);
  assert.equal(versions.get('/checkpoint_health.js'),version);
  assert.equal(version,'source-coverage-v4');
+ assert.match(index,/styles\.css\?v=source-coverage-v4/);
 });
 
 async function harness(initial=payload(),now='2026-10-12T13:00:00Z'){

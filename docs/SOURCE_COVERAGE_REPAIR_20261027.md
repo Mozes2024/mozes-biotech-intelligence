@@ -97,6 +97,14 @@ TYRA's original IR source still returned HTTP 403; CYTK/TVTX original sources
 still returned `no_rss_found`. This is runner-network evidence, not a production
 activation/ACK receipt.
 
+The baseline main CI run 40469818512 and the candidate both exposed the same
+`UND_ERR_SOCKET` failure in the existing local workerd cache integration test.
+Its transport now uses a new HTTP connection for each assertion instead of
+reusing a socket that local Wrangler/D1 operations may close. All Cache API,
+status, CORS, degraded-status and alert-freshness assertions remain intact;
+no Worker or production HTTP code is changed. This harness hypothesis must pass
+the real runtime suite in CI before it is considered verified.
+
 This repair adds alternate collection for three issuers; it does **not** remove
 the 27 publisher refusals or provide comprehensive coverage of the full watch
 universe. If all three alternates pass on the producer's network, partial backup
