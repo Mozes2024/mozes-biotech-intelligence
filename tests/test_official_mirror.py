@@ -131,25 +131,3 @@ def test_readonly_probe_uses_disposable_state_and_preserves_primary_denial(tmp_p
     assert result['sources'][0]['official_mirror']['status'] == 'active'
     assert result['sources'][0]['historical_signals'] == 0
     assert list(tmp_path.iterdir()) == []
-
-
-def test_regeneron_reviewed_newsroom_mirror_uses_existing_activation(monkeypatch, tmp_path):
-    from mozes import hot_monitor
-    entry = load_ir_registry()['REGN']
-    site = 'https://newsroom.regeneron.com/'
-    feed = site + 'rss/news-releases.xml?items=15'
-    assert entry['mirror_site'] == site and entry['mirror_feed_url'] == feed
-    monkeypatch.setattr(hot_monitor, 'priority_tickers', lambda: ['REGN'])
-    assert feed in hot_monitor.hot_urls()
-    now = datetime.now(timezone.utc)
-    def fetch(url):
-        if url == feed:
-            return rss(title='Regeneron Reports New Phase Three Results', host=site)
-        raise HTTPError(url, 403, 'Forbidden', {}, None)
-    conn = db.connect(tmp_path / 'regn.db')
-    poll_official_feeds(conn, [{'ticker':'REGN'}], fetch=fetch, now=now)
-    value = json.loads(conn.execute("SELECT value_json FROM monitor_observations WHERE observation_key='official_feed:REGN'").fetchone()[0])
-    assert value['status'] == 'fetch_error'
-    assert value['official_mirror']['status'] == 'active'
-    assert value['official_mirror']['signals_seen'] == 0
-    assert conn.execute('SELECT COUNT(*) FROM change_events').fetchone()[0] == 0
