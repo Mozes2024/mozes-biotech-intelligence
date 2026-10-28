@@ -37,7 +37,9 @@
     "site": "https://investor.regeneron.com/",
     "feed_url": "https://investor.regeneron.com/rss/news-releases.xml",
     "wire_feed_url": "https://rss.globenewswire.com/RssFeed/keyword/Regeneron",
-    "wire_contributor": "regeneron"
+    "wire_contributor": "regeneron",
+    "mirror_site": "https://newsroom.regeneron.com/",
+    "mirror_feed_url": "https://newsroom.regeneron.com/rss/news-releases.xml?items=15"
   },
   "VRTX": {
     "company": "Vertex",
