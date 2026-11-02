@@ -87,6 +87,8 @@ test('final production script chain renders the source table and separate altern
    alternate_checked_at:value.checkpoint_at,alternates:[{kind:'official_mirror',status:'active',
      checked_at:value.checkpoint_at,feed:'https://tyrabio.investorroom.com/news-releases?pagetemplate=rss'}]}]};
  const h=await harness(value,'2026-10-12T12:41:00Z');
+ assert.doesNotMatch(h.html(),/id="checkpointFreshness"/);
+ h.run("page='system';render()");
  assert.match(h.html(),/class="source-health"/);
  assert.match(h.html(),/מקורות: 1 כשלו/);
  assert.match(h.html(),/אתר רשמי חלופי · פעיל · כיסוי חלקי/);
