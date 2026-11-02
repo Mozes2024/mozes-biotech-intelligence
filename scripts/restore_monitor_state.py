@@ -236,7 +236,9 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
                 checkpoint_stamp = _parse_iso((checkpoint or {}).get("created_at")) or stamp
                 if checkpoint_stamp > now + timedelta(minutes=5):
                     raise ValueError("checkpoint timestamp is in the future")
-                if newest_created and checkpoint_stamp < newest_created - MAX_REWIND:
+                from mozes.november_lineage import eligible as november_eligible
+                november_exception = november_eligible(repo, candidate, source) and not run_id and not recovery_sha256
+                if newest_created and checkpoint_stamp < newest_created - MAX_REWIND and not november_exception:
                     print(
                         f"State restore skipped run {candidate}: manifest {stamp.isoformat()} "
                         f"is older than allowed rewind behind {newest_created.isoformat()}"
@@ -250,7 +252,12 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
                     latest = _list_success_runs()
                     if not latest or str(latest[0]["databaseId"]) != candidate:
                         raise ValueError("newer durable artifact supersedes requested source")
-                if recovery_sha256:
+                if november_exception:
+                    from mozes.november_lineage import verify as verify_november
+                    proof = verify_november(repo, candidate, source, checkpoint,
+                        json.loads(source.with_name("manifest.json").read_text()), gh,
+                        download_monitor_artifact, _list_success_runs, now=now)
+                elif recovery_sha256:
                     from mozes.monitor_recovery import audit_producers, verify_durable_history
                     digest = hashlib.sha256(source.read_bytes()).hexdigest()
                     if digest != recovery_sha256.lower() or not checkpoint_path.exists():
