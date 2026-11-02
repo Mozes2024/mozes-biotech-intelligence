@@ -32,7 +32,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 
 const production=()=>({...cp('2026-10-12T12:58:40+03:00'),source_run_id:'38233197326',artifact_id:11739482359});
 test('exact production offset checkpoint refreshes and displays its real age',async()=>{
- const old=production();old.checkpoint_at='2026-10-12T12:57:40+03:00';const h=harness(data(old));
+ const old=production();old.checkpoint_at='2026-10-12T12:57:40+03:00';const h=harness(data(old));h.run("page='system'");
  h.now(Date.parse('2026-10-12T10:00:40Z'));h.responses.push(update(production()),data(production()));await h.poll();
  assert.equal(h.snapshot().checkpoint_at,production().checkpoint_at);
  assert.match(h.elements.get('checkpointFreshness').outerHTML,/2 דקות/);
@@ -102,7 +102,7 @@ for(const field of ['source_run_id','artifact_id','db_sha256'])test(`downloaded 
 });
 
 test('production offset banner ages across the 45-minute threshold',async()=>{
- const h=harness(data(production()));h.now(Date.parse('2026-10-12T10:43:40Z'));
+ const h=harness(data(production()));h.run("page='system'");h.now(Date.parse('2026-10-12T10:43:40Z'));
  h.responses.push(update({...production(),checkpoint_at:'2026-10-12T09:58:40Z'}));await h.poll();
  assert.match(h.elements.get('checkpointFreshness').outerHTML,/עדכון מתעכב/);
  h.now(Date.parse('2026-10-12T10:43:40.001Z'));h.responses.push(update(production()));await h.poll();
@@ -116,7 +116,7 @@ test('same revision, newer authoritative checkpoint refreshes an open tab',async
  assert.equal(h.run('page'),'alerts');assert.equal(h.run('search'),'keep');assert.equal(h.run('radarFilters.type'),'P3');
 });
 test('unchanged revision and identity avoids data download but updates clock banner',async()=>{
- const h=harness();h.responses.push(update());await h.poll();assert.deepEqual(h.requests,['updates.json']);assert.equal(h.c.renderCount,0);
+ const h=harness();h.run("page='system'");h.responses.push(update());await h.poll();assert.deepEqual(h.requests,['updates.json']);assert.equal(h.c.renderCount,0);
  assert.match(h.elements.get('checkpointFreshness').outerHTML,/10 דקות/);
 });
 test('different semantic revision refreshes content against the same checkpoint',async()=>{
@@ -154,7 +154,7 @@ test('hidden tab skips minute polling and catches up on visibility restoration',
  assert.equal(h.snapshot().checkpoint_at,advance().checkpoint_at);
 });
 test('unchanged snapshot crosses 45 minutes truthfully, without replacing loaded checkpoint',async()=>{
- const h=harness(data(cp('2026-10-12T11:16:00+00:00')));h.responses.push(update(cp('2026-10-12T11:16:00+00:00')));await h.poll();
+ const h=harness(data(cp('2026-10-12T11:16:00+00:00')));h.run("page='system'");h.responses.push(update(cp('2026-10-12T11:16:00+00:00')));await h.poll();
  assert.match(h.elements.get('checkpointFreshness').outerHTML,/עדכון מתעכב/);
  h.now(NOW+120000);h.responses.push(update(cp('2026-10-12T11:16:00+00:00')));await h.poll();
  assert.match(h.elements.get('checkpointFreshness').outerHTML,/נתונים ישנים — תמונת מצב בלבד/);assert.equal(h.snapshot().checkpoint_at,'2026-10-12T11:16:00+00:00');
