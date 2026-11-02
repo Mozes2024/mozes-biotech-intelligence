@@ -78,6 +78,23 @@ explorations remain ignored; final decisions must graduate out of those folders.
 
 This task found and read the original cloud reports, but supported local
 materialization failed (transfer helper could not access prepare_materialize).
-Local Git authentication also failed; browser access was denied. Consequently
-the originals were not silently re-created as unauthenticated local copies and
-no GitHub publication is claimed. Their cloud links above remain the source.
+The initial session's Git/browser access failed. In the resumed Codex session,
+GitHub authentication works and this inventory is published in
+[Draft PR #108](https://github.com/Mozes2024/mozes-biotech-intelligence/pull/108).
+The documentation-only commit was rebased onto current main
+`f5dcfaa450a531b5509e840615415271c5e24d99`; no existing application files changed.
+The current implementation tracker was read and remains authoritative; its
+historical finding statuses were not automatically rewritten from old reports.
+
+This Codex session has no supported Library download/materialization capability.
+Both original report links remain the source; original bytes are **not imported**
+and no guessed content or original-file hashes are claimed. The original
+historical baseline and size-only identity limitation above still apply. Local
+setup utilities and review scratch items remain **UNRECOVERED**.
+
+Related Ranker RAW evidence is now preserved and independently read back in its
+existing private repository's
+[dedicated evidence branch](https://github.com/Mozes2024/SP500-Quant-Ranker_2026/tree/6d1180fc58617268cfe59ee0434f341a0a18552f).
+Its manifest records all hashes and source/run identities; those artifacts are
+not BIO original audits and are not imported into this repository. Production,
+incident, lineage and OOS gates remain unchanged.
