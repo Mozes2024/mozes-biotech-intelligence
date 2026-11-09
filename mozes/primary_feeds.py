@@ -157,17 +157,44 @@ def _parse_rss_items(payload, *, now=None, max_age_hours=24):
     return items
 
 
-def poll_fda_feeds(conn, *, fetch, now=None, max_items=20, resolve_headline=None):
+def poll_fda_feeds(conn, *, fetch, now=None, max_items=20, resolve_headline=None, read_article=None):
     now = now or datetime.now(timezone.utc)
     from .news_signals import resolve_headline as default_resolve
     resolve_headline = resolve_headline or default_resolve
+    from .fda_dates import validate_item
+    from .alert_explanation import fetch_source
+    article_reader = read_article or (lambda url: fetch_source(url, {'source_type': 'fda'}))
+    articles = {}
+
+    def read_article_once(url):
+        key = canonical_url(url)
+        if key not in articles:
+            try:
+                articles[key] = (article_reader(url), None)
+            except Exception as exc:
+                articles[key] = (None, exc)
+        body, error = articles[key]
+        if error:
+            raise error
+        return body
+
     seen = errors = 0
+    historical = unresolved = 0
+    budget = [3]  # date-only article reads; no new retries or polling
     for name, url in FDA_FEEDS:
         try:
             items = _parse_rss_items(fetch(url), now=now, max_age_hours=36)[:max_items]
-            observe(conn, f"fda_feed:{name}", {"status": "active", "checked_at": now.isoformat(), "items": len(items)},
-                    source_url=url, source_type="fda")
+            feed_historical = feed_unresolved = 0
             for item in items:
+                item, date_state = validate_item(conn, item, now=now, read_article=read_article_once, budget=budget)
+                if date_state == 'historical_decision':
+                    historical += 1
+                    feed_historical += 1
+                elif date_state == 'date_unverified':
+                    unresolved += 1
+                    feed_unresolved += 1
+                if item is None:
+                    continue
                 text = item["title"] + " " + item.get("summary", "")
                 from .clinical_events import ingest_clinical
                 if not BIOTECHISH.search(text):
@@ -187,15 +214,24 @@ def poll_fda_feeds(conn, *, fetch, now=None, max_items=20, resolve_headline=None
                     verification_state="investigation_only",
                     identity=["fda", name, item["url"]],
                     metadata={"feed": name, "identity_source": (issuer or {}).get("source"),
-                              "source_published_at": item["published_at"]},
+                              "source_published_at": item["published_at"],
+                              "feed_published_at": item.get("feed_published_at"),
+                              "decision_date": item.get("decision_date"), "date_basis": item.get("date_basis")},
                 )
                 seen += conn.total_changes > before
+            observe(conn, f"fda_feed:{name}", {
+                "status": "PARTIAL" if feed_unresolved else "active", "checked_at": now.isoformat(),
+                "items": len(items), "historical_decisions": feed_historical,
+                "unverified_decision_dates": feed_unresolved,
+                "error": "decision_date_unverified" if feed_unresolved else None},
+                source_url=url, source_type="fda")
         except (OSError, ValueError, ET.ParseError, TypeError, http.client.HTTPException) as exc:
             errors += 1
             observe(conn, f"fda_feed:{name}", {"status": "fetch_error", "error": str(exc)[:160],
                                                "checked_at": now.isoformat()},
                     source_url=url, source_type="fda")
-    return {"signals_seen": seen, "errors": errors}
+    return {"signals_seen": seen, "errors": errors, "historical_decisions": historical,
+            "unverified_decision_dates": unresolved}
 
 
 def _globe_forward_only_from(conn, name, url, payload, items, now):
