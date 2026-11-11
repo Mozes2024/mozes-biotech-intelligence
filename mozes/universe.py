@@ -18,6 +18,30 @@ def normalize_org(name: str | None) -> str:
     return " ".join(s.split())
 
 
+# These words distinguish similarly named organizations, unlike Inc./Corp.
+_ISSUER_DESCRIPTORS = frozenset({
+    "medicine", "medicines", "medical", "holding", "holdings", "therapeutic", "therapeutics",
+    "pharmaceutical", "pharmaceuticals", "pharma", "biopharma", "bioscience", "biosciences",
+    "science", "sciences", "biotechnology", "health", "healthcare", "financial", "finance", "fintech",
+})
+
+
+def conflicting_issuer_prefix(sponsor: str, headline: str) -> bool:
+    """Reject a leading company-name expansion absent from the SEC issuer name.
+
+    Fuzzy normalization turns Beeline Holdings into Beeline, but a headline
+    beginning Beeline Medicines identifies a different organization. Ordinary
+    abbreviated names and descriptors already present in the issuer still work.
+    """
+    base = normalize_org(sponsor)
+    raw_title = " ".join(NONWORD.sub(" ", (headline or "").lower().replace("&", " and ")).split())
+    if not base or not raw_title.startswith(base + " "):
+        return False
+    following = raw_title[len(base):].split()[0]
+    sponsor_words = set(NONWORD.sub(" ", sponsor.lower()).split())
+    return following in _ISSUER_DESCRIPTORS and following not in sponsor_words
+
+
 def token_similarity(a: str, b: str) -> float:
     aa, bb = set(normalize_org(a).split()), set(normalize_org(b).split())
     if not aa or not bb:
