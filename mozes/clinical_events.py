@@ -54,7 +54,7 @@ def _id(prefix, value):
 
 def resolve_issuer(conn, headline, summary="", ticker=None):
     """Only unique SEC equity evidence; an exchange symbol is a hint, never proof."""
-    from .universe import normalize_org
+    from .universe import normalize_org, conflicting_issuer_prefix
     text = " " + normalize_org(headline + " " + summary[:800]) + " "
     symbols = set(re.findall(r"\b(?:NASDAQ|NYSE)\s*[:：]\s*([A-Z][A-Z0-9]{0,9})\b", headline + " " + summary[:800], re.I))
     symbols = {s.upper() for s in symbols}
@@ -63,6 +63,8 @@ def resolve_issuer(conn, headline, summary="", ticker=None):
     rows = [dict(r) for r in conn.execute("SELECT * FROM sponsor_ticker_map WHERE source='SEC-v2C-equity' AND confidence>=0.85 AND cik IS NOT NULL")]
     matches = {}
     for row in rows:
+        if conflicting_issuer_prefix(row["sponsor"], headline):
+            continue
         name = normalize_org(row["sponsor"])
         named = len(name) >= 6 and " " + name + " " in text
         # A supplied ticker still requires company evidence for incoming wires.

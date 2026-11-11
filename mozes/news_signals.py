@@ -722,7 +722,7 @@ def parse_feed(payload, *, now=None, max_age_hours=48, publisher_url=None):
 
 def resolve_headline(conn, headline, mappings=None):
     """Use the conservative SEC equity projection, never infer a ticker from prose."""
-    from .universe import normalize_org
+    from .universe import normalize_org, conflicting_issuer_prefix
     text = " " + normalize_org(headline) + " "
     matches = {}
     named_identities = set()
@@ -731,6 +731,8 @@ def resolve_headline(conn, headline, mappings=None):
         mappings = conn.execute("SELECT * FROM sponsor_ticker_map WHERE source='SEC-v2C-equity' AND confidence>=0.85 AND cik IS NOT NULL")
     for raw in mappings:
         row = raw if isinstance(raw, dict) else dict(raw)
+        if conflicting_issuer_prefix(row['sponsor'], headline):
+            continue
         name = row.get('_headline_name') or normalize_org(row['sponsor'])
         if len(name)>=6 and ' '+name+' ' in text:
             named_identities.add((row['ticker'],row['cik']))
@@ -917,13 +919,14 @@ def poll_news(conn, *, limit=8, fetch=None, now=None):
                     continue
                 # A search query is not issuer evidence: partners/competitors can appear.
                 from .clinical_events import resolve_issuer, ingest_clinical
-                from .universe import normalize_org
+                from .universe import normalize_org, conflicting_issuer_prefix
                 resolved = resolve_issuer(conn, item['title'], item.get('summary',''))
                 name = normalize_org(company)
                 title = normalize_org(item['title'])
                 # The queried issuer's distinctive leading company name remains a review hint.
                 lead = name.split()[0] if name else ''
-                query_named = len(lead)>=5 and (title.startswith(name+' ') or title.startswith(lead+' '))
+                query_named = (len(lead)>=5 and (title.startswith(name+' ') or title.startswith(lead+' '))
+                               and not conflicting_issuer_prefix(company, item['title']))
                 subject = resolved['ticker'] if resolved else ticker if query_named else None
                 ingest_clinical(conn,headline=item['title'],summary=item.get('summary',''),source_url=item['url'],
                     published_at=item['published_at'],source_type='secondary_news',issuer=resolved,
