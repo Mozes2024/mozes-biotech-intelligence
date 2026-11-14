@@ -24,12 +24,14 @@ env:
 jobs:
   build:
     if: >-
-      false && (
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.head_repository.full_name == github.repository))
+      vars.MOZES_NOV14_RESTART_SHA == (github.event.workflow_run.head_sha || github.sha) &&
+      (vars.MOZES_NOV14_RESTART_MODE == 'continuous' ||
+       (vars.MOZES_NOV14_RESTART_MODE == 'trial' && github.event_name == 'workflow_dispatch')) &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 8
     outputs:
@@ -83,7 +85,7 @@ jobs:
         with:
           path: web
   deploy:
-    if: false && needs.build.outputs.publish == 'true'
+    if: needs.build.outputs.publish == 'true'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 5
