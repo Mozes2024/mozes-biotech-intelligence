@@ -7,6 +7,10 @@ on:
     - cron: '20 6 * * 0,2,4,6'
   workflow_dispatch:
     inputs:
+      nov14_restart:
+        description: 'Separately approved restart trial: one-ordinary-pass'
+        required: false
+        type: string
       nov14_checkpoint_only:
         description: 'One reviewed Nov14 checkpoint-only incident phase; no collection restart'
         required: false
@@ -193,19 +197,24 @@ jobs:
   monitor:
     needs: [incident_eligibility, prospective_claim]
     if: >-
-      false && (
-      always() && ((needs.incident_eligibility.result == 'skipped' &&
-      inputs.incident_recovery_authorization == '') ||
-      (needs.incident_eligibility.result == 'success' &&
-      (needs.incident_eligibility.outputs.mode == 'recover' ||
-      needs.incident_eligibility.outputs.mode == 'ordinary')))
-      )
+      always() && github.ref == 'refs/heads/main' &&
+      vars.MOZES_NOV14_RESTART_SHA == github.sha &&
+      inputs.incident_recovery_authorization == '' && inputs.source_run_id == '' &&
+      inputs.recovery_checkpoint_sha256 == '' && inputs.nov14_checkpoint_only == '' &&
+      needs.incident_eligibility.result == 'skipped' &&
+      needs.prospective_claim.result == 'skipped' &&
+      (vars.MOZES_NOV14_RESTART_MODE == 'continuous' ||
+       (vars.MOZES_NOV14_RESTART_MODE == 'trial' &&
+        github.event_name == 'workflow_dispatch' && inputs.nov14_restart == 'one-ordinary-pass'))
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
       contents: read
       actions: write # Existing publication dispatch; no Git write permission.
     env:
+      MOZES_NOV14_RESTART_SHA: ${{ vars.MOZES_NOV14_RESTART_SHA }}
+      MOZES_NOV14_RESTART_MODE: ${{ vars.MOZES_NOV14_RESTART_MODE }}
+      NOV14_RESTART_INPUT: ${{ inputs.nov14_restart }}
       SEC_USER_AGENT: ${{ vars.SEC_USER_AGENT }}
       # Separately authorized opt-in; same lock, DB, checkpoint and publisher.
       MOZES_B1_FINANCING_OBSERVATION: ${{ vars.MOZES_B1_FINANCING_OBSERVATION }}
@@ -264,6 +273,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           MOZES_PROSPECTIVE_CLAIM_SHA: ${{ needs.prospective_claim.outputs.claim_sha }}
         run: python -m mozes.prospective_authorization permit
+      - name: Verify separately approved restart and exact trial source before restore
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m mozes.nov14_restart preflight
       - name: Restore the single monitor-state lineage
         id: restore
         env:
@@ -276,6 +289,11 @@ jobs:
           else
             python scripts/restore_monitor_state.py
           fi
+      - name: Reconcile fixed trial receipts before first collection write
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
+        run: python -m mozes.nov14_restart before_write
       - name: Prepare optional private evidence schema from verified retained backup
         if: vars.MOZES_PROSPECTIVE_PREPARE != '' && vars.MOZES_PROSPECTIVE_CAPTURE != '1'
         continue-on-error: true

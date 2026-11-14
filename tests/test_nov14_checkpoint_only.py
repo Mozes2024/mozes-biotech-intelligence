@@ -83,7 +83,7 @@ def test_workflow_exact_checkpoint_only_boundaries():
  assert 'contents: write' in incident and 'actions: read' in incident
  assert all(k not in incident for k in ['EDGE_SYNC_TOKEN','MOZES_ALERT_FEED_TOKEN','MOZES_NTFY_URL','MOZES_WEBHOOK_URL','MOZES_SMTP_PASSWORD','mozes.publication_control','mozes.hot_monitor','edge_enrichment ack'])
  assert 'CLOUDFLARE_RECOVERY_READ_TOKEN' in incident
- for job,nextjob in [('incident_eligibility','prospective_claim'),('prospective_claim','monitor'),('monitor','prospective_cleanup')]:
+ for job,nextjob in [('incident_eligibility','prospective_claim'),('prospective_claim','monitor')]:
   part=text.split('  '+job+':',1)[1].split('  '+nextjob+':',1)[0]
   assert 'false && (' in part
  assert 'false && (' in text.split('  prospective_cleanup:',1)[1]
@@ -98,9 +98,11 @@ def test_incident_job_only_ignorable_when_skipped_without_steps(conclusion,steps
  else:
   with pytest.raises(RuntimeError):audit_producers(n.REPO,datetime.fromisoformat(n.STAMP),capture)
 
-def test_pages_held_during_checkpoint_only():
+def test_pages_need_separate_restart_sha_not_checkpoint_approval():
  text=(Path(__file__).parents[1]/'.github/workflows/pages.yml').read_text()
- assert text.count('false &&')==2
+ assert 'vars.MOZES_NOV14_RESTART_SHA' in text
+ assert 'MOZES_NOV14_APPROVED_SHA' not in text
+ assert "MOZES_NOV14_RESTART_MODE == 'trial' && github.event_name == 'workflow_dispatch'" in text
  assert "needs.build.outputs.publish == 'true'" in text
 
 def test_no_variables_rest_permission_or_new_token_dependency():
@@ -112,13 +114,17 @@ def test_no_variables_rest_permission_or_new_token_dependency():
  assert 'MOZES_NOV14_RECOVERY_HOLD' not in text
  assert 'CLOUDFLARE_API_TOKEN' not in incident
 
-def test_hard_pause_requires_code_change_not_variable_toggle():
+def test_old_incident_pilot_remain_paused_and_restart_is_separate():
  root=Path(__file__).parents[1]
  text=(root/'.github/workflows/lightweight-monitor.yml').read_text()
- for job in ['incident_eligibility','prospective_claim','monitor','prospective_cleanup']:
+ for job in ['incident_eligibility','prospective_claim','prospective_cleanup']:
   part=text.split('  '+job+':',1)[1]
   expr=part.split('    if: >-\n',1)[1].split('\n    ',1)[0]
   assert expr.strip()=='false && ('
  pages=(root/'.github/workflows/pages.yml').read_text()
- assert '    if: >-\n      false && (' in pages
- assert "    if: false && needs.build.outputs.publish == 'true'" in pages
+ assert 'vars.MOZES_NOV14_RESTART_SHA' in pages
+ assert 'MOZES_NOV14_APPROVED_SHA' not in pages
+ assert "    if: needs.build.outputs.publish == 'true'" in pages
+ monitor=text.split('  monitor:',1)[1].split('  prospective_cleanup:',1)[0]
+ assert 'vars.MOZES_NOV14_RESTART_SHA == github.sha' in monitor
+ assert 'MOZES_NOV14_APPROVED_SHA' not in monitor
