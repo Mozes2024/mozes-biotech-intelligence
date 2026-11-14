@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import time
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -105,24 +106,95 @@ def verify_historical_incident(repo, run, jobs, gh):
             raise RuntimeError("historical incident code provenance changed or incomplete")
 
 
+# Resource ceilings are failure boundaries, never evidence of complete history.
+PRODUCER_AUDIT_SECONDS = 240
+PRODUCER_INVENTORY_MAX_PAGES = 1000
+
+
+def _complete_producer_inventory(repo, gh):
+    """Read every unfiltered page, including an empty terminal page if needed.
+
+    The caller bounds each request and total elapsed time. Counts, identities and
+    exact page sizes must agree; a short page alone is not proof of completeness.
+    A second inventory after job validation detects observed concurrent changes.
+    """
+    path = f"repos/{repo}/actions/workflows/lightweight-monitor.yml/runs?per_page=100"
+
+    def page(number, expected=None):
+        result = json.loads(gh("api", f"{path}&page={number}"))
+        if not isinstance(result, dict):
+            raise RuntimeError("incomplete producer inventory")
+        count, rows = result.get("total_count"), result.get("workflow_runs")
+        if (type(count) is not int or count < 0 or not isinstance(rows, list)
+                or (expected is not None and count != expected)):
+            raise RuntimeError("incomplete or changed producer inventory")
+        if len(rows) != min(100, max(0, count - (number - 1) * 100)):
+            raise RuntimeError("incomplete producer inventory page")
+        for run in rows:
+            if (not isinstance(run, dict) or type(run.get("id")) is not int
+                    or run["id"] <= 0 or not isinstance(run.get("status"), str)):
+                raise RuntimeError("malformed producer inventory metadata")
+            try:
+                updated = datetime.fromisoformat(run["updated_at"].replace("Z", "+00:00"))
+                if updated.tzinfo is None:
+                    raise ValueError
+            except (KeyError, AttributeError, TypeError, ValueError):
+                raise RuntimeError("producer completion timestamp missing or invalid timezone") from None
+        return count, rows
+
+    expected, rows = page(1)
+    # Always observe a genuine terminal page, even when count is exactly full.
+    terminal = expected // 100 + 1
+    if terminal > PRODUCER_INVENTORY_MAX_PAGES:
+        raise RuntimeError("producer inventory resource bound exceeded; manual reconciliation required")
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        for _, batch in pool.map(lambda n: page(n, expected), range(2, terminal + 1)):
+            rows.extend(batch)
+    if len(rows) != expected or len({r["id"] for r in rows}) != expected:
+        raise RuntimeError("incomplete or duplicate producer inventory")
+    return rows
+
+
+def _inventory_signature(runs):
+    # Compare all provider metadata, not just total_count or newest created_at.
+    return {r["id"]: json.dumps(r, sort_keys=True, separators=(",", ":")) for r in runs}
+
+
 def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run_id=None):
     """Attempts without checkpoints may be ignored only if they made no new state."""
     now = now or datetime.now(timezone.utc)
     if os.environ.get("GITHUB_RUN_ATTEMPT", "1") != "1":
         raise RuntimeError("recovery requires a new run, not a rerun with hidden earlier attempts")
-    # Dispatch time is not queue acquisition time. Stale recovery scans metadata
-    # across the entire bounded history, then selects by completion/update time.
-    query = urlencode({"per_page": 100} if full_history else
-                      {"created": f"{since.isoformat()}..{now.isoformat()}", "per_page": 100})
-    runs = []
-    for page in range(1, 51 if full_history else 6):
-        result = json.loads(gh("api", f"repos/{repo}/actions/workflows/lightweight-monitor.yml/runs?{query}&page={page}"))
-        batch = result["workflow_runs"]
-        runs.extend(batch)
-        if len(batch) < 100:
-            break
+    # Dispatch time is not queue acquisition time. Never filter full history by
+    # created_at: an old-created producer may complete after the checkpoint.
+    inventory_before = None
+    if full_history:
+        deadline = time.monotonic() + PRODUCER_AUDIT_SECONDS
+        runner = gh
+
+        def gh(*args):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise RuntimeError("producer audit time budget exceeded")
+            value = runner(*args, timeout=min(30, remaining))
+            if time.monotonic() >= deadline:
+                raise RuntimeError("producer audit time budget exceeded")
+            return value
+
+        runs = _complete_producer_inventory(repo, gh)
+        inventory_before = _inventory_signature(runs)
     else:
-        raise RuntimeError("producer discovery bound exceeded; manual reconciliation required")
+        # Preserve the existing non-stale discovery path and policy unchanged.
+        query = urlencode({"created": f"{since.isoformat()}..{now.isoformat()}", "per_page": 100})
+        runs = []
+        for page in range(1, 6):
+            result = json.loads(gh("api", f"repos/{repo}/actions/workflows/lightweight-monitor.yml/runs?{query}&page={page}"))
+            batch = result["workflow_runs"]
+            runs.extend(batch)
+            if len(batch) < 100:
+                break
+        else:
+            raise RuntimeError("producer discovery bound exceeded; manual reconciliation required")
     if full_history:
         selected = []
         for run in runs:
@@ -155,7 +227,7 @@ def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run
             if (jobs.get("total_count", len(jobs["jobs"])) != len(jobs["jobs"])
                     or any((job.get("status") != "queued" or job.get("started_at")
                             or job.get("completed_at") or job.get("steps"))
-                           and not (job.get("name") in {"incident-eligibility", "prospective-pilot-claim", "prospective-pilot-cleanup"}
+                           and not (job.get("name") in {"incident-eligibility", "prospective-pilot-claim", "prospective-pilot-cleanup", "nov14-checkpoint-only"}
                                     and job.get("conclusion") == "skipped" and not job.get("steps"))
                            for job in jobs["jobs"])):
                 raise RuntimeError("pending producer has started or incomplete job evidence")
@@ -164,7 +236,7 @@ def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run
             raise RuntimeError("incomplete or unexpected producer jobs")
         monitor_jobs = jobs["jobs"]
         prospective = [job for job in monitor_jobs if job.get("name") in
-                       {"prospective-pilot-claim", "prospective-pilot-cleanup"}]
+                       {"prospective-pilot-claim", "prospective-pilot-cleanup", "nov14-checkpoint-only"}]
         if (len({job.get("name") for job in prospective}) != len(prospective)
                 or any(job.get("conclusion") != "skipped" or job.get("steps") for job in prospective)):
             raise RuntimeError("prospective claim requires manual recovery audit")
@@ -213,6 +285,12 @@ def audit_producers(repo, since, gh, *, now=None, full_history=False, source_run
 
     with ThreadPoolExecutor(max_workers=3) as pool:
         checked = [run for run in pool.map(check, runs) if run is not None]
+    if full_history:
+        inventory_after = _inventory_signature(_complete_producer_inventory(repo, gh))
+        if time.monotonic() >= deadline:
+            raise RuntimeError("producer audit time budget exceeded")
+        if inventory_before != inventory_after:
+            raise RuntimeError("producer inventory changed during audit; reconcile before recovery")
     return {"audited_producers": checked, "audited_through": now.isoformat()}
 
 

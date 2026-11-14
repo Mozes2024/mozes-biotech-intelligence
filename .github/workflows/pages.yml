@@ -24,11 +24,12 @@ env:
 jobs:
   build:
     if: >-
+      false && (
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
        github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
+       github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 8
     outputs:
@@ -82,7 +83,7 @@ jobs:
         with:
           path: web
   deploy:
-    if: needs.build.outputs.publish == 'true'
+    if: false && needs.build.outputs.publish == 'true'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 5
