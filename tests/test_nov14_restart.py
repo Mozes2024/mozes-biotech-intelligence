@@ -3,6 +3,12 @@ import hashlib,json
 import pytest
 from mozes import nov14_restart as n
 
+@pytest.fixture(autouse=True)
+def repository_scripts_import_path(monkeypatch):
+ # The pytest console entry point does not add cwd to sys.path. Runtime uses
+ # python -m from the checkout root. Match that path only for each test.
+ monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1]))
+
 def fixture(tmp_path,monkeypatch):
  files={'mozes-live.db':b'unchanged database','manifest.json':b'{"data_publishable":false}',
  'edge-checkpoint.json':b'{"producer_run_id":"43622484709"}',
