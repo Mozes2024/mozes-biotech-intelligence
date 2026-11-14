@@ -97,8 +97,21 @@ def newest():
         require(run.get('status') in ('completed', 'queued', 'in_progress', 'waiting', 'pending', 'requested'),
                 'unknown_producer_status')
         if run['status'] == 'completed':
-            require(run.get('conclusion') in ('success', 'failure', 'cancelled'), 'unknown_producer_conclusion')
+            require(run.get('conclusion') in ('success', 'failure', 'cancelled', 'skipped'), 'unknown_producer_conclusion')
         jobs = collection(api(f"runs/{run['id']}/jobs?filter=all&per_page=100"), 'jobs')
+        if run.get('conclusion') == 'skipped':
+            # A code-gated trial waiter is not a producer. Require a complete,
+            # exact known job set, all skipped with zero steps, and no artifact.
+            names = [job.get('name') for job in jobs]
+            require(run['status'] == 'completed' and run['id'] != owner
+                    and not any(a.get('workflow_run', {}).get('id') == run['id'] for a in artifacts)
+                    and len(names) == 5 and set(names) == {
+                        'nov14-checkpoint-only', 'incident-eligibility',
+                        'prospective-pilot-claim', 'monitor', 'prospective-pilot-cleanup'}
+                    and all(job.get('status') == 'completed'
+                            and job.get('conclusion') == 'skipped'
+                            and job.get('steps') == [] for job in jobs), 'unproven_skipped_producer')
+            continue
         # Under the common workflow lock, a waiting producer cannot touch the DB.
         # Never infer that from status alone: ordinary readers still fail closed,
         # and any job/step execution is a conflicting writer even in this context.
