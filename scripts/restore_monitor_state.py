@@ -331,6 +331,12 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
                                         full_history=True, source_run_id=candidate)
                     else:
                         audit_producers(repo, checkpoint_stamp, gh, now=now)
+                # Retain the hash-pinned historical incident decision in future artifacts.
+                # This does not waive the normal audit of producers after this checkpoint.
+                from mozes.nov14_restart import historical_proof
+                retained_incident = historical_proof(source, candidate)
+                if retained_incident is not None and proof is not None:
+                    raise ValueError("conflicting recovery decisions require review")
                 if verify_only:
                     if proof is None:
                         raise ValueError("verify-only requires recovery SHA256")
@@ -346,6 +352,8 @@ def restore(run_id=None, *, recovery_sha256=None, verify_only=False, now=None):
                 shutil.copy2(next(root.rglob("manifest.json")), destination.with_name("manifest.json"))
                 if proof:
                     destination.with_name("recovery-proof.json").write_text(json.dumps(proof), encoding="utf-8")
+                elif retained_incident is not None:
+                    shutil.copy2(retained_incident, destination.with_name("recovery-proof.json"))
                 # http-cache is optional warm-start only; never block lineage restore on it.
                 cache = root / "http-cache"
                 if not cache.is_dir():
