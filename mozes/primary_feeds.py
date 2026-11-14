@@ -181,6 +181,8 @@ def poll_fda_feeds(conn, *, fetch, now=None, max_items=20, resolve_headline=None
     seen = errors = 0
     historical = unresolved = 0
     budget = [3]  # date-only article reads; no new retries or polling
+    known_urls = {canonical_url(r[0]) for r in conn.execute(
+        "SELECT source_url FROM change_events WHERE source_type='fda' AND change_type='fda_release_signal'")}
     for name, url in FDA_FEEDS:
         try:
             items = _parse_rss_items(fetch(url), now=now, max_age_hours=36)[:max_items]
@@ -205,6 +207,9 @@ def poll_fda_feeds(conn, *, fetch, now=None, max_items=20, resolve_headline=None
                 issuer = resolve_headline(conn, item["title"]) or resolve_alias(text)
                 ticker = issuer["ticker"] if issuer else None
                 before = conn.total_changes
+                # Preserve historical identities while consolidating future feed overlap.
+                if canonical_url(item['url']) in known_urls:
+                    continue
                 record_change(
                     conn, ticker=ticker, change_type="fda_release_signal", previous_value=None,
                     new_value={"headline": item["title"], "published_at": item["published_at"],
@@ -212,12 +217,13 @@ def poll_fda_feeds(conn, *, fetch, now=None, max_items=20, resolve_headline=None
                     source_url=item["url"], source_type="fda",
                     severity="high" if ticker and outcome.get("material") else "medium",
                     verification_state="investigation_only",
-                    identity=["fda", name, item["url"]],
+                    identity=["fda", canonical_url(item["url"])],
                     metadata={"feed": name, "identity_source": (issuer or {}).get("source"),
                               "source_published_at": item["published_at"],
                               "feed_published_at": item.get("feed_published_at"),
                               "decision_date": item.get("decision_date"), "date_basis": item.get("date_basis")},
                 )
+                known_urls.add(canonical_url(item['url']))
                 seen += conn.total_changes > before
             observe(conn, f"fda_feed:{name}", {
                 "status": "PARTIAL" if feed_unresolved else "active", "checked_at": now.isoformat(),

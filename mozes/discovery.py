@@ -190,6 +190,11 @@ def discover(start: str | None = None, end: str | None = None, months=6, sponsor
                     resume_cursor = cursor(window_index, token)
                 break
             pages_fetched += 1
+            if not isinstance(payload, dict) or not isinstance(payload.get('studies'), list):
+                if isinstance(payload, dict) and payload.get('totalCount') == 0 and 'studies' not in payload:
+                    payload = {**payload, 'studies': []}
+                else:
+                    raise ValueError('Unexpected CT.gov search response schema')
             window_pages += 1
             if payload.get('totalCount') is not None:
                 total_counts[window_index] = int(payload['totalCount'])

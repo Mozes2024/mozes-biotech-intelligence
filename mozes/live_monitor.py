@@ -21,6 +21,10 @@ CT_FIELDS = {
     "study_completion": "ctgov_study_completion_changed",
     "last_update_posted": "ctgov_last_update_changed",
     "results_first_posted": "ctgov_results_first_posted_changed",
+    "primary_outcomes": "ctgov_primary_outcomes_changed",
+    "arms": "ctgov_arms_changed",
+    "interventions": "ctgov_interventions_changed",
+    "eligibility": "ctgov_eligibility_changed",
 }
 FINANCING_FORMS = {"424B5", "424B4", "S-3", "S-1"}
 
@@ -118,10 +122,17 @@ def _study_fields(study):
         "last_update_posted": (status.get("lastUpdatePostDateStruct") or {}).get("date"),
         "results_first_posted": (status.get("resultsFirstPostDateStruct") or {}).get("date"),
         "why_stopped": status.get("whyStopped"),
+        "primary_outcomes": (ps.get('outcomesModule') or {}).get('primaryOutcomes', []),
+        "arms": (ps.get('armsInterventionsModule') or {}).get('armGroups', []),
+        "interventions": (ps.get('armsInterventionsModule') or {}).get('interventions', []),
+        "eligibility": ps.get('eligibilityModule') or {},
     }
 
 
 def monitor_study(conn, study, *, ticker=None, candidate_id=None):
+    status = (study.get('protocolSection') or {}).get('statusModule')
+    if not isinstance(status, dict) or not status.get('overallStatus'):
+        raise ValueError('ClinicalTrials.gov record missing overallStatus')
     nct = (study.get("protocolSection") or {}).get("identificationModule", {}).get("nctId")
     if not nct:
         raise ValueError("ClinicalTrials.gov record missing NCT ID")
@@ -131,9 +142,14 @@ def monitor_study(conn, study, *, ticker=None, candidate_id=None):
     if old and _hash(json.loads(old["payload"])) == digest:
         return []
     prior = _study_fields(json.loads(old["payload"])) if old else None
+    if old:
+        prior_protocol = json.loads(old['payload']).get('protocolSection', {})
+        for module in ('statusModule','designModule','outcomesModule','armsInterventionsModule','eligibilityModule'):
+            if prior_protocol.get(module) and not (study.get('protocolSection') or {}).get(module):
+                raise ValueError('ClinicalTrials.gov response lost module: ' + module)
     # A version is evidence of what the registry returned at retrieval time only.
-    ctgov.store_version(conn, study)
     if prior is None:
+        ctgov.store_version(conn, study)
         return []
     source_url = ctgov.URL.format(nct=nct)
     changes = []
@@ -148,9 +164,12 @@ def monitor_study(conn, study, *, ticker=None, candidate_id=None):
                     "status", "primary_completion", "primary_completion_type",
                     "why_stopped", "results_first_posted"} else "low",
                 metadata={"field": field, "last_update_posted": fields["last_update_posted"],
+                          "previous_source_hash": _hash(json.loads(old['payload'])),
                           "primary_completion_type": fields.get("primary_completion_type"),
                           "not_a_readout_date": True},
             ))
+    # Advance the comparison baseline only after every idempotent change write.
+    ctgov.store_version(conn, study)
     return changes
 
 
@@ -251,7 +270,8 @@ from .source_observability import observed, snapshot
 
 @observed
 def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_company=12, news=False,
-                priority_only=False, hot_ticker=None, hot_cik=None, hot_accession=None):
+                priority_only=False, hot_ticker=None, hot_cik=None, hot_accession=None,
+                ctgov_budget_seconds=120):
     from .security import audit_current_universe, audit_watch_universe, NON_TRADABLE
     started = _now()
     with conn:
@@ -278,9 +298,11 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
             else:
                 details["security_audit"] = audit_current_universe(conn)
         if ctgov_diff:
+            from time import monotonic
+            ctgov_deadline = monotonic() + ctgov_budget_seconds
             if conn.execute("SELECT COUNT(*) FROM discovery_candidates").fetchone()[0] == 0:
                 from .refresh import discover_registry
-                details["ctgov_seeded"] = len(discover_registry(conn, months=9))
+                details["ctgov_seeded"] = len(discover_registry(conn, months=9, deadline=ctgov_deadline))
             studies = conn.execute(
                 "SELECT d.nct_id,MAX(d.candidate_id) candidate_id,MAX(d.ticker) ticker "
                 "FROM discovery_candidates d "
@@ -289,9 +311,14 @@ def run_monitor(conn, *, audit=True, ctgov_diff=True, sec=True, filings_per_comp
                 "GROUP BY d.nct_id ORDER BY COALESCE(m.observed_at,'') ASC,d.nct_id LIMIT 100",
                 ((date.today() - timedelta(days=90)).isoformat(), (date.today() + timedelta(days=270)).isoformat()),
             ).fetchall()
+            if not studies and monotonic() >= ctgov_deadline:
+                details['errors'].append({'ctgov': 'time_budget_exhausted'})
             for row in studies:
+                if monotonic() >= ctgov_deadline:
+                    details['errors'].append({'ctgov': 'time_budget_exhausted'})
+                    break
                 try:
-                    details["changes"] += len(monitor_study(conn, ctgov.fetch_study(row["nct_id"]), ticker=row["ticker"], candidate_id=row["candidate_id"]))
+                    details["changes"] += len(monitor_study(conn, ctgov.fetch_study(row["nct_id"], deadline=ctgov_deadline), ticker=row["ticker"], candidate_id=row["candidate_id"]))
                     details["studies"] += 1
                     observe(conn, "ct_poll:" + row["nct_id"], _now(), source_type="clinicaltrials")
                 except Exception as exc:

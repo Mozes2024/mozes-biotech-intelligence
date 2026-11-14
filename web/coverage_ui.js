@@ -27,6 +27,17 @@ function provenanceCard(a) {
     '</details>';
 }
 focusCard = function(a) { return cardV2E(a).replace('</article>', provenanceCard(a) + '</article>'); };
+const provenanceWithCoverage = provenanceCard;
+provenanceCard = function(a) {
+  const row = (D?.event_coverage || []).find(item => item.event_id === a.id);
+  if (!row) return provenanceWithCoverage(a);
+  return provenanceWithCoverage(a) + '<details class="source"><summary>כיסוי מקורות לאירוע</summary>' +
+    '<p>לפי תמונת המצב שפורסמה; כיסוי מקור אינו אימות האירוע.</p>' +
+    (row.sources || []).map(source => '<p>' + esc(source.source || 'מקור לא ידוע') + ' · ' +
+      esc(source.fresh ? 'נצפתה בדיקה מוצלחת לאחרונה' : 'נדרשת בדיקה עדכנית') + ' · ' +
+      esc(source.last_success_at || 'אין הצלחה מתועדת') + '</p>').join('') +
+    (row.needs_collection ? '<p>האירוע ממתין להשלמת כיסוי.</p>' : '') + '</details>';
+};
 const sourcesV2E = sources, reasonV2E = reasonLabel;
 sources = function(a) { return provenanceCard(a) + sourcesV2E(a); };
 reasonLabel = function(reason) {
@@ -49,6 +60,9 @@ render = function() {
 const changesDescriptionV2E = changeDescription;
 changeDescription = function(c) {
   return ({trigger_progressed:'התקדמות טריגר מאומתת', primary_statement_added:'הצהרה חדשה ממקור ראשוני',
+           ctgov_primary_outcomes_changed:'השתנו מדדי התוצאה הראשיים בניסוי',
+           ctgov_arms_changed:'השתנו זרועות הניסוי', ctgov_interventions_changed:'השתנו ההתערבויות או המינונים בניסוי',
+           ctgov_eligibility_changed:'השתנו תנאי ההכללה בניסוי',
            cash_runway_updated:'עודכן מידע מזומן ומסלול מימון', review_state_changed:'השתנה מצב הבדיקה'}[c.change_type] ||
           changesDescriptionV2E(c));
 };

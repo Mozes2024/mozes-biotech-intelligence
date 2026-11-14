@@ -320,7 +320,10 @@ def build(conn, today: date, *, consumer_only=False):
                    "watch_configured_count": len(watch & configured),
                    "watch_without_configured_site": len(watch - configured),
                    "watch_without_observation": len(watch - observed)}
+    from .event_coverage import matrix
+    health = _health(conn, live, refresh, monitor)
     return {
+        "event_coverage": matrix(live, health['source_freshness']),
         "version": VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "today": t,
@@ -344,7 +347,7 @@ def build(conn, today: date, *, consumer_only=False):
                                                        "wire_release_signal", "fda_release_signal",
                                                        "sec_filing_signal", "sec_financing_filing", "sec_material_filing")),
         "official_feeds": official_feeds,
-        "health": _health(conn, live, refresh, monitor),
+        "health": health,
         "ir_coverage": ir_coverage,
         "intelligence_v2c": operation_health(conn),
         "validation": validation,

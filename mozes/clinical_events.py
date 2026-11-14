@@ -305,6 +305,8 @@ def retry_unresolved(conn, limit=8):
 def clinical_payload(conn, limit=100):
     rows = [dict(r) for r in conn.execute("SELECT c.* FROM clinical_catalysts c WHERE NOT EXISTS (SELECT 1 FROM clinical_catalyst_suppressions s WHERE s.catalyst_id=c.catalyst_id) ORDER BY updated_at DESC LIMIT ?", (limit,))]
     for row in rows:
+        from .program_identity import mentions
+        row['program_relationships'] = mentions(conn, row['headline'], as_of=date.today().isoformat())
         row["window"] = json.loads(row.pop("window_json"))
         row["sources"] = [dict(r) for r in conn.execute("SELECT source_url,published_at,source_hash FROM clinical_catalyst_sources WHERE catalyst_id=?", (row["catalyst_id"],))]
     counts = dict(conn.execute("SELECT lifecycle,COUNT(*) FROM clinical_events GROUP BY lifecycle").fetchall())

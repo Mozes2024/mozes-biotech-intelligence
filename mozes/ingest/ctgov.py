@@ -7,9 +7,9 @@ from datetime import datetime, timedelta, timezone
 URL = "https://clinicaltrials.gov/api/v2/studies/{nct}"
 
 
-def fetch_study(nct):
+def fetch_study(nct, *, deadline=None):
     from ..discovery import cached_fetch_json
-    return cached_fetch_json(URL.format(nct=nct))
+    return cached_fetch_json(URL.format(nct=nct), deadline=deadline)
 
 
 def summarize(study):

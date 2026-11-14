@@ -45,6 +45,9 @@ v0.3 adds the daily-use product surface on top of the v0.2 research engine:
 
 Operational diagnosis, preservation and approval boundaries: [recovery runbook](docs/operations-recovery-runbook.md).
 
+Reliability fixes, evidence-qualified program identities, protocol diffs and source recovery:
+[review upgrades](docs/REVIEW_RELIABILITY_UPGRADES.md).
+
 ## Recommended start
 
 ```bash
