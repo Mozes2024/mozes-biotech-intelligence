@@ -7,6 +7,10 @@ on:
     - cron: '20 6 * * 0,2,4,6'
   workflow_dispatch:
     inputs:
+      nov14_checkpoint_only:
+        description: 'One reviewed Nov14 checkpoint-only incident phase; no collection restart'
+        required: false
+        type: string
       incident_recovery_authorization:
         description: 'Emergency recovery ONLY after separate human approval: 20261011:38052910145'
         required: false
@@ -53,13 +57,63 @@ concurrency:
   cancel-in-progress: false
   queue: max
 jobs:
+  nov14_checkpoint_only:
+    name: nov14-checkpoint-only
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      vars.MOZES_NOV14_APPROVED_SHA == github.sha &&
+      inputs.nov14_checkpoint_only == 'checkpoint-only:43093359153:two-unknown-runs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write # Exact permanent one-use tag only; no deploy/notification credentials.
+      actions: read
+    env:
+      MOZES_NOV14_CODE_HOLD: checkpoint-only-20261114
+      MOZES_NOV14_APPROVED_SHA: ${{ vars.MOZES_NOV14_APPROVED_SHA }}
+      NOV14_ACCEPTANCE: ${{ inputs.nov14_checkpoint_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e .
+      - name: Permanently claim the single checkpoint-only incident attempt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m mozes.nov14_checkpoint_only claim
+      - name: Read-only complete incident reconciliation and local staging
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Existing read-only provider credential, never an Edge/send/feed token.
+          CLOUDFLARE_RECOVERY_READ_TOKEN: ${{ secrets.CLOUDFLARE_RECOVERY_READ_TOKEN }}
+        run: python -m mozes.nov14_checkpoint_only prepare
+      - uses: actions/upload-artifact@v4
+        id: incident_upload
+        with:
+          name: mozes-live-monitor
+          path: |
+            .incident-staged/mozes-live.db
+            .incident-staged/manifest.json
+            .incident-staged/edge-checkpoint.json
+            .incident-staged/recovery-proof.json
+          include-hidden-files: true
+          retention-days: 3
+      - name: Confirm checkpoint-only phase and retain collection hold
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m mozes.nov14_checkpoint_only verify_upload
   incident_eligibility:
     name: incident-eligibility
     # Disabled until separately reviewed activation; no new cron or dispatcher.
     if: >-
+      false && (
       vars.MOZES_INCIDENT_RECOVERY_ENABLED == '20261011' &&
       (github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && inputs.incident_recovery_authorization != ''))
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
@@ -98,12 +152,14 @@ jobs:
     continue-on-error: true # Setup/API/timeout failures must not invalidate monitor checkpoints.
     needs: incident_eligibility
     if: >-
+      false && (
       always() && github.event_name == 'schedule' &&
       vars.MOZES_PROSPECTIVE_CAPTURE == '1' && vars.MOZES_PROSPECTIVE_AUTHORIZATION != '' &&
       vars.MOZES_PROSPECTIVE_PREPARE == '' && inputs.source_run_id == '' &&
       inputs.incident_recovery_authorization == '' &&
       (needs.incident_eligibility.result == 'skipped' ||
       (needs.incident_eligibility.result == 'success' && needs.incident_eligibility.outputs.mode == 'ordinary'))
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions:
@@ -137,11 +193,13 @@ jobs:
   monitor:
     needs: [incident_eligibility, prospective_claim]
     if: >-
+      false && (
       always() && ((needs.incident_eligibility.result == 'skipped' &&
       inputs.incident_recovery_authorization == '') ||
       (needs.incident_eligibility.result == 'success' &&
       (needs.incident_eligibility.outputs.mode == 'recover' ||
       needs.incident_eligibility.outputs.mode == 'ordinary')))
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
@@ -309,12 +367,14 @@ jobs:
     name: prospective-pilot-cleanup
     needs: [incident_eligibility, prospective_claim, monitor]
     if: >-
+      false && (
       always() && github.ref == 'refs/heads/main' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
       vars.MOZES_PROSPECTIVE_AUTHORIZATION != '' &&
       inputs.source_run_id == '' && inputs.incident_recovery_authorization == '' &&
       (needs.incident_eligibility.result == 'skipped' ||
       (needs.incident_eligibility.result == 'success' && needs.incident_eligibility.outputs.mode == 'ordinary'))
+      )
     # A failed cleanup remains visible, without invalidating a durable monitor checkpoint.
     continue-on-error: true
     runs-on: ubuntu-latest
