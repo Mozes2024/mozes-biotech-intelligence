@@ -487,9 +487,9 @@ def test_provider_gate_rejects_corrupted_contract_or_history(gate, monkeypatch, 
 
 @pytest.mark.parametrize("conclusion", ["success", "failure", "cancelled", None])
 def test_prior_started_claim_blocks_retry_even_without_a_ref(conclusion):
-    def gh(*args):
+    def gh(*args, **kwargs):
         if "workflows/" in args[1]:
-            return json.dumps({"workflow_runs": [{"id": 901, "status": "completed",
+            return json.dumps({"total_count": 1, "workflow_runs": [{"id": 901, "status": "completed",
                 "updated_at": "2026-10-11T00:10:00Z", "run_attempt": 1, "head_branch": "main",
                 "name": "lightweight-live-monitor", "head_repository": {"full_name": "Owner/Repo"}}]})
         return json.dumps({"total_count": 2, "jobs": [
@@ -507,9 +507,9 @@ def gate_time():
 
 def test_waiting_gate_is_verified_no_write_producer(monkeypatch):
     monkeypatch.setenv("MOZES_INCIDENT_APPROVED_MAIN", "a" * 40)
-    def gh(*args):
+    def gh(*args, **kwargs):
         if "workflows/" in args[1]:
-            return json.dumps({"workflow_runs": [{"id": 901, "status": "completed",
+            return json.dumps({"total_count": 1, "workflow_runs": [{"id": 901, "status": "completed",
                 "updated_at": "2026-10-11T00:10:00Z", "run_attempt": 1, "head_branch": "main", "head_sha": "a" * 40,
                 "name": "lightweight-live-monitor", "head_repository": {"full_name": "Owner/Repo"}}]})
         return json.dumps({"total_count": 2, "jobs": [
@@ -523,9 +523,9 @@ def test_waiting_gate_is_verified_no_write_producer(monkeypatch):
 
 @pytest.mark.parametrize("status", ["completed", "pending"])
 def test_disabled_incident_job_does_not_break_ordinary_producer_audit(status):
-    def gh(*args):
+    def gh(*args, **kwargs):
         if "workflows/" in args[1]:
-            return json.dumps({"workflow_runs": [{"id": 901, "status": status,
+            return json.dumps({"total_count": 1, "workflow_runs": [{"id": 901, "status": status,
                 "updated_at": "2026-10-11T00:10:00Z", "run_attempt": 1, "head_branch": "main",
                 "name": "lightweight-live-monitor", "head_repository": {"full_name": "Owner/Repo"}}]})
         if status == "pending":
@@ -541,9 +541,9 @@ def test_disabled_incident_job_does_not_break_ordinary_producer_audit(status):
 
 
 def test_changed_pending_claim_evidence_is_not_inferred_safe():
-    def gh(*args):
+    def gh(*args, **kwargs):
         if "workflows/" in args[1]:
-            return json.dumps({"workflow_runs": [{"id": 901, "status": "pending", "run_attempt": 1,
+            return json.dumps({"total_count": 1, "workflow_runs": [{"id": 901, "status": "pending", "updated_at": "2026-10-11T00:10:00Z", "run_attempt": 1,
                 "head_branch": "main", "name": "lightweight-live-monitor", "head_repository": {"full_name": "Owner/Repo"}}]})
         return json.dumps({"total_count": 2, "jobs": [
             {"name": "incident-eligibility", "status": "completed", "conclusion": "success",
@@ -557,9 +557,9 @@ def test_changed_pending_claim_evidence_is_not_inferred_safe():
 @pytest.mark.parametrize('claim_started', [False, True])
 @pytest.mark.parametrize('job_name', ['prospective-pilot-claim', 'prospective-pilot-cleanup', 'both'])
 def test_optional_prospective_job_only_preserves_recovery_when_completely_skipped(status, claim_started, job_name):
-    def gh(*args):
+    def gh(*args, **kwargs):
         if 'workflows/' in args[1]:
-            return json.dumps({'workflow_runs': [{'id': 901, 'status': status, 'run_attempt': 1,
+            return json.dumps({'total_count': 1, 'workflow_runs': [{'id': 901, 'status': status, 'run_attempt': 1,
                 'updated_at': '2026-10-11T00:10:00Z', 'head_branch': 'main',
                 'name': 'lightweight-live-monitor', 'head_repository': {'full_name': 'Owner/Repo'}}]})
         monitor = {'name': 'monitor', 'status': 'queued' if status == 'pending' else 'completed',
@@ -762,7 +762,7 @@ def test_credentials_are_step_scoped_and_absent_during_dependency_installation()
     root = Path(__file__).parents[1]
     for name in ("lightweight-monitor.yml", "verify-monitor-recovery.yml"):
         text = (root / ".github/workflows" / name).read_text()
-        for job in re.split(r"^  [a-z_]+:\s*$", text, flags=re.MULTILINE)[1:]:
+        for job in re.split(r"^  [a-z_][a-z_0-9]*:\s*$", text, flags=re.MULTILINE)[1:]:
             if "    steps:" not in job:
                 continue
             config, steps = job.split("    steps:", 1)

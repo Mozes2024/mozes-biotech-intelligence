@@ -95,7 +95,7 @@ def verify(repo, candidate, source, checkpoint, manifest, gh, download, latest, 
     def bounded_gh(*args, **kwargs):
         if args[0] == 'api' and '/actions/workflows/lightweight-monitor.yml/runs?' in args[1]:
             page = int(parse_qs(urlsplit(args[1]).query)['page'][0])
-            return json.dumps({'workflow_runs': rows[(page-1)*100:page*100]})
+            return json.dumps({'total_count': len(rows), 'workflow_runs': rows[(page-1)*100:page*100]})
         return gh(*args, **kwargs)
     proof = audit_producers(repo, since, bounded_gh, now=now, full_history=True, source_run_id=SOURCE)
     proof.update(verify_durable_history(source))

@@ -149,22 +149,68 @@ def _manifest_generated_at(root: Path):
     return None
 
 
+# These are failure ceilings, never evidence that an inventory is complete.
+ARTIFACT_DISCOVERY_SECONDS = 120
+ARTIFACT_DISCOVERY_MAX_PAGES = 1000
+
+
 def _list_success_runs():
-    # Failed attempts without artifacts neither advance lineage nor crowd it out.
-    # Include expired artifacts: a newer lost checkpoint must still block rewind.
+    """Inventory all artifacts without relying on API order or matching-count cuts.
+
+    Expired monitor artifacts remain included: a lost newest checkpoint must block
+    rewind. Two complete inventories must agree before returning candidates.
+    """
+    from concurrent.futures import ThreadPoolExecutor
     repo = os.environ.get("GITHUB_REPOSITORY", "")
-    runs = []
-    for page in range(1, 6):
-        result = json.loads(gh("api", f"repos/{repo}/actions/artifacts?per_page=100&page={page}"))
-        artifacts = result["artifacts"]
-        runs.extend({"databaseId": a["workflow_run"]["id"], "createdAt": a["created_at"]}
-                    for a in artifacts if a.get("name") == "mozes-live-monitor"
-                    and a.get("workflow_run", {}).get("head_branch") == "main")
-        if len(runs) >= 20 or len(artifacts) < 100:
-            break
-    else:
-        raise RuntimeError("artifact discovery bound exhausted; refusing empty/old bootstrap")
-    runs.sort(key=lambda r: r.get("createdAt") or "", reverse=True)
+    deadline = time.monotonic() + ARTIFACT_DISCOVERY_SECONDS
+
+    def page(number, expected=None):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError("artifact discovery time budget exceeded")
+        value = json.loads(gh("api", f"repos/{repo}/actions/artifacts?per_page=100&page={number}",
+                              timeout=min(30, remaining)))
+        if time.monotonic() >= deadline:
+            raise RuntimeError("artifact discovery time budget exceeded")
+        if not isinstance(value, dict):
+            raise RuntimeError("incomplete artifact inventory")
+        count, rows = value.get("total_count"), value.get("artifacts")
+        if (type(count) is not int or count < 0 or not isinstance(rows, list)
+                or (expected is not None and count != expected)
+                or len(rows) != min(100, max(0, count - (number - 1) * 100))):
+            raise RuntimeError("incomplete or changed artifact inventory")
+        for artifact in rows:
+            if (not isinstance(artifact, dict) or type(artifact.get("id")) is not int
+                    or artifact["id"] <= 0 or not isinstance(artifact.get("name"), str)):
+                raise RuntimeError("malformed artifact inventory")
+            if artifact["name"] == "mozes-live-monitor":
+                run = artifact.get("workflow_run")
+                if (not isinstance(run, dict) or type(run.get("id")) is not int or run["id"] <= 0
+                        or not isinstance(run.get("head_branch"), str)
+                        or _parse_iso(artifact.get("created_at")) is None):
+                    raise RuntimeError("malformed monitor artifact provenance")
+        return count, rows
+
+    def scan():
+        count, rows = page(1)
+        terminal = count // 100 + 1
+        if terminal > ARTIFACT_DISCOVERY_MAX_PAGES:
+            raise RuntimeError("artifact discovery resource bound exceeded")
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            for _, batch in pool.map(lambda n: page(n, count), range(2, terminal + 1)):
+                rows.extend(batch)
+        if len(rows) != count or len({a["id"] for a in rows}) != count:
+            raise RuntimeError("incomplete or duplicate artifact inventory")
+        return rows
+
+    artifacts = scan()
+    signature = lambda rows: {a["id"]: json.dumps(a, sort_keys=True, separators=(",", ":")) for a in rows}
+    if signature(artifacts) != signature(scan()):
+        raise RuntimeError("artifact inventory changed during discovery")
+    runs = [{"databaseId": a["workflow_run"]["id"], "createdAt": a["created_at"]}
+            for a in artifacts if a["name"] == "mozes-live-monitor"
+            and a["workflow_run"]["head_branch"] == "main"]
+    runs.sort(key=lambda r: _parse_iso(r["createdAt"]), reverse=True)
     return runs
 
 

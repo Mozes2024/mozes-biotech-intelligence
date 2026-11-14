@@ -55,7 +55,11 @@ def evidence(tmp_path, monkeypatch):
         (Path(dest) / 'edge-checkpoint.json').write_text(json.dumps({'schema': 1, 'producer_run_id': n.ANCESTOR,
             'created_at': '2026-11-01T07:59:46+00:00', 'db_sha256': n.ANCESTOR_DIGEST}))
     def audit(repo, since, runner, **kw):
-        rows = json.loads(runner('api', '/actions/workflows/lightweight-monitor.yml/runs?page=1'))['workflow_runs']
+        value = json.loads(runner('api', '/actions/workflows/lightweight-monitor.yml/runs?page=1'))
+        rows = value['workflow_runs']
+        assert value['total_count'] == len(rows)
+        # Exercise the real discovery parser against this prevalidated adapter.
+        assert recovery._complete_producer_inventory(repo, runner) == rows
         assert len(rows) == 1 and rows[0]['id'] == 900
         if state['write']:
             raise RuntimeError('possible producer write')

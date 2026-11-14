@@ -21,6 +21,12 @@ def module():
     return loaded
 
 
+def _artifact_response(rows):
+    # Provider metadata required by complete artifact discovery.
+    return json.dumps({"total_count": len(rows), "artifacts": [
+        dict(row, id=i + 1) for i, row in enumerate(rows)]})
+
+
 def _db(path: Path):
     conn = sqlite3.connect(path)
     conn.execute("CREATE TABLE t(x)")
@@ -41,10 +47,10 @@ def test_restore_refuses_old_candidate_when_newer_successes_exist(tmp_path, monk
         if args[:2] == ("run", "list") and "pages.yml" in args:
             return "[]"
         if args[0] == "api" and "actions/artifacts?" in args[1]:
-            return json.dumps({"artifacts": [
+            return _artifact_response([
                 {"name": "mozes-live-monitor", "created_at": "2026-10-07T13:20:00Z", "workflow_run": {"id": 200, "head_branch": "main"}},
                 {"name": "mozes-live-monitor", "created_at": "2026-10-07T10:24:00Z", "workflow_run": {"id": 100, "head_branch": "main"}},
-            ]})
+            ])
         if args[0] == "api" and args[1].endswith("/200"):
             raise subprocess.CalledProcessError(1, ["gh", *args])
         if args[0] == "api" and args[1].endswith("/100"):
@@ -88,10 +94,10 @@ def test_ordinary_resume_allows_newest_checkpoint_older_than_rewind_when_audit_c
 
     def gh(*args, timeout=300):
         if args[0] == "api" and "actions/artifacts?" in args[1]:
-            return json.dumps({"artifacts": [
+            return _artifact_response([
                 {"name": "mozes-live-monitor", "created_at": "2026-10-20T18:24:16Z",
                  "workflow_run": {"id": 39474053120, "head_branch": "main"}},
-            ]})
+            ])
         if args[0] == "api" and "workflows/pages.yml/runs" in args[1]:
             return json.dumps({"total_count": 0, "workflow_runs": []})
         if args[0] == "api" and args[1].endswith("/39474053120"):
@@ -138,10 +144,10 @@ def test_ordinary_resume_still_refuses_when_later_producer_may_have_delivered(tm
         if args[:2] == ("run", "list") and "pages.yml" in args:
             return "[]"
         if args[0] == "api" and "actions/artifacts?" in args[1]:
-            return json.dumps({"artifacts": [
+            return _artifact_response([
                 {"name": "mozes-live-monitor", "created_at": "2026-10-20T18:24:16Z",
                  "workflow_run": {"id": 39474053120, "head_branch": "main"}},
-            ]})
+            ])
         if args[0] == "api" and args[1].endswith("/39474053120"):
             return json.dumps({
                 "head_branch": "main", "name": "lightweight-live-monitor",
@@ -181,7 +187,7 @@ def test_cancelled_or_failed_uploaded_checkpoint_survives_ack_boundary(tmp_path,
         if args[:2] == ("run", "list") and "pages.yml" in args:
             return "[]"
         if args[0] == "api" and "actions/artifacts?" in args[1]:
-            return json.dumps({"artifacts": [{"name": "mozes-live-monitor", "created_at": "2026-10-08T08:00:00Z", "workflow_run": {"id": 200, "head_branch": "main"}}]})
+            return _artifact_response([{"name": "mozes-live-monitor", "created_at": "2026-10-08T08:00:00Z", "workflow_run": {"id": 200, "head_branch": "main"}}])
         if args[0] == "api":
             return json.dumps({"head_branch": "main", "name": "lightweight-live-monitor",
                 "head_repository": {"full_name": "Owner/Repo"}, "conclusion": conclusion})

@@ -75,6 +75,7 @@ def test_workflow_permission_boundaries():
         'deep-monitor.yml': {(): producer},
         'nightly.yml': {(): read},
         'lightweight-monitor.yml': {(): producer,
+            ('jobs', 'nov14_checkpoint_only'): {'contents': 'write', 'actions': 'read'},
             ('jobs', 'incident_eligibility'): {'contents': 'write', 'actions': 'read'},
             ('jobs', 'prospective_claim'): {'contents': 'write', 'actions': 'read'},
             ('jobs', 'monitor'): producer,
@@ -115,7 +116,8 @@ def test_workflow_trigger_boundaries_and_deep_suspension():
 def test_checkpoint_artifact_layout_and_publication_receipt_contract():
     hot = (ROOT/'.github/workflows/lightweight-monitor.yml').read_text()
     assert [value for _, value, _ in workflow_sections(hot, 'MOZES_DB_PATH')] == ['.monitor/mozes-live.db']
-    uploads = [workflow_fields(value, body) for _, value, body in workflow_sections(hot, 'with')]
+    ordinary = hot[hot.index('  monitor:'):hot.index('  prospective_cleanup:')]
+    uploads = [workflow_fields(value, body) for _, value, body in workflow_sections(ordinary, 'with')]
     checkpoint = [item for item in uploads if item.get('name') == 'mozes-live-monitor']
     assert len(checkpoint) == 1
     assert set(checkpoint[0]['path'].splitlines()) == {

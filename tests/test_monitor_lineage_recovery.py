@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from mozes import monitor_recovery as recovery
-from test_restore_no_rewind import module, _db
+from test_restore_no_rewind import module, _db, _artifact_response
 
 NOW = datetime(2026, 10, 9, 12, tzinfo=timezone.utc)
 OLD = "2026-10-08T13:45:32Z"
@@ -31,8 +31,8 @@ def restore_fixture(tmp_path, monkeypatch, *, missing=False, corrupt=False):
 
     def gh(*args, **kwargs):
         if args[0] == "api" and "actions/artifacts?" in args[1]:
-            return json.dumps({"artifacts": [{"name": "mozes-live-monitor", "created_at": OLD,
-                "workflow_run": {"id": 100, "head_branch": "main"}, "expired": missing}]})
+            return _artifact_response([{"name": "mozes-live-monitor", "created_at": OLD,
+                "workflow_run": {"id": 100, "head_branch": "main"}, "expired": missing}])
         if args[0] == "api":
             return json.dumps({"head_branch": "main", "name": "lightweight-live-monitor",
                 "head_repository": {"full_name": "Owner/Repo"}, "conclusion": "success"})
@@ -139,11 +139,11 @@ def test_audit_accepts_failed_restore_and_reviewed_prewrite_timeout():
 
 def test_recovery_covers_old_dispatch_that_finished_after_checkpoint():
     # A created-at cutoff would hide this producer's newer delivery.
-    def gh(*args):
+    def gh(*args, **kwargs):
         if "workflows/" in args[1]:
             assert "created=" not in args[1]
-            return json.dumps({"workflow_runs": [
-                {"id": 100, "status": "completed"},  # Reviewed source is excluded.
+            return json.dumps({"total_count": 2, "workflow_runs": [
+                {"id": 100, "status": "completed", "updated_at": OLD},  # Reviewed source is excluded.
                 {"id": 99, "status": "completed", "created_at": "2026-10-08T00:00:00Z",
                  "updated_at": NOW.isoformat(), "head_branch": "main",
                  "name": "lightweight-live-monitor", "head_repository": {"full_name": "Owner/Repo"}},

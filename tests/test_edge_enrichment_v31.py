@@ -125,5 +125,6 @@ def test_workflow_ack_follows_durable_upload_and_preserves_inputs():
     workflow = (root / ".github/workflows/lightweight-monitor.yml").read_text()
     assert "queue: max" in workflow and "cancel-in-progress: false" in workflow
     assert "MOZES_EDGE_EVENT_ID: ${{ inputs.edge_event_id }}" in workflow
+    workflow = workflow.split('  monitor:', 1)[1].split('  prospective_cleanup:', 1)[0]
     assert workflow.index("python -m mozes.edge_enrichment process") < workflow.index("actions/upload-artifact@v4")
     assert workflow.index("actions/upload-artifact@v4") < workflow.index("python -m mozes.edge_enrichment ack")
