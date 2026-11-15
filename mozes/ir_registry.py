@@ -25,6 +25,8 @@ def _normalize_entry(ticker, value):
     if not site:
         return None
     row = {"ticker": ticker, "site": site, "feed_url": feed, "company": company}
+    if value.get('newsroom_url'):
+        row['newsroom_url'] = value['newsroom_url']
     wire_feed = (value.get("wire_feed_url") or "").strip() or None
     wire_contributor = (value.get("wire_contributor") or "").strip() or None
     if wire_feed and wire_contributor:

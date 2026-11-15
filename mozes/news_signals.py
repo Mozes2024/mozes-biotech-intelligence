@@ -564,6 +564,61 @@ def _poll_arrowhead_newsroom(conn, ticker, *, fetch, now):
             'items': len(fresh), 'signals_seen': added, 'baseline_suppressed': len(rows) - len(fresh)}
 
 
+def _poll_reviewed_newsroom(conn, ticker, entry, *, fetch, now):
+    site = entry.get('newsroom_url')
+    if not site:
+        return None
+    rows = discover_press_index(site, fetch, entries=True)
+    if not rows:
+        raise ValueError('reviewed newsroom has no recognized same-host releases')
+    key = 'official_newsroom_baseline:' + ticker
+    prior = conn.execute('SELECT value_json FROM monitor_observations WHERE observation_key=?',(key,)).fetchone()
+    baseline = json.loads(prior[0]) if prior else {}
+    compatible = baseline.get('site') == site
+    known = set(baseline.get('urls', [])) if compatible else set()
+    fresh = [r for r in rows if r['url'] not in known] if compatible else []
+    processed = []
+    unresolved = 0
+    added = 0
+    offset = baseline.get('retry_offset', 0) % len(fresh) if fresh else 0
+    batch = (fresh[offset:] + fresh[:offset])[:3]
+    for row in batch:
+        body = fetch(row['url'])
+        body = body.decode('utf-8',errors='replace') if isinstance(body,bytes) else str(body)
+        match = re.search(r'["\']datePublished["\']\s*:\s*["\']([^"\']+)',body)
+        if not match:
+            unresolved += 1
+            continue
+        try:
+            published = datetime.fromisoformat(match[1].replace('Z','+00:00'))
+            if published.tzinfo is None:
+                raise ValueError('publication timezone missing')
+        except ValueError:
+            unresolved += 1
+            continue
+        if published > now:
+            unresolved += 1
+            continue
+        processed.append(row)
+        if published < now-timedelta(hours=48):
+            continue  # Historical additions cannot masquerade as new releases.
+        before = conn.total_changes
+        record_change(conn,ticker=ticker,change_type='company_release_signal',previous_value=None,
+            new_value={'headline':row['title'],'published_at':published.isoformat()},source_url=row['url'],
+            source_type='company_ir',verification_state='investigation_only',severity='medium',
+            identity=['company_release',ticker,row['url']],
+            metadata={'official_mirror':True,'headline_only':True,'feed_url':site,
+                      'date_basis':'article_datePublished','source_published_at':published.isoformat(),
+                      'observed_at':now.isoformat()})
+        added += conn.total_changes > before
+    urls = ([r['url'] for r in processed] + baseline.get('urls', [])) if compatible else [r['url'] for r in rows]
+    observe(conn,key,{'site':site,'urls':list(dict.fromkeys(urls))[:1000],
+                     'retry_offset':offset+3},source_url=site,source_type='company_ir')
+    return {'status':'PARTIAL' if unresolved else 'active','unresolved_dates':unresolved,
+            'feed':site,'checked_at':now.isoformat(),'items':len(processed),
+            'signals_seen':added,'baseline_suppressed':len(rows) if not compatible else 0}
+
+
 def poll_official_feeds(conn, issuers, *, fetch, now):
     """Follow official company releases for the bounded late-stage news cohort."""
     checked = added = 0
@@ -604,6 +659,7 @@ def poll_official_feeds(conn, issuers, *, fetch, now):
                 mirror = (_poll_amgen_newsroom(conn, ticker, fetch=fetch, now=now) if ticker == 'AMGN'
                           else _poll_gilead_newsroom(conn, ticker, fetch=fetch, now=now) if ticker == 'GILD'
                           else _poll_arrowhead_newsroom(conn, ticker, fetch=fetch, now=now) if ticker == 'ARWR'
+                          else _poll_reviewed_newsroom(conn, ticker, entry, fetch=fetch, now=now) if entry.get('newsroom_url')
                           else _poll_official_mirror(conn, ticker, entry, fetch=fetch, now=now))
             except (OSError, ValueError, KeyError, ET.ParseError, UnicodeError, http.client.HTTPException) as exc:
                 mirror = {"status": "fetch_error", "feed": entry.get("mirror_feed_url"),

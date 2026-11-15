@@ -316,7 +316,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const nodes={apiLabel:{},refreshBtn:{}};
 const ctx={days:()=>'',win:()=>'',focusCard:()=>'<article></article>',render:()=>{},
  dashboard:()=>'<main/>',changedCompact:()=>'<changes/>',changeDescription:()=>'',
- sources:()=>'',reasonLabel:x=>x,apiMode:false,
+ sources:()=>'',reasonLabel:x=>x,apiMode:false,D:null,
  esc:x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
  document:{querySelectorAll:()=>[],getElementById:id=>nodes[id]}};
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),ctx);
@@ -386,6 +386,9 @@ def test_api_rejects_non_object_body(body):
     from mozes.app_server import Handler
     handler = object.__new__(Handler)
     handler.path = '/api/paper'
+    from types import SimpleNamespace
+    handler.server = SimpleNamespace(server_port=8000, conn=None)
+    handler.headers = {'Host':'127.0.0.1:8000','Content-Type':'application/json'}
     handler._body_json = lambda: body
     replies = []
     handler._send_json = lambda value, status: replies.append((value, status))
@@ -398,7 +401,8 @@ def test_api_rejects_backdated_current_inputs(monkeypatch):
     from types import SimpleNamespace
     handler = object.__new__(app_server.Handler)
     handler.path = '/api/paper'
-    handler.server = SimpleNamespace(conn=None)
+    handler.server = SimpleNamespace(server_port=8000, conn=None)
+    handler.headers = {'Host':'127.0.0.1:8000','Content-Type':'application/json'}
     handler._body_json = lambda: {'event_id': 'XYZ', 'as_of': '2000-01-01'}
     monkeypatch.setattr(app_server, '_find_live_event', lambda *args: {'id': 'XYZ'})
     replies = []

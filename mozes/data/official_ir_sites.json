@@ -42,7 +42,8 @@
   "VRTX": {
     "company": "Vertex",
     "site": "https://investors.vrtx.com/",
-    "feed_url": "https://investors.vrtx.com/rss/news-releases.xml"
+    "feed_url": "https://investors.vrtx.com/rss/news-releases.xml",
+    "newsroom_url": "https://news.vrtx.com/press-releases"
   },
   "AMGN": {
     "company": "Amgen",
@@ -64,7 +65,8 @@
   "EXEL": {
     "company": "Exelixis",
     "site": "https://ir.exelixis.com/",
-    "feed_url": "https://ir.exelixis.com/rss/news-releases.xml"
+    "feed_url": "https://ir.exelixis.com/rss/news-releases.xml",
+    "newsroom_url": "https://ir.exelixis.com/press-releases"
   },
   "IONS": {
     "company": "Ionis",
@@ -211,7 +213,8 @@
   "RCKT": {
     "company": "Rocket Pharmaceuticals",
     "site": "https://ir.rocketpharma.com/",
-    "feed_url": "https://ir.rocketpharma.com/rss/news-releases.xml"
+    "feed_url": "https://ir.rocketpharma.com/rss/news-releases.xml",
+    "newsroom_url": "https://ir.rocketpharma.com/news-releases"
   },
   "KRYS": {
     "company": "Krystal Biotech",
@@ -230,7 +233,8 @@
   "INCY": {
     "company": "Incyte",
     "site": "https://investor.incyte.com/",
-    "feed_url": null
+    "feed_url": null,
+    "newsroom_url": "https://incytecorp.gcs-web.com/press-releases"
   },
   "UTHR": {
     "company": "United Therapeutics",

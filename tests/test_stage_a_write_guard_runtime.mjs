@@ -4,21 +4,24 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawn, execFileSync } from 'node:child_process';
 
-const repoRoot = new URL('..', import.meta.url).pathname;
+const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+const python = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
 const buildRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'issuer-write-'));
-execFileSync('python3', [path.join(repoRoot, 'scripts', 'build_stage_a_write_guard.py'),
+execFileSync(python, [path.join(repoRoot, 'scripts', 'build_stage_a_write_guard.py'),
   path.join(buildRoot, 'candidate')], { stdio: 'pipe' });
 const cf = path.join(buildRoot, 'candidate', 'cloudflare');
 
 const env = { ...process.env, CI: '1' };
 // Prefer the repo-pinned wrangler (cloudflare devDependency) over npx so CI
 // runs the same wrangler/workerd version the deploy workflows use.
-const localWrangler = path.join(repoRoot, 'cloudflare', 'node_modules', '.bin', 'wrangler');
+const localWrangler = path.join(repoRoot, 'cloudflare', 'node_modules', 'wrangler', 'bin', 'wrangler.js');
 const useLocal = fs.existsSync(localWrangler);
-const wcmd = useLocal ? localWrangler : 'npx';
-const wargs = (a) => (useLocal ? a : ['wrangler', ...a]);
+if (!useLocal) throw Error('Run npm ci --prefix cloudflare before runtime tests');
+const wcmd = process.execPath;
+const wargs = (a) => [localWrangler, ...a];
 const wrangler = (args, options = {}) =>
   execFileSync(wcmd, [...wargs(args), '--config', 'wrangler.toml'], { cwd: cf, env, stdio: 'pipe', ...options });
 wrangler(['d1', 'migrations', 'apply', 'mozes-alerts', '--local']);

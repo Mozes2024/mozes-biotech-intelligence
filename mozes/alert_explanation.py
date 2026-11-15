@@ -83,6 +83,9 @@ def allowed_source_url(url, payload, *, resolve=False):
     if kind == "company_ir":
         site = ir_site(payload.get("ticker"))
         domains = ((urlsplit(site).hostname or "").lower(),) if site else ()
+        from .ir_registry import load_ir_registry
+        entry = load_ir_registry().get(payload.get('ticker'), {})
+        domains += tuple(urlsplit(entry[k]).hostname for k in ('mirror_site','newsroom_url') if entry.get(k))
     if not any(host == domain or host.endswith("." + domain) for domain in domains if domain):
         raise ValueError("unregistered source host")
     if resolve:
@@ -203,7 +206,7 @@ def _optional_ai(result, provider=None):
         for number in re.findall(r"\d+(?:[.,]\d+)*", summary):
             if number not in evidence[0]["quote"]:
                 raise ValueError("unsupported AI number")
-        return {**result, "summary_he": summary, "method": "source-ai-v1", "ai_status": "used",
+        return {**result, "ai_draft_he": summary, "ai_status": "review_required",
                 "ai_model": os.environ.get("MOZES_AI_MODEL")}
     except Exception:
         return {**result, "ai_status": "fallback"}

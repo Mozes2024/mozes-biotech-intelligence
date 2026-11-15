@@ -223,6 +223,14 @@ class Handler(BaseHTTPRequestHandler):
         self._send_file(candidate)
 
     def do_POST(self):
+        port = self.server.server_port
+        hosts = {f'127.0.0.1:{port}', f'localhost:{port}'}
+        origin = self.headers.get('Origin')
+        if (self.headers.get('Host') not in hosts
+                or (origin is not None and origin not in {f'http://{h}' for h in hosts})
+                or self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json'):
+            self._send_json({'error': 'request origin or content type rejected'}, 403)
+            return
         u = urlparse(self.path)
         body = self._body_json()
         if body == "too_large":
