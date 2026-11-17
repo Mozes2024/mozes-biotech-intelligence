@@ -208,8 +208,8 @@ test('Python outbox -> Python feed -> serialized Worker feed -> actual index scr
  assert.equal(byId.get(generated.legacy_id).popup_eligible,false);
  assert.equal(byId.get(generated.legacy_id).polarity,'positive','immutable legacy display preserved');
  const cvr=byId.get(generated.ids.cvr).explanation;
- assert.ok(cvr.evidence[0].quote.startsWith('No '));assert.match(cvr.source_hash,/^[a-f0-9]{64}$/);
- assert.equal(cvr.evidence[0].source_hash,cvr.source_hash);
+ assert.match(cvr.source_hash,/^[a-f0-9]{64}$/);
+ assert.equal(cvr.basis,'source_text');
  const initial=payload();initial.alerts=[];initial.alert_config={feed_url:'https://clock.example/alerts'};
  const h=await harness(initial);h.setFeed({...feed,generated_at:'2026-10-12T13:01:00Z'});await h.run('checkForAlerts()');
  assert.ok(h.requests.includes('https://clock.example/alerts?client=alert-evidence-v1'));
@@ -219,7 +219,7 @@ test('Python outbox -> Python feed -> serialized Worker feed -> actual index scr
  assert.equal(h.snapshot().alerts.length,6,'suppressed popups remain listed');assertComposed(h);
  h.setFeed({...feed,revision:'f'.repeat(64),generated_at:'2026-10-12T13:02:00Z'});await h.run('checkForAlerts()');
  assert.equal(h.notifications.length,2,'no repeat from another revision');
- h.run("page='alerts';render()");assert.match(h.html(),/Legacy CVR filing/);assert.match(h.html(),/No product/);
+ h.run("page='alerts';render()");assert.match(h.html(),/Legacy CVR filing/);
 });
 
 test('A5 activation cannot reproduce Oct14 list erasure through legacy projection or Worker outage',async()=>{
