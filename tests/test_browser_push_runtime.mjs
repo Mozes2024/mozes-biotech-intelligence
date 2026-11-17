@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+test('isolated SQLite delivery state routes in actual workerd without touching hot-clock',{timeout:20000},async()=>{const root=fileURLToPath(new URL('..',import.meta.url)),port=8800+Math.floor(Math.random()*150),p=spawn(process.execPath,[path.join(root,'cloudflare/node_modules/wrangler/bin/wrangler.js'),'dev','--local','--config','push-wrangler.toml','--port',String(port)],{cwd:root,stdio:['ignore','pipe','pipe'],env:{...process.env,CI:'1'}});let log='';p.stdout.on('data',x=>log+=x);p.stderr.on('data',x=>log+=x);try{let ready=false;for(let i=0;i<100;i++){try{const r=await fetch(`http://127.0.0.1:${port}/health`);if(r.ok){ready=true;break}}catch(_){}await new Promise(r=>setTimeout(r,100))}assert(ready,log);const base=`http://127.0.0.1:${port}`;assert.deepEqual(await (await fetch(base+'/key')).json(),{error:'initializing'});assert.deepEqual(await (await fetch(base+'/publish',{method:'POST',body:'{}'})).json(),{error:'unauthorized'});}finally{p.kill('SIGTERM');await new Promise(r=>{p.once('exit',r);setTimeout(()=>{p.kill('SIGKILL');r()},5000).unref()})}});

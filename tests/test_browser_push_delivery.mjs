@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-const {default:worker,eligible,encrypted,subscriptionValid,producer}=await import('data:text/javascript;base64,'+Buffer.from(readFileSync(new URL('../push-worker.js',import.meta.url))).toString('base64'));
+const {handle,eligible,encrypted,subscriptionValid,producer}=await import('data:text/javascript;base64,'+Buffer.from(readFileSync(new URL('../push-worker.js',import.meta.url))).toString('base64'));
 const enc=new TextEncoder(),b64=x=>Buffer.from(x).toString('base64url');
 const rsa=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
 const jwk={...await crypto.subtle.exportKey('jwk',rsa.publicKey),kid:'fixture-key'};
@@ -12,7 +12,7 @@ globalThis.fetch=async url=>{if(String(url).includes('/.well-known/jwks'))return
 const pair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
 const pub=await crypto.subtle.exportKey('raw',pair.publicKey),auth=crypto.getRandomValues(new Uint8Array(16)),subscription={endpoint:'https://fcm.googleapis.com/fcm/send/offline-fixture',keys:{p256dh:b64(pub),auth:b64(auth)}};
 const event=(id,overrides={})=>({change_id:id,created_at:new Date(Date.now()-1000).toISOString(),popup_eligible:true,issuer_verified:true,confirmed_outcome:true,needs_review:false,semantic_version:'alert-evidence-v1',evidence_basis:'source_text',priority:'P1',event_family:'fda_decision',event_outcome:'approval',ticker:'FIXTURE',headline:'Offline verified fixture',...overrides});
-const req=async(path,value,token)=>worker.fetch(new Request('https://fixture.invalid'+path,{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://mozes2024.github.io',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(value)}),env).then(x=>x.json());
+const req=async(path,value,token)=>handle(new Request('https://fixture.invalid'+path,{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://mozes2024.github.io',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(value)}),env).then(x=>x.json());
 const publish=async(n,events)=>req('/publish',{generated_at:new Date().toISOString(),alerts:events},await jwt({run_number:String(n)}));
 test('OIDC refuses branch, repo, workflow, audience, expired and missing date claims',async()=>{for(const override of [{ref:'refs/heads/other'},{repository:'wrong/repo'},{workflow_ref:'wrong'},{aud:'wrong'},{exp:1},{exp:null},{iat:1},{run_number:'NaN'}]){const result=await req('/publish',{},await jwt(override));assert.equal(result.error,'unauthorized')}});
 test('eligibility remains strict and external endpoints are refused',()=>{assert(eligible(event('x')));for(const change of [{historical_only:true},{needs_review:true},{issuer_verified:false},{popup_eligible:false},{evidence_basis:'headline_only'},{confirmed_outcome:false},{priority:'P3'},{event_outcome:'upcoming_readout'}])assert(!eligible(event('x',change)));assert(subscriptionValid(subscription));assert(!subscriptionValid({...subscription,endpoint:'https://internal.invalid/'}))});

@@ -1,0 +1,12 @@
+name = "mozes-bio-push"
+main = "push-worker.js"
+compatibility_date = "2026-10-13"
+workers_dev = true
+[observability]
+enabled = false
+[[durable_objects.bindings]]
+name = "DELIVERY"
+class_name = "PushDelivery"
+[[migrations]]
+tag = "push-sqlite-v1"
+new_sqlite_classes = ["PushDelivery"]

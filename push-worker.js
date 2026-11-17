@@ -32,7 +32,7 @@ async function sendPush(env,sub,payload){
 }
 async function body(request,limit=200000){const text=await request.text();if(text.length>limit)throw Error('too-large');return JSON.parse(text)}
 function subscriptionValid(s){try{const u=new URL(s.endpoint);return u.protocol==='https:'&&!u.username&&!u.password&&['fcm.googleapis.com','updates.push.services.mozilla.com','web.push.apple.com'].includes(u.hostname)&&un64(s.keys.p256dh).length===65&&un64(s.keys.auth).length===16}catch(_){return false}}
-export default {async fetch(request,env){
+async function handle(request,env){
  try{
  const u=new URL(request.url),path=u.pathname;
  if(request.method==='OPTIONS')return new Response(null,{headers:{'Access-Control-Allow-Origin':ORIGIN,'Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type','Access-Control-Max-Age':'600'}});
@@ -48,6 +48,7 @@ export default {async fetch(request,env){
   // Enrollment is a new baseline. Never queue events for a future device.
   if(device)for(const a of fresh)if(Date.parse(a.created_at)>device.created)pending.set(a.change_id,a);
   const state={sequence,ids:feed.alerts.map(a=>a.change_id).slice(0,200),updated_at:Date.now(),pending:[...pending.values()].slice(-20)};
+  await env.PUSH.put('producer',JSON.stringify(state));
   let accepted=0,failed=0;
   if(device&&state.pending.length){
    const batch=state.pending,first=batch[0],id=batch.length===1?first.change_id:'batch-'+await hash(batch.map(a=>a.change_id).sort().join('|'));
@@ -60,7 +61,7 @@ export default {async fetch(request,env){
   return json({status:'observed',eligible_new:fresh.length,push_accepted:accepted,push_failed:failed,enrolled:!!device,pending:state.pending.length});
  }
  if(path==='/enroll'&&request.method==='POST'){
-  if(request.headers.get('Origin')!==ORIGIN)throw Error('unauthorized');const x=await body(request,6000),config=await env.PUSH.get('enrollment','json');
+  if(request.headers.get('Origin')!==ORIGIN)throw Error('unauthorized');const x=await body(request,6000),saved=await env.PUSH.get('enrollment','json'),config=saved||(env.ENROLLMENT_HASH&&env.ENROLLMENT_EXPIRES?{hash:env.ENROLLMENT_HASH,expires:Number(env.ENROLLMENT_EXPIRES),used:false}:null);
   if(!config||config.expires<Date.now()||config.used||await hash(x.code||'')!==config.hash||!subscriptionValid(x.subscription))throw Error('invalid-enrollment');
   if(await env.PUSH.get('device'))throw Error('already-enrolled');const manage=b64(crypto.getRandomValues(new Uint8Array(24)));await env.PUSH.put('enrollment',JSON.stringify({...config,used:true}));
   await env.PUSH.put('device',JSON.stringify({subscription:x.subscription,manageHash:await hash(manage),created:Date.now()}));return json({enrolled:true,manage});
@@ -73,5 +74,23 @@ export default {async fetch(request,env){
  }
  return new Response('Not found',{status:404});
  }catch(e){return json({error:['unauthorized','invalid-enrollment','already-enrolled','test-rate-limited'].includes(e.message)?e.message:'delivery-unavailable'})}
+}
+export {eligible,encrypted,subscriptionValid,producer,handle};
+
+// One owner, one serialized state machine. Storage is SQLite-backed and strongly consistent.
+export class PushDelivery {
+ constructor(ctx,env){this.ctx=ctx;this.env=env;this.tail=Promise.resolve()}
+ fetch(request){
+  const run=()=>handle(request,{...this.env,PUSH:{
+   get:async(k,type)=>{const value=await this.ctx.storage.get(k);return value===undefined?null:type==='json'?JSON.parse(value):value},
+   put:(k,value)=>this.ctx.storage.put(k,value),delete:k=>this.ctx.storage.delete(k)
+  }});
+  const result=this.tail.then(run,run);this.tail=result.then(()=>{},()=>{});return result;
+ }
+}
+export default {async fetch(request,env){
+ const path=new URL(request.url).pathname;
+ if(path==='/health')return json({service:'bio-desktop-push',version:2});
+ if(!['/key','/publish','/enroll','/test','/unsubscribe'].includes(path))return new Response('Not found',{status:404});
+ return env.DELIVERY.get(env.DELIVERY.idFromName('owner')).fetch(request);
 }};
-export {eligible,encrypted,subscriptionValid,producer};
