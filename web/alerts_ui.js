@@ -22,6 +22,7 @@ function createAlertNotifier({storage, show, system, eligible=interruptiveAlertE
   })}};
 }
 let alertNotifier=null,lastAlertFeed=null,alertFeedInitialized=false,alertPollBusy=false,preferredAlertFeedUrl=null;
+let notificationDeliveryError=null;
 function getAlertNotifier(){
   if(!alertNotifier){
     let storage;try{storage=window.localStorage}catch(_){storage={getItem:()=>null,setItem:()=>{}}}
@@ -42,17 +43,25 @@ function showAlertPopup(rows){
 }
 function showSystemAlert(a){
   if(!interruptiveAlertEligible(a))return;
+  try{if(localStorage.getItem('mozes-bio-push-manage'))return}catch(_){}
   if(!('Notification' in window)||Notification.permission!=='granted')return;
   try{const n=new Notification(`MOZES ${a.priority||''} ${a.ticker||''}`.trim(),{
     body:a.headline||alertWhyHe(a),lang:'he',dir:'rtl',tag:a.change_id});
     n.onclick=()=>{window.focus();page='alerts';render();n.close()};
-  }catch(_){}
+  }catch(_){notificationDeliveryError='הדפדפן לא הצליח להציג התראת מערכת. ההתראה זמינה בתוך האתר.';toast(notificationDeliveryError)}
+}
+function notificationPermissionNotice(){
+  if(!('Notification' in window))return 'התראות מערכת אינן נתמכות בדפדפן הזה.';
+  if(notificationDeliveryError)return notificationDeliveryError;
+  if(Notification.permission==='denied')return 'התראות מערכת חסומות בהגדרות הדפדפן לאתר זה.';
+  if(Notification.permission==='granted')return 'הרשאת הדפדפן ניתנה. זו אינה בדיקת מסירה; רק אירוע חדש שעבר אימות יכול להתריע.';
+  return 'טרם ניתנה הרשאת דפדפן להתראות מערכת.';
 }
 function alertDeliveryNotice(){
   const enabled=D?.alert_config?.enabled_channels||[];
   const text=enabled.includes('email')?'ערוץ האימייל מוגדר. מצב השליחה מופיע בכל התראה.':
     'ערוץ האימייל אינו מוגדר בניטור האחרון שדווח, או שמצב ההגדרה עדיין לא ידוע.';
-  return text+' התראות חדשות מוצגות כאן כשהאתר פתוח. הכיוון הוא סיווג טקסט אוטומטי ואינו תחזית מחיר.';
+  return text+' '+notificationPermissionNotice()+' בדיקת הרשימה בעמוד פועלת רק כשהעמוד גלוי. קבלת Push בלשונית אחרת דורשת את ההרשמה הפרטית הנפרדת. הרשאה לבדה אינה מפעילה Push ואינה מציגה התראות ישנות. הכיוון הוא סיווג טקסט אוטומטי ואינו תחזית מחיר.';
 }
 function alertDeliveryHe(a){
   const email=a.delivery?.email;
@@ -62,9 +71,15 @@ function alertDeliveryHe(a){
 }
 function alertAnalysisHtml(a){
   const x=a.explanation;
-  if(!x)return '<div class="company">הסבר לפי המקור: ממתין לקריאת תוכן ההודעה.</div>';
+  const notice=interruptiveAlertEligible(a)?'זהות המנפיק ותוצאה מהותית מבוססת מקור אומתו.':
+    a.semantic_version==='alert-evidence-v1'?'מוצג ברשימה בלבד: אין תוצאה מהותית מאומתת המתאימה להתראה קוטעת.':
+    'מוצג ברשימה בלבד: נתוני הזכאות להתראה קוטעת חסרים. הסיווג ההיסטורי נשמר.';
+  const displayNotice=interruptiveAlertEligible(a)&&!(x?.evidence?.length)?
+    ' ציטוט המקור אינו מוצג; הזכאות נשענת על אימות המקור שסופק, ולא על קיום ציטוט בתצוגה.':'';
+  const policy=`<div class="company">${esc(notice+displayNotice)}</div>`;
+  if(!x)return policy+'<div class="company">הסבר לפי המקור: ממתין לקריאת תוכן ההודעה.</div>';
   const basis={source_text:'תוכן המקור נקרא',feed_summary:'נקרא תקציר ההודעה בלבד',headline_only:'כותרת בלבד',structured_source:'נתונים מובנים מהמקור'};
-  return `<div class="company"><b>בסיס ההסבר:</b> ${esc(basis[x.basis]||'לא ידוע')}${x.ai_status==='used'?' · ניסוח בסיוע מודל שפה':''}</div>`+
+  return policy+`<div class="company"><b>בסיס ההסבר:</b> ${esc(basis[x.basis]||'לא ידוע')}${x.ai_status==='used'?' · ניסוח בסיוע מודל שפה':''}</div>`+
     (x.evidence||[]).map(e=>`<blockquote class="alert-evidence" dir="auto">${esc(e.quote)}</blockquote>`).join('')+
     (x.missing_he||[]).map(text=>`<div class="company">${esc(text)}</div>`).join('');
 }
@@ -102,7 +117,10 @@ async function checkForAlerts(){
       return validateAlertFeed(await r.json());
     };
     let feed;
-    try{feed=await read(url)}
+    try{feed=await read(url);
+      if(lastAlertFeed&&Date.parse(feed.generated_at)<Date.parse(lastAlertFeed.generated_at))throw Error('Older alert feed');
+      if(Number.isFinite(Date.parse(D.generated_at))&&Date.parse(feed.generated_at)<Date.parse(D.generated_at))throw Error('Alert feed older than snapshot');
+    }
     catch(error){if(apiMode||url===fallback)throw error;feed=await read(fallback)}
     if(lastAlertFeed&&Date.parse(feed.generated_at)<Date.parse(lastAlertFeed.generated_at))return;
     if(Number.isFinite(Date.parse(D.generated_at))&&Date.parse(feed.generated_at)<Date.parse(D.generated_at))return;

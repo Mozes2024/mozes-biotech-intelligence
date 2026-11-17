@@ -1,0 +1,903 @@
+{
+  "schema": 1,
+  "policy": "alert-evidence-v1",
+  "cases": [
+    {
+      "id": "nda_approval",
+      "text": "FDA approved the NDA for DrugX to treat DiseaseY.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "positive",
+        "event_family": "fda_decision",
+        "event_outcome": "approval",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "bla_approval",
+      "text": "FDA grants accelerated approval to the BLA for DrugX in DiseaseY.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "positive",
+        "event_family": "fda_decision",
+        "event_outcome": "approval",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "primary_met",
+      "text": "The Phase 3 trial met its primary endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "positive",
+        "event_family": "clinical_outcome",
+        "event_outcome": "primary_endpoint_met",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "primary_significant",
+      "text": "The trial demonstrated a statistically significant result on its primary efficacy endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "positive",
+        "event_family": "clinical_outcome",
+        "event_outcome": "primary_endpoint_met",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "hold_lifted",
+      "text": "FDA has lifted the existing clinical hold on DrugX.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "positive",
+        "event_family": "material_safety",
+        "event_outcome": "hold_lifted",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "primary_failed",
+      "text": "The trial failed to meet its primary endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "negative",
+        "event_family": "clinical_outcome",
+        "event_outcome": "primary_endpoint_failed",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "primary_did_not_meet",
+      "text": "The Phase 3 trial did not meet its primary efficacy endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "negative",
+        "event_family": "clinical_outcome",
+        "event_outcome": "primary_endpoint_failed",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "new_crl",
+      "text": "FDA issued a Complete Response Letter for the NDA for DrugX.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "negative",
+        "event_family": "fda_decision",
+        "event_outcome": "crl",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "hold_imposed",
+      "text": "FDA imposed a clinical hold on the DrugX trial.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "negative",
+        "event_family": "material_safety",
+        "event_outcome": "clinical_hold",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "futility",
+      "text": "The Phase 3 study was discontinued due to futility.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "negative",
+        "event_family": "clinical_outcome",
+        "event_outcome": "futility",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "pdufa_extended",
+      "text": "FDA extended the current PDUFA date for DrugX.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "negative",
+        "event_family": "fda_decision",
+        "event_outcome": "pdufa_extension",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "approval_expected",
+      "text": "FDA approval is expected next quarter.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "conditional_milestone",
+        "event_outcome": "prospective_approval",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "prospective",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "seeks_approval",
+      "text": "The company seeks FDA approval for DrugX.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "conditional_milestone",
+        "event_outcome": "prospective_approval",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "prospective",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "if_approved",
+      "text": "If FDA approval is granted, the company will receive a payment.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "conditional_milestone",
+        "event_outcome": "prospective_approval",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "conditional",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "no_approval",
+      "text": "No product has been approved by FDA.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_context",
+        "event_outcome": "explicit_absence",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "explicit_absence",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "no_current_approval",
+      "text": "The company does not currently have FDA approval.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_context",
+        "event_outcome": "explicit_absence",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "explicit_absence",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "accepted_nda",
+      "text": "FDA accepted the NDA for review.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "review_acceptance",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "accepted_priority",
+      "text": "The NDA was accepted for priority review.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "review_acceptance",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "fast_track",
+      "text": "FDA granted Fast Track designation to DrugX.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "fast_track",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "orphan",
+      "text": "FDA granted Orphan Drug Designation for DrugX.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "orphan_designation",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "priority_review",
+      "text": "FDA granted Priority Review for the NDA.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "priority_review",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "trial_design",
+      "text": "FDA agreed to the trial design.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "design_agreement",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "submission",
+      "text": "The company submitted its NDA for DrugX today.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "submission",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "ide",
+      "text": "FDA approved the IDE to initiate a clinical trial.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "trial_authorization",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "ind",
+      "text": "FDA cleared the IND to begin a Phase 2 trial.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "trial_authorization",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "readout_expected",
+      "text": "Topline results from the Phase 3 trial are expected in Q4.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "clinical_catalyst",
+        "event_outcome": "upcoming_readout",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "prospective",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "prv",
+      "text": "DrugX has potential eligibility for a Priority Review Voucher.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "conditional_milestone",
+        "event_outcome": "potential_prv",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "prospective",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "cvr",
+      "text": "Under the CVR Agreement, holders receive payments only if FDA approval is granted in the future.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "corporate_action",
+        "event_outcome": "conditional_cvr",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "conditional",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "historic_crl",
+      "text": "FDA issued a Complete Response Letter in 2021.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_context",
+        "event_outcome": "historical_reference",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "historical",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "historic_hold",
+      "text": "A previous clinical hold was resolved in 2020.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_context",
+        "event_outcome": "historical_reference",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "historical",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "historic_approval",
+      "text": "DrugX was approved by FDA in 2019.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_context",
+        "event_outcome": "historical_reference",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "historical",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "historic_failure_filing",
+      "text": "The prior trial failed to meet its primary endpoint in 2021. The company submitted a new NDA today.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "submission",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "background_new_approval",
+      "text": "Following a previous CRL, FDA has now approved the NDA for DrugX.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "positive",
+        "event_family": "fda_decision",
+        "event_outcome": "approval",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "marketing_primary_failure",
+      "text": "Company reports positive Phase 3 results. The trial failed to meet its primary endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "negative",
+        "event_family": "clinical_outcome",
+        "event_outcome": "primary_endpoint_failed",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "primary_failed_secondary_met",
+      "text": "The trial did not meet its primary endpoint but met its secondary endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "mixed",
+        "event_family": "clinical_outcome",
+        "event_outcome": "primary_endpoint_failed",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "mixed_endpoints",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "numeric_non_significant",
+      "text": "Results were numerically favorable but not statistically significant.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "mixed",
+        "event_family": "clinical_outcome",
+        "event_outcome": "inconclusive_results",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": true,
+        "uncertainty_status": "inconclusive",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "contradiction",
+      "text": "Headline: the trial met its primary endpoint. Body: the same trial did not meet its primary endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "mixed",
+        "event_family": "clinical_outcome",
+        "event_outcome": "conflicting_results",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": true,
+        "uncertainty_status": "conflicting",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "multiple_programs",
+      "text": "DrugA met its primary endpoint. DrugB failed to meet its primary endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "mixed",
+        "event_family": "clinical_outcome",
+        "event_outcome": "multiple_programs",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": true,
+        "uncertainty_status": "multiple_subjects",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "double_negation",
+      "text": "The study did not fail to meet its primary endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "clinical_outcome",
+        "event_outcome": "unconfirmed",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": true,
+        "uncertainty_status": "ambiguous_negation",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "negated_crl",
+      "text": "FDA has not issued a Complete Response Letter.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_context",
+        "event_outcome": "explicit_absence",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "explicit_absence",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "negated_hold",
+      "text": "FDA did not impose a clinical hold.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_context",
+        "event_outcome": "explicit_absence",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "explicit_absence",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "forward_disclaimer",
+      "text": "Forward-looking statements: the company may receive FDA approval or fail to meet its primary endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "routine_administration",
+        "event_outcome": "unconfirmed",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "forward_disclaimer",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "long_negation",
+      "text": "No product that the company developed alone or with its partners over the last several years for any indication or any patient population has been approved by FDA.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_context",
+        "event_outcome": "explicit_absence",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "explicit_absence",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "long_conditional",
+      "text": "If the company and its collaborators complete all milestones and satisfy the commercial and regulatory requirements, FDA approval would trigger a CVR payment.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "corporate_action",
+        "event_outcome": "conditional_cvr",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "conditional",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "secondary_only",
+      "text": "The trial met its secondary endpoint; its primary endpoint results have not been reported.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "positive",
+        "event_family": "clinical_outcome",
+        "event_outcome": "secondary_endpoint_met",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": true,
+        "uncertainty_status": "primary_unknown",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "vague_positive",
+      "text": "The company reports positive Phase 3 topline results.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "clinical_outcome",
+        "event_outcome": "results_reported",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": true,
+        "uncertainty_status": "unspecified_endpoint",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "generic_significance",
+      "text": "The trial demonstrated a statistically significant improvement in progression-free survival.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "positive",
+        "event_family": "clinical_outcome",
+        "event_outcome": "efficacy_signal",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": true,
+        "uncertainty_status": "primary_unknown",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "unrelated_subject",
+      "text": "Our competitor OtherCompany received FDA approval for DrugZ.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_context",
+        "event_outcome": "unattributed_reference",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": true,
+        "uncertainty_status": "subject_scope",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "lawsuit_context",
+      "text": "LawFirm investigates securities claims following FDA approval of DrugX.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "corporate_action",
+        "event_outcome": "legal_context",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": true,
+        "uncertainty_status": "background_context",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "current_vs_past",
+      "text": "FDA approved DrugX in 2019. FDA issued a new Complete Response Letter for DrugY today.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "negative",
+        "event_family": "fda_decision",
+        "event_outcome": "crl",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "conditional_failure",
+      "text": "If the trial fails to meet its primary endpoint, development could end.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "clinical_catalyst",
+        "event_outcome": "prospective_result",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "conditional",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "no_hold_lift",
+      "text": "FDA has not lifted the clinical hold.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "unknown",
+        "event_family": "regulatory_context",
+        "event_outcome": "explicit_absence",
+        "material": false,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "explicit_absence",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "adcom",
+      "text": "The advisory committee voted in favor of approval of DrugX.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "positive",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "adcom_recommendation",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "adcom_negative",
+      "text": "The advisory committee voted against approval of DrugX.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "negative",
+        "event_family": "regulatory_milestone",
+        "event_outcome": "adcom_recommendation",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "historic_secondary_context",
+      "text": "Following the 2021 trial failure, the current Phase 3 trial met its primary endpoint today.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "positive",
+        "event_family": "clinical_outcome",
+        "event_outcome": "primary_endpoint_met",
+        "material": true,
+        "confirmed_outcome": true,
+        "needs_review": false,
+        "uncertainty_status": "none",
+        "evidence_basis": "source_text"
+      }
+    },
+    {
+      "id": "two_indications",
+      "text": "For DiseaseA the trial met its primary endpoint, whereas for DiseaseB it failed to meet its primary endpoint.",
+      "basis": "source_text",
+      "provenance": "synthetic adversarial contract; not a real issuer announcement",
+      "expected": {
+        "polarity": "mixed",
+        "event_family": "clinical_outcome",
+        "event_outcome": "multiple_programs",
+        "material": true,
+        "confirmed_outcome": false,
+        "needs_review": true,
+        "uncertainty_status": "multiple_subjects",
+        "evidence_basis": "source_text"
+      }
+    }
+  ],
+  "materiality_contract": "Known completed outcomes or actual milestones/transactions may be material. Prospective language alone is not a completed material outcome; the clinical-catalyst router can separately retain important upcoming research events."
+}

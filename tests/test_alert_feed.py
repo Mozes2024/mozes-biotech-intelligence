@@ -7,6 +7,29 @@ from mozes.live_monitor import record_change
 from mozes.pipeline_v2c import export_payload
 
 
+def test_legacy_projection_and_static_fallback_keep_complete_current_list_without_mutation(tmp_path):
+    from mozes.alert_feed import browser_feed
+    conn = db.connect(tmp_path / 'db')
+    change = record_change(conn, ticker='GMAB', change_type='company_release_signal', severity='high',
+                          previous_value=None, new_value={'headline': 'Genmab positive topline'},
+                          source_url='https://ir.genmab.com/news/1', source_type='company_ir')
+    original = conn.execute('SELECT payload_json FROM alert_outbox WHERE change_id=?', (change,)).fetchone()[0]
+    export_payload(conn, tmp_path / 'data.json')
+    legacy = json.loads((tmp_path / 'alerts.json').read_text())
+    current = json.loads((tmp_path / 'alerts-evidence-v1.json').read_text())
+    assert len(current['alerts']) == 1 and not legacy['alerts']
+    assert current['alerts'][0]['change_id'] == change
+    assert conn.execute('SELECT payload_json FROM alert_outbox WHERE change_id=?', (change,)).fetchone()[0] == original
+    urgent = {**current['alerts'][0], 'priority': 'P1', 'popup_eligible': True,
+              'issuer_verified': True, 'confirmed_outcome': True, 'needs_review': False,
+              'event_family': 'fda_decision', 'event_outcome': 'approval',
+              'semantic_version': 'alert-evidence-v1', 'evidence_basis': 'source_text'}
+    feed = {**current, 'alerts': [urgent, current['alerts'][0]]}
+    assert browser_feed(feed)['alerts'] == [urgent]
+    assert browser_feed(feed, evidence_aware=True) is feed
+    assert browser_feed({**feed, 'alerts': [{**urgent, 'evidence_basis': None}]})['alerts'] == []
+
+
 def test_export_writes_small_alerts_and_update_manifest(tmp_path):
     conn = db.connect(tmp_path / 'db')
     payload = export_payload(conn, tmp_path / 'web' / 'data.json')

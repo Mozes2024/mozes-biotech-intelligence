@@ -95,7 +95,11 @@ function alertsPage(){let rows=D.alerts||[],n=k=>rows.filter(a=>a.priority===k).
     `<div class="simple-summary"><div class="summary-box red"><strong>${n('P1')}</strong><span>דחופות (P1)</span></div><div class="summary-box blue"><strong>${n('P2')}</strong><span>חשובות (P2)</span></div></div>`+
     `<section class="panel"><div class="panel-body">${alertRows(rows)||`<div class="empty">${emptyChangesHe('alerts')}</div>`}</div></section>`}
 function alertsCompact(){let rows=(D.alerts||[]).slice(0,3);return `<section class="panel simple-panel"><div class="panel-head"><h3>התראות אחרונות</h3><span class="spacer"></span><button class="btn" onclick="page='alerts';render()">לכל ההתראות</button></div><div class="panel-body">${alertRows(rows)||`<div class="empty">${emptyChangesHe('alerts')}</div>`}</div></section>`}
-function enableAlertPopups(){if(!('Notification' in window)){toast('התראות בתוך האתר פעילות; הדפדפן אינו תומך בהתראות מערכת');return}Notification.requestPermission().then(p=>toast(p==='granted'?'התראות מערכת הופעלו להתראות חדשות':'ההתראות ימשיכו להופיע בתוך האתר'))}
+async function enableAlertPopups(){
+ if(!('Notification' in window)){toast('התראות בתוך האתר פעילות; הדפדפן אינו תומך בהתראות מערכת');return}
+ try{const permission=await Notification.requestPermission();notificationDeliveryError=null;render();toast(permission==='granted'?'הרשאת הדפדפן ניתנה. מסירה עדיין לא נבדקה; Push דורש הרשמה פרטית נפרדת.':permission==='denied'?'התראות מערכת חסומות בהגדרות הדפדפן לאתר זה':'לא ניתנה הרשאה להתראות מערכת')}
+ catch(_){notificationDeliveryError='בקשת ההרשאה נכשלה. ההתראות זמינות בתוך האתר.';render();toast(notificationDeliveryError)}
+}
 function changeRows(rows){return rows.map(c=>{
   let value=c.new_value||{},isNews=NEWS_TYPES.includes(c.change_type);
   let body=isNews?(value.headline||`${value.form||'הגשה'} · הוגש ${value.filed||'מועד לא ידוע'}`):`${JSON.stringify(c.previous_value)} ← ${JSON.stringify(c.new_value)}`;

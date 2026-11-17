@@ -6,7 +6,7 @@ from mozes.live_monitor import record_change
 def _change(conn, headline, source, suffix):
     return record_change(
         conn, ticker="ZZZZ", change_type="wire_release_signal", previous_value=None,
-        new_value={"headline": headline}, source_url=f"https://{source}.example/{suffix}",
+        new_value={"headline": headline, "summary": headline}, source_url=f"https://{source}.example/{suffix}",
         source_type="wire", severity="high", identity=[source, suffix],
     )
 
