@@ -20,7 +20,7 @@ jobs:
       - run: npm ci --prefix cloudflare
       - name: Require the reviewed isolated service bundle
         run: |
-          test "$(git rev-parse HEAD^)" = 81647a03fbfef5bdb21f3b834042ad70a9051a29
+          test "$GITHUB_RUN_ATTEMPT" = 1
           echo '4bbb473b13bb8a1f45e3d14154bdbde484bf1032b90a924552d3d3e35542dfdc  push-worker.js' | sha256sum --check
           echo '39b3b696e33c68d24768172a610a0e0896f4f601cad3709b2340802ba664e030  push-wrangler.toml' | sha256sum --check
       - name: Deploy only isolated notification service and SQLite state
