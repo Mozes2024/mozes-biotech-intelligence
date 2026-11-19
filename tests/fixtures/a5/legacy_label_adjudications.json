@@ -1,0 +1,32 @@
+{
+  "Front Range Pharmaceuticals Announces FDA Clearance to Initiate Phase 2 Trial of FRP-003 in Long COVID": {
+    "polarity": "unknown",
+    "material": true,
+    "reason": "Completed trial authorization is a material milestone, never a marketing approval."
+  },
+  "NeuWire Medical Announces FDA IDE Approval for STROKE-REWIRE Pivotal Study in Chronic Ischemic Stroke": {
+    "polarity": "unknown",
+    "material": true,
+    "reason": "Completed IDE authorization is a material milestone, never a drug approval."
+  },
+  "Acme Announces Positive Topline Results from Pivotal Phase 3 Study": {
+    "polarity": "unknown",
+    "material": true,
+    "reason": "Marketing adjective does not establish the primary endpoint result."
+  },
+  "Acme's NDA Accepted for Priority Review with PDUFA Date in March": {
+    "polarity": "unknown",
+    "material": true,
+    "reason": "Review acceptance is a milestone, not an approval."
+  },
+  "Acme Seeking FDA Approval for ZYX-101 After Positive Phase 2 Results": {
+    "polarity": "unknown",
+    "material": false,
+    "reason": "Seeking approval with unspecified marketing results does not establish a completed outcome."
+  },
+  "FDA Approval Decision for ZYX-101 Expected by Year-End": {
+    "polarity": "unknown",
+    "material": false,
+    "reason": "Prospective decision is retained by the catalyst router, not treated as a completed outcome."
+  }
+}

@@ -1,0 +1,339 @@
+{
+  "version": "alert-evidence-v1",
+  "limits": {
+    "headline_only": 4000,
+    "feed_summary": 12000,
+    "source_text": 12000,
+    "structured_source": 4000
+  },
+  "prospective": "\\b(?:whether|may|might|could|would|will|seek\\w*|plan\\w*|intend\\w*|expect\\w*|anticipat\\w*|potential\\w*|subject\\s+to|future|hope\\w*|aim\\w*|designed\\s+to|pending)\\b|\\bto\\s+(?:present|report|host|announce|share)\\b",
+  "negation": "\\b(?:no|not|never|without|neither|denied|denies)\\b|\\b(?:failed|fails|failing)\\b",
+  "historical": "\\b(?:previous\\w*|prior|formerly|historically|last\\s+year|background)\\b",
+  "current": "\\b(?:today|now|newly|new\\s+(?:Complete\\s+Response\\s+Letter|CRL))\\b",
+  "subject_scope": "\\b(?:competitor|another\\s+company|unrelated\\s+(?:drug|program)|OtherCompany)\\b",
+  "disclaimer": "\\b(?:forward-looking statements|safe harbor statement|about the company)\\b|(?:^|\\n)(?:Indications and Important Safety Information|About\\s+(?:[A-Z][A-Z0-9-]{2,}|the\\s+(?:study|trial|company)))\\b",
+  "rules": [
+    {
+      "event_outcome": "primary_endpoint_failed",
+      "event_family": "clinical_outcome",
+      "polarity": "negative",
+      "pattern": "\\b(?:(?:did|does|do)\\s+not\\s+(?:meet|achieve|hit)|(?:failed|fails)\\s+to\\s+(?:meet|achieve|hit)|missed|misses)\\s+(?:its\\s+|the\\s+|both\\s+|all\\s+)?(?:co-?)?primary(?:\\s+efficacy)?\\s+(?:and\\s+(?:key\\s+)?secondary\\s+)?end\\s*-?points?|\\bfailed\\s+to\\s+(?:demonstrate|show|reach)\\b.{0,90}\\bprimary\\s+endpoint",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 100
+    },
+    {
+      "event_outcome": "primary_endpoint_met",
+      "event_family": "clinical_outcome",
+      "polarity": "positive",
+      "pattern": "\\b(?:met|meets|achieved|achieves|hit|hits)\\s+(?:its\\s+|the\\s+|both\\s+|all\\s+)?(?:co-?)?primary(?:\\s+efficacy)?\\s+(?:and\\s+(?:key\\s+)?secondary\\s+)?end\\s*-?points?",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 90
+    },
+    {
+      "event_outcome": "primary_endpoint_met",
+      "event_family": "clinical_outcome",
+      "polarity": "positive",
+      "pattern": "\\bstatistically\\s+significant.{0,80}\\bprimary\\s+(?:efficacy\\s+)?endpoint",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 90
+    },
+    {
+      "event_outcome": "primary_not_significant",
+      "event_family": "clinical_outcome",
+      "polarity": "negative",
+      "pattern": "\\bprimary\\b.{0,60}\\bnot\\s+statistically\\s+significant|\\bdid\\s+not\\s+(?:reach|achieve)\\s+statistical\\s+significance.{0,60}\\bprimary",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 100
+    },
+    {
+      "event_outcome": "secondary_endpoint_met",
+      "event_family": "clinical_outcome",
+      "polarity": "positive",
+      "pattern": "\\b(?:met|meets|achieved|achieves)\\s+(?:its\\s+|the\\s+)?(?:key\\s+)?secondary\\s+endpoint",
+      "confirmed_outcome": false,
+      "needs_review": true,
+      "uncertainty_status": "primary_unknown",
+      "priority": 20
+    },
+    {
+      "event_outcome": "inconclusive_results",
+      "event_family": "clinical_outcome",
+      "polarity": "negative",
+      "pattern": "\\bnot\\s+statistically\\s+significant|\\bdid\\s+not\\s+(?:reach|achieve)\\s+statistical\\s+significance",
+      "confirmed_outcome": false,
+      "needs_review": true,
+      "uncertainty_status": "inconclusive",
+      "priority": 30
+    },
+    {
+      "event_outcome": "numerical_trend",
+      "event_family": "clinical_outcome",
+      "polarity": "positive",
+      "pattern": "\\bnumerically\\s+(?:favorable|superior|improved)|\\bnumerical\\s+trend",
+      "confirmed_outcome": false,
+      "needs_review": true,
+      "uncertainty_status": "inconclusive",
+      "priority": 20
+    },
+    {
+      "event_outcome": "efficacy_signal",
+      "event_family": "clinical_outcome",
+      "polarity": "positive",
+      "pattern": "\\bstatistically\\s+significant",
+      "confirmed_outcome": false,
+      "needs_review": true,
+      "uncertainty_status": "primary_unknown",
+      "priority": 10
+    },
+    {
+      "event_outcome": "hold_lifted",
+      "event_family": "material_safety",
+      "polarity": "positive",
+      "pattern": "\\b(?:lifted|lifts|removed|removes|released|releases)\\s+(?:(?:the|its|existing|partial|full)\\s+)*clinical\\s+hold|\\bclinical\\s+hold\\b.{0,35}\\b(?:lifted|removed|released)",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 85
+    },
+    {
+      "event_outcome": "clinical_hold",
+      "event_family": "material_safety",
+      "polarity": "negative",
+      "pattern": "\\b(?:imposed|imposes|placed|places|issued|issues|impose)\\s+(?:(?:a|the|new|partial|full)\\s+)*(?:on\\s+)?clinical\\s+hold",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 85
+    },
+    {
+      "event_outcome": "crl",
+      "event_family": "fda_decision",
+      "polarity": "negative",
+      "pattern": "\\b(?:issued|issues|received|receives|announced|announces)\\s+(?:(?:a|the|new|FDA)\\s+)*(?:Complete\\s+Response\\s+Letter|CRL)\\b|\\b(?:Complete\\s+Response\\s+Letter|CRL)\\s+(?:was\\s+)?received\\b",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 85
+    },
+    {
+      "event_outcome": "approval",
+      "event_family": "fda_decision",
+      "polarity": "positive",
+      "pattern": "\\b(?:FDA|EMA|European\\s+Commission|Health\\s+Canada|MHRA|PMDA)\\s+(?:has\\s+)?(?:now\\s+)?(?:approved|approves|grants?\\s+(?:full\\s+|accelerated\\s+|conditional\\s+)?(?:full\\s+|accelerated\\s+|conditional\\s+)?(?:marketing\\s+)?approval)|\\b(?:was|has\\s+been|have\\s+been)\\s+approved\\s+by\\s+(?:the\\s+)?(?:U\\.S\\.\\s+)?FDA|\\b(?:received|receives|wins|granted)\\s+(?:U\\.S\\.\\s+)?(?:FDA\\s+)?(?:full\\s+|accelerated\\s+|conditional\\s+)?(?:marketing\\s+)?approval",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 80
+    },
+    {
+      "event_outcome": "pdufa_extension",
+      "event_family": "fda_decision",
+      "polarity": "negative",
+      "pattern": "\\b(?:extended|extends)\\s+(?:(?:the|current|its)\\s+)*PDUFA\\s+(?:target\\s+action\\s+)?date|\\bPDUFA\\b.{0,30}\\b(?:extended|extension)",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 80
+    },
+    {
+      "event_outcome": "futility",
+      "event_family": "clinical_outcome",
+      "polarity": "negative",
+      "pattern": "\\b(?:discontinued|stopped|halted|terminated|ended)\\b.{0,55}\\b(?:for|due\\s+to)\\s+futility|\\bfutility\\s+(?:boundary|threshold|criteria)\\s+(?:was\\s+|were\\s+)?(?:crossed|met|reached)",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 80
+    },
+    {
+      "event_outcome": "trial_discontinued",
+      "event_family": "clinical_outcome",
+      "polarity": "negative",
+      "pattern": "\\b(?:discontinued|discontinues|terminated|terminates|halted|halts)\\s+(?:(?:the|its|all|further)\\s+)?(?:clinical\\s+)?(?:trial|study|development|program)|\\b(?:terminates|terminated|halts|halted)\\s+(?:Phase\\s*[123]\\s+)?(?:trial|study)",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 70
+    },
+    {
+      "event_outcome": "refusal_to_file",
+      "event_family": "fda_decision",
+      "polarity": "negative",
+      "pattern": "\\b(?:refused|refuses)\\s+to\\s+file|\\b(?:refuse|refusal)\\s+to\\s+file\\s+letter",
+      "confirmed_outcome": true,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 70
+    },
+    {
+      "event_outcome": "trial_authorization",
+      "event_family": "regulatory_milestone",
+      "polarity": "unknown",
+      "pattern": "\\bFDA\\b.{0,65}\\b(?:IDE|IND)\\b|\\bFDA\\s+clearance\\s+to\\s+initiate|\\bFDA\\s+(?:has\\s+)?(?:approved|cleared|authorized)\\b.{0,65}\\b(?:trial\\s+(?:protocol|design)|(?:initiate|begin|conduct)\\s+(?:a\\s+)?(?:clinical\\s+)?trial)",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 95
+    },
+    {
+      "event_outcome": "review_acceptance",
+      "event_family": "regulatory_milestone",
+      "polarity": "unknown",
+      "pattern": "\\b(?:accepted|accepts)\\b.{0,45}\\b(?:for\\s+(?:priority\\s+)?review|NDA|BLA)",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 55
+    },
+    {
+      "event_outcome": "fast_track",
+      "event_family": "regulatory_milestone",
+      "polarity": "unknown",
+      "pattern": "\\b(?:granted|grants|received|receives)\\b.{0,45}\\bFast\\s+Track",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 50
+    },
+    {
+      "event_outcome": "orphan_designation",
+      "event_family": "regulatory_milestone",
+      "polarity": "unknown",
+      "pattern": "\\b(?:granted|grants|received|receives)\\b.{0,45}\\bOrphan\\s+Drug\\s+Designation",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 50
+    },
+    {
+      "event_outcome": "priority_review",
+      "event_family": "regulatory_milestone",
+      "polarity": "unknown",
+      "pattern": "\\b(?:granted|grants|received|receives)\\b.{0,45}\\bPriority\\s+Review(?!\\s+Voucher)",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 50
+    },
+    {
+      "event_outcome": "design_agreement",
+      "event_family": "regulatory_milestone",
+      "polarity": "unknown",
+      "pattern": "\\bFDA\\s+(?:agreed|agrees)\\b.{0,40}\\b(?:trial\\s+design|protocol)",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 50
+    },
+    {
+      "event_outcome": "submission",
+      "event_family": "regulatory_milestone",
+      "polarity": "unknown",
+      "pattern": "\\b(?:submitted|submits|resubmitted|resubmits|filed|files)\\b.{0,45}\\b(?:NDA|BLA|marketing\\s+application)|\\b(?:NDA|BLA)\\b.{0,45}\\b(?:submitted|filed)",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 50
+    },
+    {
+      "event_outcome": "adcom_recommendation",
+      "event_family": "regulatory_milestone",
+      "polarity": "positive",
+      "pattern": "\\b(?:advisory\\s+committee|AdCom)\\b.{0,65}\\b(?:voted|votes)\\b.{0,25}\\bin\\s+favou?r",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 50
+    },
+    {
+      "event_outcome": "adcom_recommendation",
+      "event_family": "regulatory_milestone",
+      "polarity": "negative",
+      "pattern": "\\b(?:advisory\\s+committee|AdCom)\\b.{0,65}\\b(?:voted|votes)\\b.{0,25}\\bagainst",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 50
+    },
+    {
+      "event_outcome": "monitoring_continuation",
+      "event_family": "clinical_outcome",
+      "polarity": "unknown",
+      "pattern": "\\b(?:passes|passed)\\b.{0,40}\\bfutility\\s+analysis|\\bmonitoring\\s+committee\\b.{0,40}\\b(?:recommends|recommended)\\b.{0,25}\\bcontinue",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 40
+    },
+    {
+      "event_outcome": "acquisition_agreement",
+      "event_family": "merger_acquisition",
+      "polarity": "positive",
+      "pattern": "\\bdefinitive\\s+agreement\\s+to\\s+be\\s+acquired|\\bto\\s+be\\s+acquired\\s+by",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 40
+    },
+    {
+      "event_outcome": "application_withdrawal",
+      "event_family": "regulatory_milestone",
+      "polarity": "negative",
+      "pattern": "\\b(?:withdraws|withdrew|withdrawn)\\s+(?:its\\s+|the\\s+)?(?:NDA|BLA|marketing\\s+application)",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 40
+    },
+    {
+      "event_outcome": "mixed_results",
+      "event_family": "clinical_outcome",
+      "polarity": "mixed",
+      "pattern": "\\bmixed\\s+results",
+      "confirmed_outcome": false,
+      "needs_review": true,
+      "uncertainty_status": "none",
+      "priority": 40
+    },
+    {
+      "event_outcome": "halt_reported",
+      "event_family": "market_halt",
+      "polarity": "unknown",
+      "pattern": "\\btrading\\s+halt\\b",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 40
+    },
+    {
+      "event_outcome": "decision_unspecified",
+      "event_family": "regulatory_context",
+      "polarity": "unknown",
+      "pattern": "\\bFDA\\s+(?:issued|issues)\\s+(?:a\\s+)?decision\\b",
+      "confirmed_outcome": false,
+      "needs_review": true,
+      "uncertainty_status": "unspecified_decision",
+      "priority": 10
+    },
+    {
+      "event_outcome": "procedural_authorization",
+      "event_family": "regulatory_milestone",
+      "polarity": "unknown",
+      "pattern": "\\bFDA\\s+(?:has\\s+)?(?:approved|cleared|authorized)\\b.{0,45}\\b(?:manufacturing\\s+(?:facility|platform|process)|(?:filing|application)\\b.{0,30}\\bfor\\s+review)",
+      "confirmed_outcome": false,
+      "needs_review": false,
+      "uncertainty_status": "none",
+      "priority": 95
+    }
+  ],
+  "dated_reference": "\\b(?:in|since)\\s+(?:(January|February|March|April|May|June|July|August|September|October|November|December)\\s+)?((?:19|20)\\d{2})\\b",
+  "abbreviations": "\\b(?:U\\.S\\.|Inc\\.|Ltd\\.|Dr\\.|Mr\\.|Ms\\.|Prof\\.|Ph\\.D\\.|e\\.g\\.|i\\.e\\.)"
+}

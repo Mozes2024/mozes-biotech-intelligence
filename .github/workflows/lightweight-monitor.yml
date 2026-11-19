@@ -211,6 +211,7 @@ jobs:
     permissions:
       contents: read
       actions: write # Existing publication dispatch; no Git write permission.
+      id-token: write # BIO push sender identity, bound to this repo/main/workflow.
     env:
       MOZES_NOV14_RESTART_SHA: ${{ vars.MOZES_NOV14_RESTART_SHA }}
       MOZES_NOV14_RESTART_MODE: ${{ vars.MOZES_NOV14_RESTART_MODE }}
@@ -375,6 +376,10 @@ jobs:
         env:
           MOZES_ALERT_FEED_TOKEN: ${{ secrets.MOZES_ALERT_FEED_TOKEN }}
         run: python -m mozes.alert_feed
+      - name: Deliver new verified desktop notifications independently of Pages
+        if: steps.checkpoint_upload.outcome == 'success'
+        continue-on-error: true
+        run: python -m mozes.browser_push
       - name: Publish changed data or an unacknowledged freshness checkpoint
         if: steps.checkpoint_upload.outcome == 'success' && steps.data.outputs.should_publish == 'true'
         env:

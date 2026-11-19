@@ -163,9 +163,9 @@ def explain(payload, text="", *, basis="headline_only", source_hash=None):
                 result["evidence"] = [{"id": "source-1", "topic": topic,
                                        "quote": _quote(sample, match), "url": payload.get("source_url")}]
             break
-    result["source_polarity"] = classify_outcome(sample[:12_000])["polarity"]
+    result["source_polarity"] = classify_outcome(sample, basis=basis, as_of=payload.get("published_at") or payload.get("accepted_at") or payload.get("detected_at"))["polarity"]
     headline_polarity = (payload.get("outcome") or {}).get("polarity", "unknown")
-    if (basis == "source_text" and headline_polarity != "unknown" and
+    if (basis == "source_text" and
             result["source_polarity"] != "unknown" and headline_polarity != result["source_polarity"]):
         result["missing_he"].append("סיווג הטקסט שונה מסיווג הכותרת. יש לקרוא את המקור לפני הסתמכות על הכיוון.")
     if basis in {"source_text", "feed_summary"}:

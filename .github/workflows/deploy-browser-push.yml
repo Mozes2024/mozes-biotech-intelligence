@@ -1,0 +1,30 @@
+name: deploy-isolated-desktop-push
+on:
+  push:
+    branches: [bio-brave-push]
+    paths: ['.github/workflows/deploy-browser-push.yml']
+permissions:
+  contents: read
+concurrency:
+  group: mozes-isolated-browser-push-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --prefix cloudflare
+      - name: Require the reviewed isolated service bundle
+        run: |
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          echo '4bbb473b13bb8a1f45e3d14154bdbde484bf1032b90a924552d3d3e35542dfdc  push-worker.js' | sha256sum --check
+          echo '39b3b696e33c68d24768172a610a0e0896f4f601cad3709b2340802ba664e030  push-wrangler.toml' | sha256sum --check
+      - name: Deploy only isolated notification service and SQLite state
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node cloudflare/node_modules/wrangler/bin/wrangler.js deploy --config push-wrangler.toml

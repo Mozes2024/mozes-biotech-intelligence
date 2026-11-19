@@ -78,7 +78,7 @@ def test_workflow_permission_boundaries():
             ('jobs', 'nov14_checkpoint_only'): {'contents': 'write', 'actions': 'read'},
             ('jobs', 'incident_eligibility'): {'contents': 'write', 'actions': 'read'},
             ('jobs', 'prospective_claim'): {'contents': 'write', 'actions': 'read'},
-            ('jobs', 'monitor'): producer,
+            ('jobs', 'monitor'): {**producer, 'id-token': 'write'},
             ('jobs', 'prospective_cleanup'): {**read, 'actions': 'read'}},
     }
     for name, expected in contracts.items():
