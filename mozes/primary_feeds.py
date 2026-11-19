@@ -227,6 +227,7 @@ def poll_fda_feeds(conn, *, fetch, now=None, max_items=20, resolve_headline=None
                 seen += conn.total_changes > before
             observe(conn, f"fda_feed:{name}", {
                 "status": "PARTIAL" if feed_unresolved else "active", "checked_at": now.isoformat(),
+                "fetch_status": "OK",
                 "items": len(items), "historical_decisions": feed_historical,
                 "unverified_decision_dates": feed_unresolved,
                 "error": "decision_date_unverified" if feed_unresolved else None},
@@ -234,7 +235,7 @@ def poll_fda_feeds(conn, *, fetch, now=None, max_items=20, resolve_headline=None
         except (OSError, ValueError, ET.ParseError, TypeError, http.client.HTTPException) as exc:
             errors += 1
             observe(conn, f"fda_feed:{name}", {"status": "fetch_error", "error": str(exc)[:160],
-                                               "checked_at": now.isoformat()},
+                                               "fetch_status": "FAILED", "checked_at": now.isoformat()},
                     source_url=url, source_type="fda")
     return {"signals_seen": seen, "errors": errors, "historical_decisions": historical,
             "unverified_decision_dates": unresolved}

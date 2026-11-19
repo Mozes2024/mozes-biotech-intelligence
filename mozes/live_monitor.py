@@ -89,13 +89,23 @@ def observe(conn, key, value, *, source_url=None, source_type=None):
         previous = json.loads(old["value_json"]) if old else {}
         value = dict(value)
         checked = value.get("checked_at") or db.utcnow()
-        failed = value.get("status") in {"fetch_error", "FAILED", "PARTIAL"}
+        # FDA item-date validation can be partial after a successful fetch.
+        # Keep the coverage warning, but do not count it as a transport failure.
+        fda_fetch_ok = (key.startswith("fda_feed:") and value.get("fetch_status") == "OK"
+                        and value.get("status") in {"active", "PARTIAL"})
+        failed = value.get("status") in {"fetch_error", "FAILED", "PARTIAL"} and not fda_fetch_ok
+        prior_failures = previous.get("consecutive_failures", 0)
+        if (key.startswith("fda_feed:") and previous.get("status") == "PARTIAL"
+                and previous.get("error") == "decision_date_unverified"):
+            # Legacy counters mixed validation partials with fetch errors.
+            # Do not carry that ambiguous count into a new transport failure.
+            prior_failures = 0
         incomplete = value.get("status") in {"no_official_site", "no_rss_found"}
         value.update({
             "last_checked_at": checked,
             "last_success_at": previous.get("last_success_at") if failed or incomplete else checked,
             "last_error_at": checked if failed else previous.get("last_error_at"),
-            "consecutive_failures": previous.get("consecutive_failures", 0) + 1 if failed else 0,
+            "consecutive_failures": prior_failures + 1 if failed else 0,
         })
     digest = _hash(value)
     if old and old["content_hash"] == digest:

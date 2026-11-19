@@ -189,7 +189,10 @@ def _health(conn, live, refresh, monitor):
         for v in sec_streams.values())
     for source in source_rows:
         value = json.loads(source["value_json"] or "{}")
-        status = "FAILED" if value.get("consecutive_failures") else (
+        fda_validation_partial = (source["observation_key"].startswith("fda_feed:")
+                                  and value.get("fetch_status") == "OK"
+                                  and value.get("status") == "PARTIAL")
+        status = "PARTIAL" if fda_validation_partial else "FAILED" if value.get("consecutive_failures") else (
             "FAILED" if value.get("status") in {"fetch_error", "FAILED"} else
             "PARTIAL" if value.get("status") in {"no_official_site", "no_rss_found", "PARTIAL"} else "OK")
         ticker = source["observation_key"].split(":", 1)[-1]
@@ -209,6 +212,9 @@ def _health(conn, live, refresh, monitor):
                 "last_error_at": value.get("last_error_at"),
                 "last_error": value.get("error") or value.get("feed_error"),
                 "consecutive_failures": value.get("consecutive_failures", 0)}
+        if source["observation_key"].startswith("fda_feed:"):
+            item["fetch_status"] = value.get("fetch_status")
+            item["unverified_decision_dates"] = value.get("unverified_decision_dates", 0)
         if source["observation_key"].startswith("official_feed:"):
             entry = registry.get(ticker) or {}
             item["source_url"] = value.get("feed") or value.get("site") or entry.get("feed_url") or entry.get("site")
