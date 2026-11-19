@@ -158,3 +158,33 @@ def test_covered_ir_failure_stays_visible_in_severity_lists(tmp_path):
     red = [r['module'] for r in health['severity']['red']]
     assert 'official_feed:AMGN' in red
     assert health['status'] == 'degraded'
+
+
+def test_legacy_fda_partial_count_does_not_inflate_next_fetch_failure(tmp_path):
+    conn = db.connect(tmp_path / 'legacy-fda.db')
+    observe(conn, 'fda_feed:fda_drugs', {'status': 'PARTIAL', 'error': 'decision_date_unverified',
+                                       'checked_at': '2026-11-18T20:00:00Z'})
+    row = conn.execute("SELECT value_json FROM monitor_observations").fetchone()
+    value = json.loads(row[0]); value['consecutive_failures'] = 57
+    conn.execute('UPDATE monitor_observations SET value_json=?', (json.dumps(value),))
+    observe(conn, 'fda_feed:fda_drugs', {'status': 'fetch_error', 'fetch_status': 'FAILED',
+        'error': 'fixture timeout', 'checked_at': '2026-11-18T21:00:00Z'})
+    health = _health(conn, [], None, None)['source_freshness'][0]
+    assert health['status'] == 'FAILED' and health['consecutive_failures'] == 1
+    assert health['last_success_at'] is None
+
+
+def test_unrelated_partial_failure_semantics_unchanged(tmp_path):
+    conn = db.connect(tmp_path / 'other-partial.db')
+    observe(conn, 'official_feed:AMGN', {'status': 'PARTIAL', 'checked_at': _now()})
+    row = _health(conn, [], None, None)['source_freshness'][0]
+    assert row['status'] == 'FAILED' and row['consecutive_failures'] == 1
+    assert row['last_success_at'] is None
+
+
+def test_fda_fetch_error_cannot_be_masked_by_success_marker(tmp_path):
+    conn = db.connect(tmp_path / 'invalid-marker.db')
+    observe(conn, 'fda_feed:fda_drugs', {'status': 'fetch_error', 'fetch_status': 'OK',
+        'error': 'fixture failure', 'checked_at': _now()})
+    row = _health(conn, [], None, None)['source_freshness'][0]
+    assert row['status'] == 'FAILED' and row['consecutive_failures'] == 1

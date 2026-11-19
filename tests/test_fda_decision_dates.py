@@ -130,3 +130,63 @@ def test_body_cache_revalidates_on_new_feed_timestamp(tmp_path):
     i['published_at'] = '2026-11-09T21:51:00+00:00'
     validate_item(conn, i, now=NOW, read_article=read, budget=[1])
     assert len(calls) == 2
+
+
+def test_validation_partial_is_amber_with_fresh_fetch_and_no_delivery(tmp_path):
+    from mozes.payload_v3 import _health
+    conn = db.connect(tmp_path / 'partial-health.db')
+    i = item(CASES[2], summary=CASES[2][1])
+    for _ in range(3):
+        result = poll_fda_feeds(conn, fetch=lambda _: rss([i]), now=NOW,
+            resolve_headline=lambda *_: {'ticker': 'IOVA'},
+            read_article=lambda _: '<p>No dated decision</p>')
+        assert result['errors'] == 0 and result['unverified_decision_dates'] == 3
+    health = _health(conn, [], None, None)
+    rows = [x for x in health['source_freshness'] if x['source_type'] == 'fda']
+    assert len(rows) == 3
+    for row in rows:
+        assert row['status'] == 'PARTIAL'
+        assert row['fetch_status'] == 'OK'
+        assert row['unverified_decision_dates'] == 1
+        assert row['consecutive_failures'] == 0
+        assert row['last_success_at'] == NOW.isoformat()
+        assert row['last_error'] == 'decision_date_unverified'
+        assert row['last_error_at'] is None
+    assert {x['module'] for x in health['severity']['amber']} >= {x['source'] for x in rows}
+    assert not any(x['module'].startswith('fda_feed:') for x in health['severity']['red'])
+    assert conn.execute('SELECT COUNT(*) FROM change_events').fetchone()[0] == 0
+    assert conn.execute('SELECT COUNT(*) FROM alert_outbox').fetchone()[0] == 0
+
+
+def test_fda_fetch_failure_counts_and_partial_recovery(tmp_path):
+    from datetime import timedelta
+    from mozes.payload_v3 import _health
+    conn = db.connect(tmp_path / 'transitions.db')
+    def states():
+        return [x for x in _health(conn, [], None, None)['source_freshness'] if x['source_type'] == 'fda']
+    def fail(_):
+        raise TimeoutError('fixture timeout')
+    for step in (1, 2):
+        result = poll_fda_feeds(conn, fetch=fail, now=NOW + timedelta(minutes=step))
+        assert result['errors'] == 3
+        assert all(x['status'] == 'FAILED' and x['fetch_status'] == 'FAILED'
+                   and x['consecutive_failures'] == step for x in states())
+    i = item(CASES[2], summary=CASES[2][1])
+    recovered_at = NOW + timedelta(minutes=3)
+    poll_fda_feeds(conn, fetch=lambda _: rss([i]), now=recovered_at,
+                   read_article=lambda _: '<p>No dated decision</p>')
+    assert all(x['status'] == 'PARTIAL' and x['consecutive_failures'] == 0
+               and x['last_success_at'] == recovered_at.isoformat()
+               and x['last_error_at'] == (NOW + timedelta(minutes=2)).isoformat() for x in states())
+    poll_fda_feeds(conn, fetch=fail, now=NOW + timedelta(minutes=4))
+    assert all(x['status'] == 'FAILED' and x['consecutive_failures'] == 1
+               and x['last_success_at'] == recovered_at.isoformat() for x in states())
+
+
+def test_malformed_fda_xml_is_still_a_failure(tmp_path):
+    from mozes.payload_v3 import _health
+    conn = db.connect(tmp_path / 'malformed.db')
+    result = poll_fda_feeds(conn, fetch=lambda _: '<rss><broken>', now=NOW)
+    assert result['errors'] == 3
+    rows = _health(conn, [], None, None)['source_freshness']
+    assert all(x['status'] == 'FAILED' and x['consecutive_failures'] == 1 for x in rows)
